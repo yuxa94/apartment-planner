@@ -30,6 +30,16 @@ const target = path.join(out, 'planby-unit-planner.html');
 fs.writeFileSync(target, html);
 console.log(`${path.relative(root, target)} ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
 
+// Claude artifact variant: the publisher supplies doctype/head/body itself, and the viewer blocks
+// page-started downloads, so drop the document shell and hand files over as copyable text instead.
+const head = html.match(/<head>([\s\S]*?)<\/head>/), body = html.match(/<body>([\s\S]*)<\/body>/);
+if (!head || !body) throw new Error('could not find <head> and <body> in the built page');
+const artifactHead = head[1].replace(/<!--[\s\S]*?-->/g, '').replace(/<meta [^>]*>/g, '').replace(/<title>[^<]*<\/title>/, '<title>PLANBY 단위세대 평면</title>').trim();
+const artifact = artifactHead + '\n' + swap(body[1], "window.PLANBY_NO_ASSETS = true;", "window.PLANBY_NO_ASSETS = true;\nwindow.PLANBY_NO_DOWNLOAD = true;").trim() + '\n';
+const artifactTarget = path.join(out, 'planby-unit-planner.artifact.html');
+fs.writeFileSync(artifactTarget, artifact);
+console.log(`${path.relative(root, artifactTarget)} ${(Buffer.byteLength(artifact) / 1024).toFixed(0)} KB`);
+
 if (process.platform === 'win32') {
   const zip = path.join(out, 'planby-unit-planner.zip');
   const files = ['planby-unit-planner.html', 'README.md', 'MODEL-INSTRUCTIONS.md'].map(f => path.join(out, f)).filter(f => fs.existsSync(f));

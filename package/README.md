@@ -6,13 +6,14 @@ Stage 1(단위세대 계획) 편집기를 HTML 파일 하나로 묶은 패키지
 |---|---|
 | `planby-unit-planner.html` | 편집기 본체 (CSS·스크립트 내장, 약 200 KB) |
 | `MODEL-INSTRUCTIONS.md` | Claude 프로젝트 / ChatGPT 맞춤 GPT에 넣을 지침 |
-| `planby-unit-planner.zip` | 위 세 파일 묶음 (업로드·전달용) |
+| `planby-unit-planner.artifact.html` | Claude 아티팩트 게시용 (문서 틀 없음, 다운로드 대신 복사) |
+| `planby-unit-planner.zip` | HTML·README·지침 묶음 (업로드·전달용) |
 
 ## 띄우는 방법
 
 **브라우저 (가장 확실함)** — `planby-unit-planner.html`을 더블클릭합니다. 작업은 그 브라우저에 자동 저장되고, 대화는 옆 탭의 Claude 또는 ChatGPT에서 합니다.
 
-**Claude (claude.ai)** — 아티팩트로 띄운 링크를 쓰면 Claude 화면 안에서 바로 열립니다. Claude Code 세션에서 "패키지를 아티팩트로 게시해줘"라고 요청하면 개인 링크가 만들어집니다. 대화창에 HTML을 붙여넣고 아티팩트로 띄워 달라고 할 수도 있지만, 파일이 커서 Claude가 코드를 그대로 다시 써야 하므로 느리고 잘릴 수 있습니다.
+**Claude (claude.ai)** — 게시된 아티팩트: https://claude.ai/artifact/JYNvZGPWkgR3W4XdVsYtLh (비공개, 공유는 페이지의 Share 메뉴에서). 아티팩트용 파일은 `planby-unit-planner.artifact.html`이며, 다운로드 대신 내용 복사 창을 띄우고 확인창 대신 버튼을 한 번 더 누르게 합니다. 다시 게시하려면 Claude Code 세션에서 "패키지를 아티팩트로 다시 게시해줘"라고 요청합니다. 대화창에 HTML을 붙여넣고 아티팩트로 띄워 달라고 할 수도 있지만, 파일이 커서 Claude가 코드를 그대로 다시 써야 하므로 느리고 잘릴 수 있습니다.
 
 **ChatGPT** — 캔버스 미리보기는 코드 전체를 캔버스에 넣어야 해서 이 크기의 파일에는 맞지 않습니다. HTML은 브라우저에서 열고, 대화는 ChatGPT에서 하세요. 맞춤 GPT를 만들면 `MODEL-INSTRUCTIONS.md`를 지침에 넣습니다.
 

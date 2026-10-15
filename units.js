@@ -791,6 +791,7 @@
       .pu-msg.me{align-self:flex-end;background:#143e6a;color:#fff;border-bottom-right-radius:3px}.pu-msg.me small{color:#b9cbe0}
       .pu-msg.claude{align-self:flex-start;background:#f2f6fa;color:#24425e;border:1px solid #dfe8f0;border-bottom-left-radius:3px}.pu-msg.claude.bad{background:#fff4e7;border-color:#f2d7ad;color:#82531a}
       .pu-msg.system{align-self:center;background:transparent;color:#7d8fa1;font-size:11px;text-align:center;padding:2px 6px}
+      .btn.pu-armed{background:#fbe9e9;border-color:#e6a1a3;color:#a8323a}
       .pu-manual-copy{display:block;width:100%;box-sizing:border-box;margin-top:6px;border:0;border-radius:6px;padding:6px;font:11px/1.4 ui-monospace,Consolas,monospace;color:#1d3550;background:#e9f1fb;resize:vertical;min-height:54px}
       .pu-msg.me .btn{display:block;background:#fff;color:#143e6a;border-color:#fff}.pu-msg .btn{margin-top:8px;padding:6px 12px;font-size:12px}.pu-msg b{font-weight:700}
       .pu-chat textarea{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:9px;padding:9px 10px;font:13px/1.5 inherit;color:#233f59;resize:vertical;min-height:64px}
@@ -808,6 +809,8 @@
   const MARK_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   // The single-file package for chat apps leaves out the reference PNGs (about 1.4 MB) and sets this flag.
   const assetsAvailable = () => !(typeof window !== 'undefined' && window.PLANBY_NO_ASSETS);
+  // Claude artifacts block page-started downloads; the artifact build sets this flag.
+  const downloadsBlocked = () => typeof window !== 'undefined' && Boolean(window.PLANBY_NO_DOWNLOAD);
 
   function mountUnits(container, project, onChange) {
     ensureUnits(project); injectStyles(container.ownerDocument); injectUnitEditorStyles(container.ownerDocument);
@@ -822,6 +825,13 @@
     function markChanged() {
       for (const t of project.typologies) if (t.sourceUnitIds && t.sourceUnitIds.includes(active().id)) t.needsReview = true;
       changed();
+    }
+    // Some viewers (Claude artifacts) suppress confirm(), so destructive buttons ask for a second click instead.
+    function confirmClick(button, armedLabel, action) {
+      if (button.dataset.armed === '1') { action(); return; }
+      const label = button.textContent;
+      button.dataset.armed = '1'; button.textContent = armedLabel; button.classList.add('pu-armed');
+      setTimeout(() => { if (button.isConnected && button.dataset.armed === '1') { button.dataset.armed = ''; button.textContent = label; button.classList.remove('pu-armed'); } }, 3000);
     }
     function setStatus(message) { status = message; const el = container.querySelector('[data-status]'); if (el) el.textContent = message; }
     const snapshotOf = unit => clone({ outline: unit.outline, rooms: unit.rooms, width: unit.width, depth: unit.depth });
@@ -844,7 +854,7 @@
         <details class="pu-reference"><summary>공식 참고 평면과 도면 표기 치수 보기 · ${type}A</summary>${assetsAvailable() ? '' : '<p>이 패키지에는 참고 이미지가 없습니다. 원본: <a href="https://www.lh-hca26.co.kr/sub03_01.html?tab=1" target="_blank" rel="noopener">LH 양주회천 A-26 평면 안내</a></p>'}<img ${assetsAvailable() ? '' : 'hidden '}src="${assetsAvailable() ? `assets/${type}A-plan.png` : ''}" alt="LH 양주회천 A-26 ${type}A 공식 참고 평면"><p>자료: LH 양주회천 A-26 ${type}A · 공식 도면 표기 ${Object.entries(ROOM_DATA[type].officialDims).map(([k, v]) => `${esc(k)} <strong>${esc(v)}</strong>`).join(' · ')} (mm).<br>표기 기준과 마감 두께를 확인하지 않은 값이며, 시공·가구 제작용 실측치가 아닙니다.</p></details>`}
         </div><aside class="pu-inspector"><div class="panel"><h3>${{ rooms: '공간 편집', outline: '외곽선', markup: '표시한 영역' }[mode]}</h3><div data-inspector></div></div><div class="panel pu-chat"><h3>✧ Claude 대화 <small>API 없이 복사·붙여넣기</small></h3><div class="pu-chat-log" data-chat-log aria-live="polite"></div>
           <div class="pu-chat-marks" data-chat-marks></div><textarea data-chat-input rows="3" placeholder="수정 요청을 쓰거나, Claude의 답변을 통째로 붙여넣으세요. (Ctrl+Enter 보내기)">${esc(CHAT.draft)}</textarea>
-          <div class="pu-chat-actions"><span><button type="button" class="text-btn" data-chat-file-save>요청 파일 저장</button> · <label class="text-btn" style="cursor:pointer">답변 파일 열기<input type="file" accept=".json,application/json,text/plain" data-chat-file hidden></label></span><button type="button" class="btn primary" data-chat-send></button></div></div>
+          <div class="pu-chat-actions"><span>${downloadsBlocked() ? '' : '<button type="button" class="text-btn" data-chat-file-save>요청 파일 저장</button> · '}<label class="text-btn" style="cursor:pointer">답변 파일 열기<input type="file" accept=".json,application/json,text/plain" data-chat-file hidden></label></span><button type="button" class="btn primary" data-chat-send></button></div></div>
           <div class="panel pu-layers-panel"><h3>레이어 <small>위에 있는 공간이 겹친 면적을 차지</small></h3><div data-roomlist></div></div></aside></div>`;
       container.querySelectorAll('[data-unit-id]').forEach(b => b.addEventListener('click', () => { selectUnit(b.dataset.unitId); selectedId = 'living'; selectedEdge = selectedVertex = null; changed(); render(); }));
       container.querySelector('[data-new-plan]').addEventListener('click', () => { newPlanOpen = !newPlanOpen; render(); if (newPlanOpen) container.querySelector('[data-np-name]').select(); });
@@ -865,9 +875,10 @@
       const deleteBtn = container.querySelector('[data-unit-delete]');
       if (deleteBtn) deleteBtn.addEventListener('click', () => {
         const unit = active();
-        if (!win.confirm(`“${unit.name}” 도면을 삭제할까요? 실행 취소(Ctrl+Z)로 복원할 수 있습니다.`)) return;
-        project.units = project.units.filter(u => u.id !== unit.id); delete MARKS[unit.id];
-        selectUnit(project.units[0].id); setStatus(`“${unit.name}” 도면을 삭제했습니다.`); render(); markChanged();
+        confirmClick(deleteBtn, '한 번 더 누르면 삭제', () => {
+          project.units = project.units.filter(u => u.id !== unit.id); delete MARKS[unit.id];
+          selectUnit(project.units[0].id); setStatus(`“${unit.name}” 도면을 삭제했습니다. 실행 취소(Ctrl+Z)로 복원할 수 있습니다.`); render(); markChanged();
+        });
       });
       container.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; selectedEdge = selectedVertex = null; render(); }));
       container.querySelectorAll('[data-opt]').forEach(input => input.addEventListener('change', () => {
@@ -890,10 +901,11 @@
       });
       const resetBtn = container.querySelector('[data-action="reset"]');
       if (resetBtn) resetBtn.addEventListener('click', () => {
-        if (!win.confirm(`${type}형을 참고도면 기반 기본 배치로 되돌릴까요? 실행 취소(Ctrl+Z)로 복원할 수 있습니다.`)) return;
-        const unit = active(), fresh = createUnit(type);
-        Object.assign(unit, { name: fresh.name, outline: fresh.outline, rooms: fresh.rooms, width: fresh.width, depth: fresh.depth, layoutVersion: 2, reference: fresh.reference });
-        selectedEdge = selectedVertex = null; setStatus('참고도면 기반 배치로 재설정했습니다.'); render(); markChanged();
+        confirmClick(resetBtn, '한 번 더 누르면 재설정', () => {
+          const unit = active(), fresh = createUnit(type);
+          Object.assign(unit, { name: fresh.name, outline: fresh.outline, rooms: fresh.rooms, width: fresh.width, depth: fresh.depth, layoutVersion: 2, reference: fresh.reference });
+          selectedEdge = selectedVertex = null; setStatus('참고도면 기반 배치로 재설정했습니다. 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다.'); render(); markChanged();
+        });
       });
       wireChat();
       const svg = container.querySelector('.pu-canvas');
@@ -1369,7 +1381,8 @@
       input.addEventListener('input', () => { CHAT.draft = input.value; updateChatMode(); });
       input.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendChat(); } });
       container.querySelector('[data-chat-send]').addEventListener('click', sendChat);
-      container.querySelector('[data-chat-file-save]').addEventListener('click', () => {
+      const fileSave = container.querySelector('[data-chat-file-save]');
+      if (fileSave) fileSave.addEventListener('click', () => {
         download(`unit-${unitId}-request-r${project.revision}.json`, JSON.stringify(buildUnitRequest(project, unitId, input.value, marksOf(unitId)), null, 2));
         chatLog({ role: 'system', text: `${active().name} 요청 파일을 저장했습니다 (개정 ${project.revision}).` });
       });
