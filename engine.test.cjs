@@ -324,3 +324,58 @@ test('invalid profile options are rejected', () => {
   assert.throws(() => Engine.evaluateSite(SITE, [slab()], facing({ facing: { lightFactor: -1 } })), /lightFactor/);
   assert.throws(() => Engine.evaluateSite(SITE, [slab()], rules({ height: { base: 'x' } })), /height\.base/);
 });
+
+test('height model reproduces the 청주월명 AG-109 table, including full piloti', () => {
+  const height = api('buildingHeight');
+  const penthouse = rules({ height: { first: 3.5, top: [3, 3], parapet: 0.4 } });
+  const plain = rules({ height: { first: 3.5, top: [3], parapet: 0.4 } });
+  for (const [floors, a, b, c, d] of [[15, 43.5, 43.3, 40, 39.8], [20, 57.5, 57.3, 54, 53.8], [29, 82.7, 82.5, 79.2, 79]]) {
+    const bl = { floors, floorHeight: 2.8 };
+    near(height(bl, penthouse), a, 1e-9);
+    near(height(bl, plain), b, 1e-9);
+    near(height({ ...bl, pilotiFull: true }, penthouse), c, 1e-9);
+    near(height({ ...bl, pilotiFull: true }, plain), d, 1e-9);
+  }
+  near(height({ floors: 1, floorHeight: 2.8 }, penthouse), 3.9, 1e-9);
+});
+
+test('south-low follows 나목: taller window facing the lower south building, with a 10 m floor', () => {
+  const cfg = facing({ minDistance: 0, facing: { lightFactor: 1, southLowTall: 0, southLowLow: 1, southLowMin: 10, sideToSide: 4 } });
+  const tall = slab({ x: 50, y: 30 });
+  let pair = pairOf(tall, slab({ id: 'B', x: 50, y: 52, floors: 2 }), cfg);
+  assert.equal(pair.basis.type, 'south-low');
+  near(pair.required, 10);
+  assert.equal(pair.basis.fixed, 10);
+  near(pair.distance, 12);
+  assert.equal(pair.pass, true);
+  pair = pairOf(tall, slab({ id: 'B', x: 50, y: 60, floors: 5 }), cfg);
+  near(pair.required, 15);
+  assert.deepEqual(pair.basis.terms.map(t => [t.id, t.factor]), [['B', 1]]);
+  // The lower building rotated so only its side wall faces north still counts:
+  // the condition is the taller building's window facing it.
+  pair = pairOf(tall, slab({ id: 'B', x: 50, y: 70, floors: 5, rotation: 90 }), cfg);
+  assert.equal(pair.basis.type, 'south-low');
+});
+
+test('light-direction height limit compares window-face clearance with H / factor', () => {
+  const config = rules({ northEnabled: false, lightLimit: { enabled: true, factor: 2 } });
+  let check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 20, floors: 10 })], config).buildings[0];
+  near(check.light.distance, 15);
+  near(check.light.required, 15);
+  assert.equal(check.lightPass, true);
+  check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 18, floors: 10 })], config).buildings[0];
+  assert.equal(check.lightPass, false);
+  assert.equal(check.pass, false);
+  near(check.light.to[1], 0);
+  assert.equal(Engine.canPlace(SITE, slab({ x: 50, y: 18, floors: 10 }), [], config), false);
+  check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 18, floors: 10 })], rules({ northEnabled: false })).buildings[0];
+  assert.equal(check.light, null);
+  assert.equal(check.lightPass, true);
+});
+
+test('north check reports the governing ray for drawing', () => {
+  const check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 40 })], rules()).buildings[0];
+  near(check.northDistance, 35);
+  near(check.northFrom[1], 35);
+  near(check.northTo[1], 0);
+});

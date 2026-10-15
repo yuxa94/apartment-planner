@@ -228,7 +228,7 @@
   }
 
   // Optional rule extensions; absent fields reproduce the original uniform model.
-  const FACING_DEFAULTS = Object.freeze({ lightFactor: 1, southLowTall: 0.8, southLowLow: 1, sideToSide: 4 });
+  const FACING_DEFAULTS = Object.freeze({ lightFactor: 1, southLowTall: 0.8, southLowLow: 1, southLowMin: 0, sideToSide: 4 });
 
   function validateRules(rules) {
     if (!rules || typeof rules !== 'object') throw new TypeError('Rules are required');
@@ -238,8 +238,12 @@
     if (typeof rules.northEnabled !== 'boolean') throw new TypeError('Rule northEnabled must be boolean');
     if (rules.height !== undefined) {
       if (!rules.height || typeof rules.height !== 'object') throw new TypeError('Rule height must be an object');
-      for (const key of ['base', 'parapet']) {
+      for (const key of ['base', 'parapet', 'first']) {
         if (rules.height[key] !== undefined) number(rules.height[key], `Rule height.${key}`, 0);
+      }
+      if (rules.height.top !== undefined) {
+        if (!Array.isArray(rules.height.top)) throw new TypeError('Rule height.top must be an array');
+        rules.height.top.forEach((v, i) => number(v, `Rule height.top[${i}]`, 0));
       }
     }
     if (rules.profile !== undefined && rules.profile !== 'uniform' && rules.profile !== 'facing') {
@@ -251,12 +255,25 @@
         if (rules.facing[key] !== undefined) number(rules.facing[key], `Rule facing.${key}`, 0);
       }
     }
+    if (rules.lightLimit !== undefined) {
+      if (!rules.lightLimit || typeof rules.lightLimit !== 'object') throw new TypeError('Rule lightLimit must be an object');
+      if (typeof rules.lightLimit.enabled !== 'boolean') throw new TypeError('Rule lightLimit.enabled must be boolean');
+      number(rules.lightLimit.factor, 'Rule lightLimit.factor', EPS);
+    }
   }
 
-  // H = base + floors × floorHeight + parapet (e.g. 고양삼송: 0.6 + n × 2.8 + 0.25).
+  // H = base + first floor + typical floors × floorHeight + top floors + parapet.
+  // first defaults to floorHeight and top to none, so the default is
+  // base + floors × floorHeight + parapet (고양삼송: 0.6 + n × 2.8 + 0.25).
+  // pilotiFull drops a fully open ground floor (청주월명 AG-109:
+  // 3.5 + (n − 3) × 2.8 + 3.0 + 3.0 + 0.4, or the same without the 3.5 m floor).
   function buildingHeight(b, rules) {
     const h = rules.height || {};
-    return (h.base || 0) + b.floors * b.floorHeight + (h.parapet || 0);
+    const top = (h.top || []).slice(0, Math.max(0, b.floors - 1));
+    const first = h.first === undefined ? b.floorHeight : h.first;
+    const typical = Math.max(0, b.floors - 1 - top.length);
+    return (h.base || 0) + (b.pilotiFull ? 0 : first) + typical * b.floorHeight +
+      top.reduce((sum, v) => sum + v, 0) + (h.parapet || 0);
   }
 
   // Rectangle faces in footprint order. Long edges are treated as window
@@ -268,7 +285,7 @@
       const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
       let n = [t[1], -t[0]];
       if (dot(n, sub(lerp(p, q, 0.5), center)) < 0) n = [-n[0], -n[1]];
-      return { p, t, n, length, kind: length >= longest - 1e-6 ? 'light' : 'side' };
+      return { p, q, t, n, length, kind: length >= longest - 1e-6 ? 'light' : 'side' };
     });
   }
 
@@ -299,19 +316,34 @@
 
   const label = g => g.building.name || String(g.building.id);
   const fmtFactor = v => `${Math.round(v * 100) / 100}H`;
+  // One requirement term "factor × H of a building", kept for drawing annotations.
+  const term = (g, factor) => ({ id: g.building.id, name: label(g), floors: g.building.floors,
+    height: g.height, factor, value: factor * g.height });
+
+  // Applies the minDistance floor and records it on the basis when it governs.
+  function finish(raw, rules, basis) {
+    const required = Math.max(rules.minDistance, raw);
+    if (required > raw + EPS) {
+      basis.min = rules.minDistance;
+      basis.text += ` (최소 ${rules.minDistance} m)`;
+    }
+    return required;
+  }
 
   function uniformPair(A, B, rules, closest, type) {
     const tall = A.height >= B.height ? A : B;
-    const raw = rules.distanceFactor * tall.height;
-    const required = Math.max(rules.minDistance, raw);
-    const text = `${type === 'diagonal' ? '대각 · 단순 가정' : '단순'} ${fmtFactor(rules.distanceFactor)} ${label(tall)} ${tall.building.floors}F` +
-      (required > raw + EPS ? ` (최소 ${rules.minDistance} m)` : '');
-    return { ...closest, required, basis: { type, faces: null, factor: rules.distanceFactor, text } };
+    const basis = { type, faces: null, factor: rules.distanceFactor, terms: [term(tall, rules.distanceFactor)], fixed: null,
+      text: `${type === 'diagonal' ? '대각 · 단순 가정' : '단순'} ${fmtFactor(rules.distanceFactor)} ${label(tall)} ${tall.building.floors}F` };
+    const required = finish(rules.distanceFactor * tall.height, rules, basis);
+    return { ...closest, required, basis };
   }
 
   // Requirement for one building pair. In the facing profile each face that sees
   // the other building gets its own requirement; the pair is governed by the
   // smallest margin. Non-facing (diagonal) pairs fall back to the uniform rule.
+  // South-low follows 시행령 제86조제3항제2호나목: the lower building lies in the
+  // half-plane from 정동 clockwise to 정서 of the taller one, and a window face
+  // (main opening) of the taller building faces it.
   function evaluatePair(A, B, rules, north) {
     const closest = distanceBetween(A.poly, B.poly);
     if (rules.profile !== 'facing') return uniformPair(A, B, rules, closest, 'uniform');
@@ -327,31 +359,34 @@
     }
     if (!hits.length) return uniformPair(A, B, rules, closest, 'diagonal');
     const tall = A.height >= B.height ? A : B, low = tall === A ? B : A;
-    const southLow = low.height < tall.height - EPS &&
-      dot(sub(low.center, tall.center), north) < 0 &&
-      hits.some(h => h.X === low && h.f.kind === 'light' && dot(h.f.n, north) > Math.SQRT1_2);
+    const toLow = sub(low.center, tall.center);
+    const southLow = low.height < tall.height - EPS && dot(toLow, north) < -EPS &&
+      hits.some(h => h.X === tall && h.f.kind === 'light' && dot(h.f.n, toLow) > EPS);
     let governing = null;
     for (const h of hits) {
-      let raw, type, text, factor = null;
+      let raw, basis;
       if (h.f.kind === 'side' && h.g.kind === 'side') {
-        raw = cfg.sideToSide; type = 'side-side'; text = `측벽↔측벽 ${cfg.sideToSide} m`;
+        raw = cfg.sideToSide;
+        basis = { type: 'side-side', factor: null, terms: [], fixed: cfg.sideToSide, text: `측벽↔측벽 ${cfg.sideToSide} m` };
       } else if (southLow) {
-        raw = Math.max(cfg.southLowTall * tall.height, cfg.southLowLow * low.height); type = 'south-low';
-        text = `남측저층 ${fmtFactor(cfg.southLowTall)} ${label(tall)} / ${fmtFactor(cfg.southLowLow)} ${label(low)}`;
+        const terms = [cfg.southLowTall > 0 && term(tall, cfg.southLowTall), term(low, cfg.southLowLow)].filter(Boolean);
+        raw = Math.max(cfg.southLowMin, ...terms.map(t => t.value));
+        const parts = [cfg.southLowMin > 0 && `${cfg.southLowMin} m`, ...terms.map(t => `${fmtFactor(t.factor)} ${t.name}`)];
+        basis = { type: 'south-low', factor: cfg.southLowLow, terms, fixed: cfg.southLowMin > 0 ? cfg.southLowMin : null,
+          text: `남측저층 ${parts.filter(Boolean).join(' / ')}` };
       } else {
         const owner = h.f.kind === 'light' ? h.X : h.Y;
-        raw = cfg.lightFactor * owner.height; factor = cfg.lightFactor;
-        type = h.f.kind === 'light' && h.g.kind === 'light' ? 'light-light' : 'light-side';
-        text = `${type === 'light-light' ? '채광↔채광' : '채광↔측벽'} ${fmtFactor(cfg.lightFactor)} ${label(owner)} ${owner.building.floors}F`;
+        const type = h.f.kind === 'light' && h.g.kind === 'light' ? 'light-light' : 'light-side';
+        raw = cfg.lightFactor * owner.height;
+        basis = { type, factor: cfg.lightFactor, terms: [term(owner, cfg.lightFactor)], fixed: null,
+          text: `${type === 'light-light' ? '채광↔채광' : '채광↔측벽'} ${fmtFactor(cfg.lightFactor)} ${label(owner)} ${owner.building.floors}F` };
       }
-      const required = Math.max(rules.minDistance, raw);
-      if (required > raw + EPS) text += ` (최소 ${rules.minDistance} m)`;
+      basis.faces = h.X === A ? [h.f.kind, h.g.kind] : [h.g.kind, h.f.kind];
+      const required = finish(raw, rules, basis);
       const margin = h.distance - required;
       if (!governing || margin < governing.margin) {
-        const pairFaces = h.X === A ? [h.f.kind, h.g.kind] : [h.g.kind, h.f.kind];
         const ends = h.X === A ? { a: h.a, b: h.b } : { a: h.b, b: h.a };
-        governing = { margin, distance: h.distance, ...ends, required,
-          basis: { type, faces: pairFaces, factor, text } };
+        governing = { margin, distance: h.distance, ...ends, required, basis };
       }
     }
     // Overlap or contact always fails, whatever face strips report.
@@ -366,7 +401,7 @@
     let max = Math.max(rules.minDistance, rules.distanceFactor * h);
     if (rules.profile === 'facing') {
       const cfg = { ...FACING_DEFAULTS, ...(rules.facing || {}) };
-      max = Math.max(max, cfg.lightFactor * h, cfg.southLowTall * h, cfg.southLowLow * h, cfg.sideToSide);
+      max = Math.max(max, cfg.lightFactor * h, cfg.southLowTall * h, cfg.southLowLow * h, cfg.southLowMin, cfg.sideToSide);
     }
     return max;
   }
@@ -388,17 +423,45 @@
       building: b, center: [b.x, b.y], faces: faces(b, poly) };
   }
 
+  function shortestRay(points, direction, outline) {
+    let best = null;
+    for (const p of points) {
+      const distance = rayClearance(p, direction, outline);
+      if (!best || distance < best.distance) {
+        best = { distance, from: p.slice(), to: [p[0] + direction[0] * distance, p[1] + direction[1] * distance] };
+      }
+    }
+    return best;
+  }
+
   function boundaryCheck(id, geometry, outline, rules, north) {
     const { poly, height } = geometry;
     const contained = fullyInside(poly, outline);
     const setback = boundaryDistance(poly, outline).distance;
     const setbackPass = contained && setback + EPS >= rules.setback;
     // Four vertex rays are a screening proxy, not full-face/legal analysis.
-    const northDistance = Math.min(...poly.map(p => rayClearance(p, north, outline)));
+    const north0 = shortestRay(poly, north, outline);
+    const northDistance = north0.distance;
     const northRequired = height <= rules.northLowHeight ? rules.northLowSetback : height * rules.northFactor;
     const northPass = !rules.northEnabled || (contained && northDistance + EPS >= northRequired);
-    return { id, inside: contained, setback, setbackPass, northDistance,
-      northRequired, northPass, pass: contained && setbackPass && northPass, height };
+    // 시행령 제86조제3항제1호: height ≤ factor × horizontal distance from a window
+    // face to the adjacent site boundary. Ends and midpoint of each window face are
+    // sampled; roads (centre-line rule) and partial heights are not modelled.
+    let light = null;
+    const limit = rules.lightLimit;
+    if (limit && limit.enabled) {
+      for (const f of geometry.faces.filter(f => f.kind === 'light')) {
+        const ray = shortestRay([f.p, lerp(f.p, f.q, 0.5), f.q], f.n, outline);
+        if (!light || ray.distance < light.distance) light = ray;
+      }
+      if (light) {
+        light.required = height / limit.factor;
+        light.pass = contained && light.distance + EPS >= light.required;
+      }
+    }
+    const lightPass = !light || light.pass;
+    return { id, inside: contained, setback, setbackPass, northDistance, northFrom: north0.from, northTo: north0.to,
+      northRequired, northPass, light, lightPass, pass: contained && setbackPass && northPass && lightPass, height };
   }
 
   function bounds(poly) {

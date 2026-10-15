@@ -1,185 +1,300 @@
 TAP version 13
-# Subtest: shoelace area handles a concave site and either vertex winding
-ok 1 - shoelace area handles a concave site and either vertex winding
+# Subtest: setback line offsets a site inward for either winding
+ok 1 - setback line offsets a site inward for either winding
   ---
-  duration_ms: 0.983
+  duration_ms: 0.9886
+  ...
+# Subtest: dimension notes restate the engine basis in reference style
+ok 2 - dimension notes restate the engine basis in reference style
+  ---
+  duration_ms: 9.4794
+  ...
+# Subtest: shoelace area handles a concave site and either vertex winding
+ok 3 - shoelace area handles a concave site and either vertex winding
+  ---
+  duration_ms: 1.0447
   ...
 # Subtest: clockwise rotation keeps the footprint centre and dimensions
-ok 2 - clockwise rotation keeps the footprint centre and dimensions
+ok 4 - clockwise rotation keeps the footprint centre and dimensions
   ---
-  duration_ms: 0.1933
+  duration_ms: 0.723
   ...
 # Subtest: point containment includes boundary points and respects a concave notch
-ok 3 - point containment includes boundary points and respects a concave notch
+ok 5 - point containment includes boundary points and respects a concave notch
   ---
-  duration_ms: 0.2289
+  duration_ms: 0.165
   ...
 # Subtest: polygon intersection detects edge crossing, containment, and boundary touching
-ok 4 - polygon intersection detects edge crossing, containment, and boundary touching
+ok 6 - polygon intersection detects edge crossing, containment, and boundary touching
   ---
-  duration_ms: 0.3501
+  duration_ms: 0.4006
   ...
 # Subtest: polygon distance measures rotated edges, not centres or bounding boxes
-ok 5 - polygon distance measures rotated edges, not centres or bounding boxes
+ok 7 - polygon distance measures rotated edges, not centres or bounding boxes
   ---
-  duration_ms: 0.8313
+  duration_ms: 0.4317
   ...
 # Subtest: polygon distance returns zero for crossing and contained filled polygons
-ok 6 - polygon distance returns zero for crossing and contained filled polygons
+ok 8 - polygon distance returns zero for crossing and contained filled polygons
   ---
-  duration_ms: 0.4149
+  duration_ms: 0.4239
   ...
 # Subtest: site containment rejects a rectangle crossing a notch even when all corners are inside
-ok 7 - site containment rejects a rectangle crossing a notch even when all corners are inside
+ok 9 - site containment rejects a rectangle crossing a notch even when all corners are inside
   ---
-  duration_ms: 0.6557
+  duration_ms: 1.4222
   ...
 # Subtest: setback measures distance to site edges without treating containment as overlap
-ok 8 - setback measures distance to site edges without treating containment as overlap
+ok 10 - setback measures distance to site edges without treating containment as overlap
   ---
-  duration_ms: 0.6933
+  duration_ms: 0.6469
   ...
 # Subtest: north angle rotates directional clearance and the low-height rule changes at its threshold
-ok 9 - north angle rotates directional clearance and the low-height rule changes at its threshold
+ok 11 - north angle rotates directional clearance and the low-height rule changes at its threshold
   ---
-  duration_ms: 0.4709
+  duration_ms: 0.8744
   ...
 # Subtest: north clearance uses the first boundary at a concave notch
-ok 10 - north clearance uses the first boundary at a concave notch
+ok 12 - north clearance uses the first boundary at a concave notch
   ---
-  duration_ms: 0.3395
+  duration_ms: 0.667
   ...
 # Subtest: height edits update required pair spacing while preserving geometric gap
-ok 11 - height edits update required pair spacing while preserving geometric gap
+ok 13 - height edits update required pair spacing while preserving geometric gap
   ---
-  duration_ms: 0.7595
+  duration_ms: 0.9883
   ...
 # Subtest: touching buildings fail collision screening even when all spacing rules are zero
-ok 12 - touching buildings fail collision screening even when all spacing rules are zero
+ok 14 - touching buildings fail collision screening even when all spacing rules are zero
   ---
-  duration_ms: 0.3732
+  duration_ms: 0.4388
   ...
 # Subtest: site metrics use footprint area, full floor area, percentages, and floor household count
-ok 13 - site metrics use footprint area, full floor area, percentages, and floor household count
+ok 15 - site metrics use footprint area, full floor area, percentages, and floor household count
   ---
-  duration_ms: 0.4359
+  duration_ms: 0.8905
   ...
 # Subtest: empty layouts return zero metrics without modifying inputs
-ok 14 - empty layouts return zero metrics without modifying inputs
+ok 16 - empty layouts return zero metrics without modifying inputs
   ---
-  duration_ms: 0.4292
+  duration_ms: 0.5258
   ...
 # Subtest: invalid dimensions and non-finite geometry fail explicitly
-ok 15 - invalid dimensions and non-finite geometry fail explicitly
+ok 17 - invalid dimensions and non-finite geometry fail explicitly
   ---
-  duration_ms: 1.0201
+  duration_ms: 1.2688
   ...
 # Subtest: the browser global executes the same calculation without CommonJS
-ok 16 - the browser global executes the same calculation without CommonJS
+ok 18 - the browser global executes the same calculation without CommonJS
   ---
-  duration_ms: 1.1195
+  duration_ms: 1.1977
   ...
 # Subtest: candidate placement matches full checks for collision, spacing, and rotated buildings
-ok 17 - candidate placement matches full checks for collision, spacing, and rotated buildings
+ok 19 - candidate placement matches full checks for collision, spacing, and rotated buildings
   ---
-  duration_ms: 2.8631
+  duration_ms: 2.051
   ...
 # Subtest: candidate placement ignores stationary pair failures and overall area limits
-ok 18 - candidate placement ignores stationary pair failures and overall area limits
+ok 20 - candidate placement ignores stationary pair failures and overall area limits
   ---
-  duration_ms: 0.5844
+  duration_ms: 0.5544
   ...
 # Subtest: candidate placement follows boundary setbacks and enabled directional north checks
-ok 19 - candidate placement follows boundary setbacks and enabled directional north checks
+ok 21 - candidate placement follows boundary setbacks and enabled directional north checks
   ---
-  duration_ms: 1.4766
+  duration_ms: 1.3771
   ...
 # Subtest: candidate placement is pure and validates invalid dimensions and duplicate IDs
-ok 20 - candidate placement is pure and validates invalid dimensions and duplicate IDs
+ok 22 - candidate placement is pure and validates invalid dimensions and duplicate IDs
   ---
-  duration_ms: 0.3317
+  duration_ms: 0.3976
+  ...
+# Subtest: height formula reproduces the reference table and defaults to floors × floorHeight
+ok 23 - height formula reproduces the reference table and defaults to floors × floorHeight
+  ---
+  duration_ms: 0.2909
+  ...
+# Subtest: uniform profile is unchanged and reports its basis
+ok 24 - uniform profile is unchanged and reports its basis
+  ---
+  duration_ms: 0.2572
+  ...
+# Subtest: side walls facing each other need only the side-to-side distance, floored by minDistance
+ok 25 - side walls facing each other need only the side-to-side distance, floored by minDistance
+  ---
+  duration_ms: 1.1118
+  ...
+# Subtest: window faces facing each other need 1.0H with a perpendicular dimension line
+ok 26 - window faces facing each other need 1.0H with a perpendicular dimension line
+  ---
+  duration_ms: 0.402
+  ...
+# Subtest: a lower building to the south uses 0.8H of the taller and 1.0H of the lower
+ok 27 - a lower building to the south uses 0.8H of the taller and 1.0H of the lower
+  ---
+  duration_ms: 1.4357
+  ...
+# Subtest: diagonal, non-facing pairs fall back to the uniform rule
+ok 28 - diagonal, non-facing pairs fall back to the uniform rule
+  ---
+  duration_ms: 0.4176
+  ...
+# Subtest: overlapping buildings fail in the facing profile
+ok 29 - overlapping buildings fail in the facing profile
+  ---
+  duration_ms: 0.399
+  ...
+# Subtest: canPlace agrees with evaluateSite under the facing profile
+ok 30 - canPlace agrees with evaluateSite under the facing profile
+  ---
+  duration_ms: 43.7284
+  ...
+# Subtest: invalid profile options are rejected
+ok 31 - invalid profile options are rejected
+  ---
+  duration_ms: 0.2402
+  ...
+# Subtest: height model reproduces the 청주월명 AG-109 table, including full piloti
+ok 32 - height model reproduces the 청주월명 AG-109 table, including full piloti
+  ---
+  duration_ms: 0.1772
+  ...
+# Subtest: south-low follows 나목: taller window facing the lower south building, with a 10 m floor
+ok 33 - south-low follows 나목: taller window facing the lower south building, with a 10 m floor
+  ---
+  duration_ms: 0.4694
+  ...
+# Subtest: light-direction height limit compares window-face clearance with H / factor
+ok 34 - light-direction height limit compares window-face clearance with H / factor
+  ---
+  duration_ms: 0.2208
+  ...
+# Subtest: north check reports the governing ray for drawing
+ok 35 - north check reports the governing ray for drawing
+  ---
+  duration_ms: 0.0861
+  ...
+# Subtest: massing renders every building as a selectable mass with its height label
+ok 36 - massing renders every building as a selectable mass with its height label
+  ---
+  duration_ms: 6.739
+  ...
+# Subtest: a plan-like camera hides side faces and zoom narrows the view
+ok 37 - a plan-like camera hides side faces and zoom narrows the view
+  ---
+  duration_ms: 2.2247
+  ...
+# Subtest: buildings are painted far to near for the camera
+ok 38 - buildings are painted far to near for the camera
+  ---
+  duration_ms: 2.0344
+  ...
+# Subtest: every rule and height preset yields a valid, evaluable project
+ok 39 - every rule and height preset yields a valid, evaluable project
+  ---
+  duration_ms: 17.3909
+  ...
+# Subtest: presets carry the current national and 청주 values
+ok 40 - presets carry the current national and 청주 values
+  ---
+  duration_ms: 0.7527
+  ...
+# Subtest: height formula text matches the reference sheet wording
+ok 41 - height formula text matches the reference sheet wording
+  ---
+  duration_ms: 0.2135
+  ...
+# Subtest: state rejects malformed new rule and building fields
+ok 42 - state rejects malformed new rule and building fields
+  ---
+  duration_ms: 0.4845
   ...
 # Subtest: Astra patch rejects stale revisions without mutating project
-ok 21 - Astra patch rejects stale revisions without mutating project
+ok 43 - Astra patch rejects stale revisions without mutating project
   ---
-  duration_ms: 0.9998
+  duration_ms: 0.9696
   ...
 # Subtest: locked building cannot be moved by patch
-ok 22 - locked building cannot be moved by patch
+ok 44 - locked building cannot be moved by patch
   ---
-  duration_ms: 0.1486
+  duration_ms: 0.1479
   ...
 # Subtest: valid patch creates revision and preserves untouched buildings
-ok 23 - valid patch creates revision and preserves untouched buildings
+ok 45 - valid patch creates revision and preserves untouched buildings
+  ---
+  duration_ms: 0.8196
+  ...
+# Subtest: invalid files and destructive patches are rejected
+ok 46 - invalid files and destructive patches are rejected
+  ---
+  duration_ms: 0.2855
+  ...
+# Subtest: invalid polygon and duplicate IDs cannot load
+ok 47 - invalid polygon and duplicate IDs cannot load
+  ---
+  duration_ms: 0.1268
+  ...
+# Subtest: empty building IDs and malformed unit metadata cannot corrupt a saved project
+ok 48 - empty building IDs and malformed unit metadata cannot corrupt a saved project
+  ---
+  duration_ms: 0.1808
+  ...
+# Subtest: outside room coordinates remain editable after a save roundtrip
+ok 49 - outside room coordinates remain editable after a save roundtrip
+  ---
+  duration_ms: 1.7985
+  ...
+# Subtest: saved typologies must be placeable before import
+ok 50 - saved typologies must be placeable before import
   ---
   duration_ms: 0.7771
   ...
-# Subtest: invalid files and destructive patches are rejected
-ok 24 - invalid files and destructive patches are rejected
+# Subtest: optional height and facing rules load, and old projects stay valid
+ok 51 - optional height and facing rules load, and old projects stay valid
   ---
-  duration_ms: 0.193
-  ...
-# Subtest: invalid polygon and duplicate IDs cannot load
-ok 25 - invalid polygon and duplicate IDs cannot load
-  ---
-  duration_ms: 0.2049
-  ...
-# Subtest: empty building IDs and malformed unit metadata cannot corrupt a saved project
-ok 26 - empty building IDs and malformed unit metadata cannot corrupt a saved project
-  ---
-  duration_ms: 0.1273
-  ...
-# Subtest: outside room coordinates remain editable after a save roundtrip
-ok 27 - outside room coordinates remain editable after a save roundtrip
-  ---
-  duration_ms: 2.3892
-  ...
-# Subtest: saved typologies must be placeable before import
-ok 28 - saved typologies must be placeable before import
-  ---
-  duration_ms: 0.9371
+  duration_ms: 0.5552
   ...
 # Subtest: three independent zoning templates fit their envelopes without overlap
-ok 29 - three independent zoning templates fit their envelopes without overlap
+ok 52 - three independent zoning templates fit their envelopes without overlap
   ---
-  duration_ms: 1.9062
+  duration_ms: 2.2814
   ...
 # Subtest: checks expose overlap and outside areas without calling zone sums exclusive area
-ok 30 - checks expose overlap and outside areas without calling zone sums exclusive area
+ok 53 - checks expose overlap and outside areas without calling zone sums exclusive area
   ---
-  duration_ms: 0.4425
+  duration_ms: 0.6899
   ...
 # Subtest: room edits respect lock and update dimensions with finite positive values
-ok 31 - room edits respect lock and update dimensions with finite positive values
+ok 54 - room edits respect lock and update dimensions with finite positive values
   ---
-  duration_ms: 0.1639
+  duration_ms: 0.2308
   ...
 # Subtest: room edits reject nonpersistent sizes and positions without partial mutation
-ok 32 - room edits reject nonpersistent sizes and positions without partial mutation
+ok 55 - room edits reject nonpersistent sizes and positions without partial mutation
   ---
-  duration_ms: 0.2583
+  duration_ms: 0.3664
   ...
 # Subtest: room edits accept exact persistence bounds and round only valid dimensions
-ok 33 - room edits accept exact persistence bounds and round only valid dimensions
+ok 56 - room edits accept exact persistence bounds and round only valid dimensions
   ---
-  duration_ms: 0.1337
+  duration_ms: 0.1842
   ...
 # Subtest: finite combinations preserve counts, actual envelopes and nonoverlapping geometry
-ok 34 - finite combinations preserve counts, actual envelopes and nonoverlapping geometry
+ok 57 - finite combinations preserve counts, actual envelopes and nonoverlapping geometry
   ---
-  duration_ms: 1.8509
+  duration_ms: 2.8291
   ...
 # Subtest: mix choices and candidate generation are deterministic
-ok 35 - mix choices and candidate generation are deterministic
+ok 58 - mix choices and candidate generation are deterministic
   ---
-  duration_ms: 0.3488
+  duration_ms: 0.4558
   ...
-1..35
-# tests 35
+1..58
+# tests 58
 # suites 0
-# pass 35
+# pass 58
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 86.0831
+# duration_ms 151.6685
