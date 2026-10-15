@@ -126,9 +126,17 @@
       `<rect x="${-w / 2 + 0.8}" y="${-d / 2 + 1.3}" width="${w}" height="${d}" fill="#143c4320"/>` +
       `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="${color}" stroke="${q.pass ? sel ? '#457c99' : '#7d999b' : '#bd6f60'}" stroke-width=".45"/>` +
       `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="url(#rooms)"/>` +
-      `<rect x="-3" y="${-d / 2 - 2}" width="6" height="${d / 2 + 2}" fill="${sel ? '#5086a4' : '#819fa6'}" stroke="#fff" stroke-width=".25"/>` +
-      `<text x="0" y="${d / 2 + 4.2 * k}" text-anchor="middle" font-size="${3.3 * k}" font-weight="700" fill="${sel ? '#285f7d' : '#617b7b'}">${esc(bl.name)}${bl.locked ? ' ▣' : ''}</text>` +
-      `<text x="0" y="${d / 2 + 7.5 * k}" text-anchor="middle" font-size="${2.3 * k}" fill="#92a4a0">${bl.floors}F · ${bl.floors * bl.unitsPerFloor}세대${bl.pilotiFull ? ' · 필로티' : ''}</text></g>`;
+      `<rect x="-3" y="${-d / 2 - 2}" width="6" height="${d / 2 + 2}" fill="${sel ? '#5086a4' : '#819fa6'}" stroke="#fff" stroke-width=".25"/></g>` +
+      // Labels stay upright below the rotated footprint's lowest point.
+      `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y + halfHeight(bl)})">` +
+      `<text x="0" y="${4.2 * k}" text-anchor="middle" font-size="${3.3 * k}" font-weight="700" fill="${sel ? '#285f7d' : '#617b7b'}">${esc(bl.name)}${bl.locked ? ' ▣' : ''}</text>` +
+      `<text x="0" y="${7.5 * k}" text-anchor="middle" font-size="${2.3 * k}" fill="#92a4a0">${bl.floors}F · ${bl.floors * bl.unitsPerFloor}세대${bl.pilotiFull ? ' · 필로티' : ''}</text></g>`;
+  }
+
+  // Vertical half-extent of a rotated footprint.
+  function halfHeight(bl) {
+    const a = bl.rotation * Math.PI / 180;
+    return Math.abs(bl.width / 2 * Math.sin(a)) + Math.abs(bl.depth / 2 * Math.cos(a));
   }
 
   function buildingCad(bl, q, sel, k) {
@@ -182,6 +190,28 @@
     const c = pass ? (cad ? '#9cf0a6' : '#23875a') : (cad ? THEMES.cad.fail : THEMES.plan.fail), r = 1.6 * k;
     return `<g class="center-mark" pointer-events="none"><circle cx="${b.x}" cy="${b.y}" r="${r}" fill="none" stroke="${c}" stroke-width="${0.35 * k}"/>` +
       `<path d="M${b.x - r * 1.8} ${b.y}H${b.x + r * 1.8}M${b.x} ${b.y - r * 1.8}V${b.y + r * 1.8}" stroke="${c}" stroke-width="${0.25 * k}"/></g>`;
+  }
+
+  // Rotation handle above the selected building's top face (local −y). Dragging
+  // it rotates the building about its centre; the angle shows while rotating.
+  function rotateHandle(bl, k, cad, rotating) {
+    const reach = bl.depth / 2 + 7 * k, r = 1.7 * k;
+    const color = cad ? '#4fc3f7' : '#2f6f99', fill = cad ? '#1f2428' : '#ffffff';
+    let out = `<g class="rotate-handle" data-rotate="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})" style="cursor:grab">` +
+      `<line x1="0" y1="${-bl.depth / 2}" x2="0" y2="${-reach + r}" stroke="${color}" stroke-width="${0.25 * k}" stroke-dasharray="${0.6 * k} ${0.4 * k}"/>` +
+      `<circle cx="0" cy="${-reach}" r="${r * 1.9}" fill="transparent"/>` +
+      `<circle cx="0" cy="${-reach}" r="${r}" fill="${fill}" stroke="${color}" stroke-width="${0.35 * k}"/>` +
+      `<path d="M${-r * 0.5} ${-reach - r * 0.15} A${r * 0.55} ${r * 0.55} 0 1 1 ${r * 0.1} ${-reach + r * 0.55}" fill="none" stroke="${color}" stroke-width="${0.25 * k}"/>` +
+      `<path d="M${-r * 0.75} ${-reach - r * 0.45} L${-r * 0.5} ${-reach - r * 0.1} L${-r * 0.15} ${-reach - r * 0.35}" fill="none" stroke="${color}" stroke-width="${0.25 * k}"/>` +
+      `<title>드래그해서 회전 · 기본 5° · Shift 15° · Alt 1° 단위</title></g>`;
+    if (rotating) {
+      const deg = ((bl.rotation % 360) + 360) % 360, text = `${Math.round(deg * 10) / 10}°`;
+      const w = textWidth(text, 2.4 * k) + 2.4 * k, a = bl.rotation * Math.PI / 180;
+      const lx = bl.x + Math.sin(a) * (reach + 4 * k), ly = bl.y - Math.cos(a) * (reach + 4 * k);
+      out += `<g pointer-events="none"><rect x="${lx - w / 2}" y="${ly - 2.2 * k}" width="${w}" height="${3.4 * k}" rx="${0.6 * k}" fill="${color}"/>` +
+        `<text x="${lx}" y="${ly + 0.4 * k}" text-anchor="middle" font-size="${2.4 * k}" font-weight="700" fill="#fff">${text}</text></g>`;
+    }
+    return out;
   }
 
   // Full SVG markup for the map. opts: project, result, selected, viewBox,
@@ -243,10 +273,11 @@
         if (q.light && bl.id === selected) {
           out += rayNote(q.light.from, q.light.to, '채광', q.light.distance, `H/${rules.lightLimit.factor}=${mm(q.light.required)}`, q.light.pass, k, q.light.pass ? '#ffd27a' : THEMES.cad.fail);
         }
-        const ang = bl.rotation * Math.PI / 180, off = bl.depth / 2 + 6 * k;
-        out += hexTag(bl.x - Math.sin(ang) * off, bl.y + Math.cos(ang) * off, bl.name, `${bl.floors * bl.unitsPerFloor}세대`, k, '#d55fd5');
+        out += hexTag(bl.x, bl.y + halfHeight(bl) + 6 * k, bl.name, `${bl.floors * bl.unitsPerFloor}세대`, k, '#d55fd5');
       }
     }
+
+    if (sel && !sel.locked) out += rotateHandle(sel, k, cad, !!opts.rotating);
 
     const nx = viewBox[0] + viewBox[2] - 12 * k, ny = viewBox[1] + 15 * k;
     out += `<g transform="translate(${nx} ${ny}) scale(${k})"><circle r="7" fill="${cad ? '#1f2428' : '#fff'}" stroke="${cad ? T.north : 'none'}" stroke-width=".3" opacity=".85"/><g transform="rotate(${rules.northAngle})"><path d="M0 -5 L-1.5 2 L0 1 L1.5 2Z" fill="${T.north}"/><text x="0" y="-7.6" text-anchor="middle" font-size="3" fill="${T.north}">N</text></g></g>`;

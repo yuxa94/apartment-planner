@@ -19,3 +19,17 @@ test('dimension notes restate the engine basis in reference style', () => {
   assert.equal(D.basisNote({ type: 'south-low', fixed: 10, terms: [{ factor: 1, floors: 18, value: 53.4 }] }), '(기준 남측저층 10m / 1.0H, 18F=53,400)');
   assert.equal(D.basisNote({ type: 'side-side', fixed: 4, terms: [], min: 10 }), '(기준 측벽 4m / 최소 10m)');
 });
+
+test('the selected, unlocked building gets a rotation handle and angle readout', () => {
+  const S = require('./state.js'), E = require('./engine.js');
+  const project = S.createProject();
+  const result = E.evaluateSite(project.site.polygon, project.buildings, project.rules);
+  const view = { project, result, viewBox: [0, 0, 210, 185], showDistances: true, mode: 'plan' };
+  let svg = D.draw({ ...view, selected: 'b101' });
+  assert.equal((svg.match(/data-rotate="b101"/g) || []).length, 1);
+  assert.doesNotMatch(svg, /0°<\/text>/);
+  svg = D.draw({ ...view, selected: 'b101', rotating: true, mode: 'cad' });
+  assert.match(svg, />0°<\/text>/);
+  project.buildings[0].locked = true;
+  assert.doesNotMatch(D.draw({ ...view, selected: 'b101' }), /data-rotate=/);
+});
