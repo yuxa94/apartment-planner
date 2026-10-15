@@ -307,3 +307,20 @@ test('patches can target a blank plan by unitId', () => {
   assert.equal(project.units.find(u => u.id === 'unit-59').rooms.length, 14, 'the 59 template is untouched');
   assert.throws(() => U.readUnitPatch(project, Object.assign({}, patch, { unitId: 'nope' })), /찾을 수 없습니다/);
 });
+
+test('snapping pulls a dragged edge onto nearby room edges and outline vertices', () => {
+  const unit = U.createUnit(59), bed3 = unit.rooms.find(r => r.id === 'bed3');
+  const near = U.snapRoomMove(unit, bed3, 10.08, 5.57, 0.15);
+  assert.equal(near.x, 10.15, 'left edge snaps to bed2 right edge');
+  assert.equal(near.y, 5.5, 'top edge snaps to the hall bottom line');
+  assert.deepEqual(near.guides.filter(g => g.axis === 'x').map(g => g.value), [10.15, 12.9], 'both aligned edges get a guide');
+  assert.deepEqual(near.guides.filter(g => g.axis === 'y').map(g => g.value), [5.5, 9.2]);
+  assert.deepEqual(near.guides.find(g => g.axis === 'point'), { axis: 'point', x: 10.15, y: 5.5 });
+  const right = U.snapRoomMove(unit, bed3, 10.22, 5.0, 0.15);
+  assert.equal(right.x, 10.15);
+  assert.equal(right.snappedY, false, 'nothing within tolerance on y');
+  const far = U.snapRoomMove(unit, bed3, 9.6, 5.0, 0.15);
+  assert.equal(far.snappedX, false);
+  assert.deepEqual(U.snapCoordinate(unit, 'x', 8.62, 0.15, ['bed3']), { value: 8.7, snapped: true }, 'outline vertex line');
+  assert.deepEqual(U.snapCoordinate(unit, 'x', 9.0, 0.15, ['bed3']), { value: 9.0, snapped: false });
+});

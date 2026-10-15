@@ -2,162 +2,162 @@ TAP version 13
 # Subtest: shoelace area handles a concave site and either vertex winding
 ok 1 - shoelace area handles a concave site and either vertex winding
   ---
-  duration_ms: 1.099
+  duration_ms: 0.9798
   ...
 # Subtest: clockwise rotation keeps the footprint centre and dimensions
 ok 2 - clockwise rotation keeps the footprint centre and dimensions
   ---
-  duration_ms: 0.2037
+  duration_ms: 0.1996
   ...
 # Subtest: point containment includes boundary points and respects a concave notch
 ok 3 - point containment includes boundary points and respects a concave notch
   ---
-  duration_ms: 0.2312
+  duration_ms: 0.215
   ...
 # Subtest: polygon intersection detects edge crossing, containment, and boundary touching
 ok 4 - polygon intersection detects edge crossing, containment, and boundary touching
   ---
-  duration_ms: 0.3593
+  duration_ms: 0.35
   ...
 # Subtest: polygon distance measures rotated edges, not centres or bounding boxes
 ok 5 - polygon distance measures rotated edges, not centres or bounding boxes
   ---
-  duration_ms: 0.917
+  duration_ms: 0.9163
   ...
 # Subtest: polygon distance returns zero for crossing and contained filled polygons
 ok 6 - polygon distance returns zero for crossing and contained filled polygons
   ---
-  duration_ms: 0.4267
+  duration_ms: 0.4132
   ...
 # Subtest: site containment rejects a rectangle crossing a notch even when all corners are inside
 ok 7 - site containment rejects a rectangle crossing a notch even when all corners are inside
   ---
-  duration_ms: 0.6696
+  duration_ms: 0.6397
   ...
 # Subtest: setback measures distance to site edges without treating containment as overlap
 ok 8 - setback measures distance to site edges without treating containment as overlap
   ---
-  duration_ms: 0.7158
+  duration_ms: 0.6755
   ...
 # Subtest: north angle rotates directional clearance and the low-height rule changes at its threshold
 ok 9 - north angle rotates directional clearance and the low-height rule changes at its threshold
   ---
-  duration_ms: 0.4777
+  duration_ms: 0.4571
   ...
 # Subtest: north clearance uses the first boundary at a concave notch
 ok 10 - north clearance uses the first boundary at a concave notch
   ---
-  duration_ms: 0.3449
+  duration_ms: 0.34
   ...
 # Subtest: height edits update required pair spacing while preserving geometric gap
 ok 11 - height edits update required pair spacing while preserving geometric gap
   ---
-  duration_ms: 0.7856
+  duration_ms: 0.7775
   ...
 # Subtest: touching buildings fail collision screening even when all spacing rules are zero
 ok 12 - touching buildings fail collision screening even when all spacing rules are zero
   ---
-  duration_ms: 0.3505
+  duration_ms: 0.39
   ...
 # Subtest: site metrics use footprint area, full floor area, percentages, and floor household count
 ok 13 - site metrics use footprint area, full floor area, percentages, and floor household count
   ---
-  duration_ms: 0.4401
+  duration_ms: 0.4964
   ...
 # Subtest: empty layouts return zero metrics without modifying inputs
 ok 14 - empty layouts return zero metrics without modifying inputs
   ---
-  duration_ms: 0.4441
+  duration_ms: 0.4369
   ...
 # Subtest: invalid dimensions and non-finite geometry fail explicitly
 ok 15 - invalid dimensions and non-finite geometry fail explicitly
   ---
-  duration_ms: 0.8323
+  duration_ms: 0.7741
   ...
 # Subtest: the browser global executes the same calculation without CommonJS
 ok 16 - the browser global executes the same calculation without CommonJS
   ---
-  duration_ms: 1.0516
+  duration_ms: 1.0439
   ...
 # Subtest: candidate placement matches full checks for collision, spacing, and rotated buildings
 ok 17 - candidate placement matches full checks for collision, spacing, and rotated buildings
   ---
-  duration_ms: 2.5818
+  duration_ms: 2.4971
   ...
 # Subtest: candidate placement ignores stationary pair failures and overall area limits
 ok 18 - candidate placement ignores stationary pair failures and overall area limits
   ---
-  duration_ms: 0.499
+  duration_ms: 0.5668
   ...
 # Subtest: candidate placement follows boundary setbacks and enabled directional north checks
 ok 19 - candidate placement follows boundary setbacks and enabled directional north checks
   ---
-  duration_ms: 1.4083
+  duration_ms: 1.3425
   ...
 # Subtest: candidate placement is pure and validates invalid dimensions and duplicate IDs
 ok 20 - candidate placement is pure and validates invalid dimensions and duplicate IDs
   ---
-  duration_ms: 0.3734
+  duration_ms: 0.3616
   ...
 # Subtest: Astra patch rejects stale revisions without mutating project
 ok 21 - Astra patch rejects stale revisions without mutating project
   ---
-  duration_ms: 1.0405
+  duration_ms: 1.0113
   ...
 # Subtest: locked building cannot be moved by patch
 ok 22 - locked building cannot be moved by patch
   ---
-  duration_ms: 0.1544
+  duration_ms: 0.1514
   ...
 # Subtest: valid patch creates revision and preserves untouched buildings
 ok 23 - valid patch creates revision and preserves untouched buildings
   ---
-  duration_ms: 0.7793
+  duration_ms: 0.7504
   ...
 # Subtest: invalid files and destructive patches are rejected
 ok 24 - invalid files and destructive patches are rejected
   ---
-  duration_ms: 0.2046
+  duration_ms: 0.1988
   ...
 # Subtest: invalid polygon and duplicate IDs cannot load
 ok 25 - invalid polygon and duplicate IDs cannot load
   ---
-  duration_ms: 0.2207
+  duration_ms: 0.2092
   ...
 # Subtest: empty building IDs and malformed unit metadata cannot corrupt a saved project
 ok 26 - empty building IDs and malformed unit metadata cannot corrupt a saved project
   ---
-  duration_ms: 0.1299
+  duration_ms: 0.1272
   ...
 # Subtest: outside room coordinates remain editable after a save roundtrip
 ok 27 - outside room coordinates remain editable after a save roundtrip
   ---
-  duration_ms: 3.424
+  duration_ms: 3.4405
   ...
 # Subtest: saved typologies must be placeable before import
 ok 28 - saved typologies must be placeable before import
   ---
-  duration_ms: 0.9514
+  duration_ms: 0.9382
   ...
 # Subtest: three independent zoning templates fit their envelopes without overlap
 ok 29 - three independent zoning templates fit their envelopes without overlap
   ---
-  duration_ms: 4.117
+  duration_ms: 4.2204
   ...
 # Subtest: checks expose overlap and outside areas without calling zone sums exclusive area
 ok 30 - checks expose overlap and outside areas without calling zone sums exclusive area
   ---
-  duration_ms: 0.5003
+  duration_ms: 0.4956
   ...
 # Subtest: room edits respect lock and update dimensions with finite positive values
 ok 31 - room edits respect lock and update dimensions with finite positive values
   ---
-  duration_ms: 0.1812
+  duration_ms: 0.207
   ...
 # Subtest: room edits reject nonpersistent sizes and positions without partial mutation
 ok 32 - room edits reject nonpersistent sizes and positions without partial mutation
   ---
-  duration_ms: 0.2738
+  duration_ms: 0.2604
   ...
 # Subtest: room edits accept exact persistence bounds and round only valid dimensions
 ok 33 - room edits accept exact persistence bounds and round only valid dimensions
@@ -167,84 +167,89 @@ ok 33 - room edits accept exact persistence bounds and round only valid dimensio
 # Subtest: finite combinations preserve counts, actual envelopes and nonoverlapping geometry
 ok 34 - finite combinations preserve counts, actual envelopes and nonoverlapping geometry
   ---
-  duration_ms: 2.3881
+  duration_ms: 2.5019
   ...
 # Subtest: mix choices and candidate generation are deterministic
 ok 35 - mix choices and candidate generation are deterministic
   ---
-  duration_ms: 0.3777
+  duration_ms: 0.3735
   ...
 # Subtest: reference-traced templates tile their outlines with no gap
 ok 36 - reference-traced templates tile their outlines with no gap
   ---
-  duration_ms: 0.9769
+  duration_ms: 1.0185
   ...
 # Subtest: fill grows unlocked rooms until the outline is covered, keeping locked rooms
 ok 37 - fill grows unlocked rooms until the outline is covered, keeping locked rooms
   ---
-  duration_ms: 15.2544
+  duration_ms: 15.2494
   ...
 # Subtest: moving a wall stretches the rooms along it and keeps the outline filled
 ok 38 - moving a wall stretches the rooms along it and keeps the outline filled
   ---
-  duration_ms: 0.936
+  duration_ms: 0.9319
   ...
 # Subtest: splitting and pushing part of a wall makes a square notch and can be pushed back flat
 ok 39 - splitting and pushing part of a wall makes a square notch and can be pushed back flat
   ---
-  duration_ms: 2.9493
+  duration_ms: 2.8049
   ...
 # Subtest: orthogonal corner moves keep right angles and shift the origin back to zero
 ok 40 - orthogonal corner moves keep right angles and shift the origin back to zero
   ---
-  duration_ms: 1.6335
+  duration_ms: 1.6306
   ...
 # Subtest: unit request and patch round trip respects revision, locks and geometry
 ok 41 - unit request and patch round trip respects revision, locks and geometry
   ---
-  duration_ms: 2.104
+  duration_ms: 2.0032
   ...
 # Subtest: untouched first-edition templates are upgraded, edited ones are kept
 ok 42 - untouched first-edition templates are upgraded, edited ones are kept
   ---
-  duration_ms: 0.9914
+  duration_ms: 0.9489
   ...
 # Subtest: resizing a room moves the shared wall with its neighbours and keeps the plan gapless
 ok 43 - resizing a room moves the shared wall with its neighbours and keeps the plan gapless
   ---
-  duration_ms: 1.7957
+  duration_ms: 1.555
   ...
 # Subtest: an unlinked resize may overlap and a clamped grow stops at the outline
 ok 44 - an unlinked resize may overlap and a clamped grow stops at the outline
   ---
-  duration_ms: 3.6949
+  duration_ms: 3.7871
   ...
 # Subtest: rooms are layers: the upper room takes the overlapped area and reordering hands it back
 ok 45 - rooms are layers: the upper room takes the overlapped area and reordering hands it back
   ---
-  duration_ms: 1.1912
+  duration_ms: 1.1513
   ...
 # Subtest: blank plans load through the shared project validator and start empty
 ok 46 - blank plans load through the shared project validator and start empty
   ---
-  duration_ms: 2.0152
+  duration_ms: 1.819
   ...
 # Subtest: markup areas list the visible rooms under them and travel with the Claude request
 ok 47 - markup areas list the visible rooms under them and travel with the Claude request
   ---
-  duration_ms: 0.6687
+  duration_ms: 0.6564
   ...
 # Subtest: patches can target a blank plan by unitId
 ok 48 - patches can target a blank plan by unitId
   ---
-  duration_ms: 0.3451
+  duration_ms: 0.3169
   ...
-1..48
-# tests 48
+# Subtest: snapping pulls a dragged edge onto nearby room edges and outline vertices
+ok 49 - snapping pulls a dragged edge onto nearby room edges and outline vertices
+  ---
+  duration_ms: 0.7102
+  ...
+1..49
+# tests 49
 # suites 0
-# pass 48
+# pass 49
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 130.1935
+# duration_ms 130.2245

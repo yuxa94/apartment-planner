@@ -474,6 +474,47 @@
     Object.assign(unit, { outline: trial.outline, rooms: trial.rooms, width: trial.width, depth: trial.depth });
     return { ok: true };
   }
+  /* ---------- object snapping: other rooms' edges and outline vertices ---------- */
+  // Coordinates on one axis a moving edge may snap to. Edges count as infinite lines, as in CAD extension snaps.
+  function snapTargets(unit, axis, excludeIds) {
+    const skip = new Set(excludeIds || []), out = new Set();
+    for (const r of unit.rooms || []) {
+      if (skip.has(r.id) || !finiteRect(r)) continue;
+      if (axis === 'x') { out.add(r.x); out.add(round(r.x + r.width)); } else { out.add(r.y); out.add(round(r.y + r.depth)); }
+    }
+    for (const p of outlineOf(unit)) out.add(axis === 'x' ? p[0] : p[1]);
+    return [...out];
+  }
+  function snapCoordinate(unit, axis, value, tolerance, excludeIds) {
+    let best = null;
+    for (const t of snapTargets(unit, axis, excludeIds)) {
+      const d = Math.abs(t - value);
+      if (d <= tolerance && (!best || d < best.distance)) best = { value: t, distance: d };
+    }
+    return best ? { value: best.value, snapped: true } : { value, snapped: false };
+  }
+  // Snap a dragged room so whichever of its edges is closest lands on a nearby line, per axis.
+  function snapRoomMove(unit, room, x, y, tolerance) {
+    const result = { x, y, snappedX: false, snappedY: false, guides: [] };
+    for (const axis of ['x', 'y']) {
+      const size = axis === 'x' ? room.width : room.depth, start = axis === 'x' ? x : y;
+      let best = null;
+      for (const t of snapTargets(unit, axis, [room.id])) for (const offset of [0, size]) {
+        const d = Math.abs(t - (start + offset));
+        if (d <= tolerance && (!best || d < best.d)) best = { d, position: t - offset, line: t };
+      }
+      if (!best) continue;
+      result[axis] = round(best.position);
+      result[axis === 'x' ? 'snappedX' : 'snappedY'] = true;
+      // Show every edge of the room that now sits on a line, not just the one that pulled it.
+      const lines = snapTargets(unit, axis, [room.id]);
+      for (const edge of [result[axis], round(result[axis] + size)]) if (lines.some(t => Math.abs(t - edge) < 1e-6)) result.guides.push({ axis, value: edge });
+    }
+    const gx = result.guides.find(g => g.axis === 'x'), gy = result.guides.find(g => g.axis === 'y');
+    if (gx && gy) result.guides.push({ axis: 'point', x: gx.value, y: gy.value });
+    return result;
+  }
+
   /* ---------- room resize: move one side, optionally dragging the shared wall with it ---------- */
   const OPPOSITE = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
   const MIN_ROOM = 0.3;
@@ -771,7 +812,7 @@
     const first = project.units.find(u => u.id === project.selectedUnitId) || project.units.find(u => Number(u.type) === Number(project.selectedUnitType)) || project.units[0];
     let unitId = first.id, type = Number(first.type), newPlanOpen = false, selectedMark = null;
     let selectedId = 'living', drag = null, selectionPointer = null;
-    let mode = 'rooms', selectedEdge = null, selectedVertex = null, autoFill = true, orthogonal = true, overlay = false, status = '', lastEdgeTap = null, linked = true;
+    let mode = 'rooms', selectedEdge = null, selectedVertex = null, autoFill = true, orthogonal = true, overlay = false, status = '', lastEdgeTap = null, linked = true, snapOn = true, snapGuides = [];
     const active = () => project.units.find(u => u.id === unitId) || project.units[0];
     const changed = () => { project.selectedUnitType = type; project.selectedUnitId = unitId; if (typeof onChange === 'function') onChange(); };
     function selectUnit(id) { const unit = project.units.find(u => u.id === id) || project.units[0]; unitId = unit.id; type = Number(unit.type); selectedMark = null; }
@@ -792,7 +833,7 @@
         <div class="pu-actions"><div class="pu-seg" role="group" aria-label="편집 대상"><button type="button" data-mode="rooms" class="${mode === 'rooms' ? 'active' : ''}" aria-pressed="${mode === 'rooms'}">공간 편집</button><button type="button" data-mode="outline" class="${mode === 'outline' ? 'active' : ''}" aria-pressed="${mode === 'outline'}">외곽선 편집</button><button type="button" data-mode="markup" class="pu-seg-mark${mode === 'markup' ? ' active' : ''}" aria-pressed="${mode === 'markup'}">✎ 영역 표시</button></div>
           <button type="button" class="btn" data-action="fill" title="잠기지 않은 공간을 늘려 빈 영역을 채웁니다">빈 영역 채우기</button><button type="button" class="btn" data-action="add">＋ 공간 추가</button>${unit.custom ? '' : '<button type="button" class="btn" data-action="reset">참고도면 배치로 재설정</button>'}
           </div>
-        <div class="pu-options"><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label>${unit.custom ? '' : `<label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label>`}<label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
+        <div class="pu-options"><label title="Ctrl을 누르는 동안 잠시 해제"><input type="checkbox" data-opt="snapOn" ${snapOn ? 'checked' : ''}>가까운 변·꼭짓점에 스냅</label><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label>${unit.custom ? '' : `<label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label>`}<label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
         <p class="pu-hint">${mode === 'markup' ? '도면 위를 끌어 빨간 영역을 그리세요(A, B, C…). Claude 대화에서 “영역 A로 욕실을 옮겨줘”처럼 요청하면 영역 위치와 겹친 공간이 요청에 함께 들어갑니다. 영역을 눌러 선택하고 Delete로 지웁니다.' : mode === 'rooms' ? '공간을 드래그해 이동하세요. 선택한 공간의 파란 변·모서리를 끌면 크기가 바뀌고, 맞닿은 공간의 경계도 함께 움직입니다(Alt: 이 공간만). 방향키 이동 0.1m · Alt+방향키로 오른쪽·아래 변 크기 조절.' : '외곽 변을 드래그하면 그 벽에 붙은 공간이 함께 늘어나거나 줄어듭니다. 변을 더블클릭하면 꺾임점 2개가 생기고, 가운데 변을 끌어 들어가거나 튀어나온 부분을 만듭니다. 꼭짓점을 선택하고 Delete로 지웁니다. 방향키 0.1m · Shift 0.5m.'}</p>
         <div class="pu-canvas-wrap"><svg class="pu-canvas${mode === 'outline' ? ' pu-outline-mode' : mode === 'markup' ? ' pu-markup-mode' : ''}" aria-label="${esc(unit.name)} 편집 가능한 조닝" role="group" tabindex="-1"></svg></div>
         <div class="pu-legend">${CATEGORIES.map(k => `<span><i style="background:${COLORS[k]}"></i>${CATEGORY_LABELS[k]}</span>`).join('')}<span><i style="background:repeating-linear-gradient(45deg,#c9d5df 0 2px,#fff 2px 5px)"></i>빈 영역</span></div><div class="pu-statrow pu-four" data-stats></div><div data-checks aria-live="polite"></div><div class="pu-status" data-status role="status">${esc(status)}</div>
@@ -831,6 +872,7 @@
         if (input.dataset.opt === 'orthogonal') orthogonal = input.checked;
         if (input.dataset.opt === 'overlay') { overlay = input.checked; paintSvg(); }
         if (input.dataset.opt === 'linked') linked = input.checked;
+        if (input.dataset.opt === 'snapOn') snapOn = input.checked;
       }));
       container.querySelector('[data-action="fill"]').addEventListener('click', () => {
         const before = checkUnit(active()), after = fillUnit(active());
@@ -898,7 +940,18 @@
           const label = spot && spot.width > .55 && spot.depth > .45 ? `<text x="${spot.x}" y="${spot.y - .08}" text-anchor="middle" font-size="${spot.width < 1.5 ? '.17' : '.23'}" font-weight="650" fill="#294b64">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</text><text x="${spot.x}" y="${spot.y + .2}" text-anchor="middle" font-size="${spot.width < 1.5 ? '.14' : '.17'}" fill="#6a8397">${fmt(layer.visibleArea)}㎡</text>${spot.width > 1.6 && spot.depth > 1.2 ? `<text x="${spot.x}" y="${spot.y + .42}" text-anchor="middle" font-size=".14" fill="#8aa0b2">${mm(r.width)} × ${mm(r.depth)}</text>` : ''}` : '';
           return `<g class="pu-room ${r.locked ? 'pu-locked' : ''}" data-room="${esc(r.id)}" tabindex="${mode === 'rooms' ? 0 : -1}" role="button" aria-label="${esc(r.name)} ${fmt(layer.visibleArea)}제곱미터 ${r.locked ? '잠김' : '선택 및 이동'}" aria-pressed="${r.id === selectedId}"><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="${COLORS[r.category] || COLORS.service}" fill-opacity="${overlay ? .55 : 1}" stroke="${bad.has(r.id) ? '#c36735' : selected ? '#2569ad' : '#8fa8bc'}" stroke-width="${selected ? '.065' : '.03'}"/>${label}</g>`;
         }).join('')}${selectionOutline(unit)}
-        <path d="${path}" fill="none" stroke="#3d566d" stroke-width=".07" stroke-linejoin="miter" pointer-events="none"/>${dims}${editHandles}${resizeHandles(unit)}${marksSvg(unit)}`;
+        <path d="${path}" fill="none" stroke="#3d566d" stroke-width=".07" stroke-linejoin="miter" pointer-events="none"/>${dims}${editHandles}${resizeHandles(unit)}${marksSvg(unit)}${guidesSvg(unit)}`;
+    }
+    // Snap tolerance is about 10 screen pixels, whatever the zoom.
+    function snapTolerance() {
+      const m = container.querySelector('.pu-canvas').getScreenCTM();
+      return m && m.a ? 10 / m.a : 0.2;
+    }
+    function guidesSvg(unit) {
+      const reach = 0.7, style = 'stroke="#d6337a" stroke-width=".03" stroke-dasharray=".12 .08" pointer-events="none"';
+      return snapGuides.map(g => g.axis === 'x' ? `<line x1="${g.value}" y1="${-reach}" x2="${g.value}" y2="${unit.depth + reach}" ${style}/>`
+        : g.axis === 'y' ? `<line x1="${-reach}" y1="${g.value}" x2="${unit.width + reach}" y2="${g.value}" ${style}/>`
+        : `<circle cx="${g.x}" cy="${g.y}" r=".12" fill="none" stroke="#d6337a" stroke-width=".05" pointer-events="none"/>`).join('');
     }
     function marksSvg(unit) {
       return marksOf(unit.id).map(m => {
@@ -946,13 +999,17 @@
         '</g>';
     }
     // Apply each dragged side in turn; a blocked side stops at the nearest valid position.
-    function applyResize(unit, roomId, sides, starts, dx, dy, link) {
+    function applyResize(unit, roomId, sides, starts, dx, dy, link, useSnap) {
       let message = '';
+      snapGuides = [];
       for (const side of sides) {
-        const horizontal = side === 'left' || side === 'right';
-        const result = resizeRoomClamped(unit, roomId, side, snap(starts[side] + (horizontal ? dx : dy), 0.05), { linked: link });
+        const horizontal = side === 'left' || side === 'right', axis = horizontal ? 'x' : 'y', raw = starts[side] + (horizontal ? dx : dy);
+        const hit = useSnap ? snapCoordinate(unit, axis, raw, snapTolerance(), [roomId]) : { snapped: false };
+        const result = resizeRoomClamped(unit, roomId, side, hit.snapped ? hit.value : snap(raw, 0.05), { linked: link });
+        if (hit.snapped && result.ok && !result.clamped) snapGuides.push({ axis, value: hit.value });
         if (!result.ok || result.clamped) message = result.message || message;
       }
+      if (snapGuides.length === 2) snapGuides.push({ axis: 'point', x: snapGuides.find(g => g.axis === 'x').value, y: snapGuides.find(g => g.axis === 'y').value });
       return message;
     }
     function paintInspector() {
@@ -1078,6 +1135,8 @@
       const p = svg.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; return p.matrixTransform(matrix.inverse());
     }
     const snap = (n, size) => Math.round(n / size) * size;
+    // Capture can fail for pointers the browser no longer tracks; dragging still works without it.
+    function capturePointer(event) { try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ } }
     function pointerDown(event) {
       if (selectionPointer !== null) return;
       const p = point(event);
@@ -1088,7 +1147,7 @@
         const used = new Set(marksOf(active().id).map(m => m.label)), label = [...MARK_LABELS].find(l => !used.has(l));
         if (!label) { setStatus('영역은 26개까지 표시할 수 있습니다.'); return; }
         drag = { kind: 'mark', label, startX: p.x, startY: p.y, pointerId: event.pointerId, moved: false };
-        selectionPointer = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); return;
+        selectionPointer = event.pointerId; capturePointer(event); event.preventDefault(); return;
       }
       if (mode === 'outline') {
         const v = event.target.closest('[data-vertex]'), e = event.target.closest('[data-edge]');
@@ -1100,19 +1159,19 @@
         lastEdgeTap = e && !v ? { edge: Number(e.dataset.edge), time: event.timeStamp } : null;
         selectedVertex = v ? Number(v.dataset.vertex) : null; selectedEdge = v ? null : Number(e.dataset.edge);
         if (p) drag = { kind: v ? 'vertex' : 'edge', index: v ? selectedVertex : selectedEdge, startX: p.x, startY: p.y, pointerId: event.pointerId, snapshot: snapshotOf(active()), moved: false };
-        selectionPointer = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); refresh(); return;
+        selectionPointer = event.pointerId; capturePointer(event); event.preventDefault(); refresh(); return;
       }
       const handle = event.target.closest('[data-resize]');
       if (handle && p) {
         const room = active().rooms.find(r => r.id === selectedId), sides = handle.dataset.resize.split(' ');
         drag = { kind: 'resize', id: room.id, sides, starts: Object.fromEntries(sides.map(side => [side, sideValue(room, side)])), startX: p.x, startY: p.y, pointerId: event.pointerId, snapshot: snapshotOf(active()), moved: false, area: room.width * room.depth };
-        selectionPointer = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); return;
+        selectionPointer = event.pointerId; capturePointer(event); event.preventDefault(); return;
       }
       const g = event.target.closest('[data-room]'); if (!g) return;
       const room = active().rooms.find(r => r.id === g.dataset.room);
       selectedId = room.id; selectionPointer = event.pointerId;
       if (!room.locked && p) drag = { kind: 'room', id: room.id, x: room.x, y: room.y, startX: p.x, startY: p.y, pointerId: event.pointerId, moved: false };
-      event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); refresh();
+      capturePointer(event); event.preventDefault(); refresh();
     }
     function pointerMove(event) {
       if (!drag || drag.pointerId !== event.pointerId) return;
@@ -1129,12 +1188,15 @@
         paintSvg(); return;
       }
       if (drag.kind === 'room') {
-        drag.moved = editRoom(unit, drag.id, { x: snap(drag.x + dx, 0.1), y: snap(drag.y + dy, 0.1) }) || drag.moved;
+        const room = unit.rooms.find(r => r.id === drag.id);
+        const hit = snapOn && !event.ctrlKey ? snapRoomMove(unit, room, drag.x + dx, drag.y + dy, snapTolerance()) : { x: drag.x + dx, y: drag.y + dy, guides: [] };
+        snapGuides = hit.guides;
+        drag.moved = editRoom(unit, drag.id, { x: hit.snappedX ? hit.x : snap(drag.x + dx, 0.1), y: hit.snappedY ? hit.y : snap(drag.y + dy, 0.1) }) || drag.moved;
         refresh(); return;
       }
       if (drag.kind === 'resize') {
         restore(unit, drag.snapshot);
-        const message = applyResize(unit, drag.id, drag.sides, drag.starts, dx, dy, linked !== event.altKey);
+        const message = applyResize(unit, drag.id, drag.sides, drag.starts, dx, dy, linked !== event.altKey, snapOn && !event.ctrlKey);
         const room = unit.rooms.find(r => r.id === drag.id);
         drag.moved = drag.sides.some(side => Math.abs(sideValue(room, side) - drag.starts[side]) > 1e-4);
         setStatus(`${room.name} ${mm(room.width)} × ${mm(room.depth)} mm · ${fmt(room.width * room.depth)}㎡${message ? ' · ' + message : ''}`);
@@ -1156,6 +1218,7 @@
     function pointerEnd(event) {
       if (selectionPointer !== event.pointerId) return;
       const finished = drag; drag = null; selectionPointer = null;
+      if (snapGuides.length) { snapGuides = []; paintSvg(); }
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       if (finished && finished.kind === 'mark') {
         if (finished.moved) setStatus(`영역 ${finished.label}을(를) 표시했습니다. Claude 대화에서 ‘영역 ${finished.label}’로 요청하세요.`);
@@ -1176,7 +1239,7 @@
       if (drag && drag.kind === 'room') editRoom(active(), drag.id, { x: drag.x, y: drag.y });
       else if (drag && drag.kind === 'resize') restore(active(), drag.snapshot);
       else if (drag) restore(active(), drag.snapshot);
-      drag = null; selectionPointer = null; refresh();
+      drag = null; selectionPointer = null; snapGuides = []; refresh();
     }
     // Extruding a wall segment renumbers the outline; follow the edited edge or corner.
     function syncSelection(result) {
@@ -1357,6 +1420,6 @@
     }
     render(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, createBlankUnit, roomsInMark, moveRoomLayer, layerAreas, resizeRoom, resizeRoomClamped, polygonArea, rectInside,
+  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, snapCoordinate, snapRoomMove, createBlankUnit, roomsInMark, moveRoomLayer, layerAreas, resizeRoom, resizeRoomClamped, polygonArea, rectInside,
     buildUnitRequest, unitRequestPrompt, extractJson, readUnitPatch, applyUnitPatch, ensureUnits, generateCombinations, mountUnits, mountCombinations, schematicSvg };
 });
