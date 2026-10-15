@@ -11,9 +11,29 @@ const narrow = () => innerWidth > 0 && innerWidth < 760;
 let reading = narrow();
 let userToggled = false;
 
-const resolve = t => (t || '').replaceAll('https://yuxa94.github.io/apartment-planner/', new URL('.', location.href).href);
+const resolve = t => t || '';
 /* relative paths in prompts (unit-plan-cad/…, jobs/…) are highlighted; Codex resolves them from the class folder */
 const marked = t => esc(t).replace(/(?<![\w/.:-])((?:unit-plan-cad|jobs|skills|reference-study)\/[\w./-]*)/g, '<mark>$1</mark>');
+function promptMarkup(text) {
+  return text.split('\n').map(line => {
+    const link = line.match(/^(자료·에셋|시작 소스|관련 커밋 [a-f0-9]+|해당 커밋 소스): (https:\/\/\S+)$/);
+    if (!link) return marked(line);
+    return `<a class="prompt-link" href="${esc(link[2])}" data-copy-label="${esc(link[1])}" target="_blank" rel="noopener" title="${esc(link[2])}">${esc(link[1])} ↗</a>`;
+  }).join('\n').replace(/(<\/a>)\n(?=<a class="prompt-link")/g, '$1 ');
+}
+document.addEventListener('copy', event => {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount !== 1) return;
+  const range = selection.getRangeAt(0);
+  const element = range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+  if (!element?.closest('.prompt')) return;
+  const fragment = range.cloneContents();
+  const links = fragment.querySelectorAll('a.prompt-link');
+  if (!links.length || !event.clipboardData) return;
+  links.forEach(a => a.replaceWith(`${a.dataset.copyLabel}: ${a.getAttribute('href')}\n`));
+  event.clipboardData.setData('text/plain', fragment.textContent);
+  event.preventDefault();
+});
 
 /* ---------- schedule ---------- */
 const agenda = [["00–15","00 · 실습 자료와 첫 화면","15"],["15–35","01 · 참고도면·세대 외곽","20"],["35–55","02 · API 없는 대화 왕복","20"],["55–70","03 · 레이어·크기·스냅","15"],["70–80","휴식","10"],["80–100","04 · 실제 동평면 재현","20"],["100–120","05 · 코어 1개·조합 탐색","20"],["120–140","06 · CAD 코어·세대 우선","20"],["140–150","07 · 저장한 안·JSON","10"],["150–160","휴식","10"],["160–180","08 · 인동거리·높이 산식","20"],["180–200","09 · 프리셋·도면·3D","20"],["200–220","10 · 동평면·배치안","20"],["220–240","11 · 패키징·배포·정리","20"]];
@@ -212,7 +232,7 @@ function body(s, i) {
       return `<p class="lead">${esc(s.lead)}</p><table class="git-history"><tbody>${s.history.map(c=>`<tr><td>${esc(c.short)}</td><td>${esc(c.feature)}</td></tr>`).join('')}</tbody></table>${refsNote(s.links)}`;
     case 'lab':
       return `<p class="lead">${esc(s.lead)}</p><div class="slide-main"><div class="req">
-        <section><div class="label"><small>Claude Code에 입력 · <span style="text-transform:none">해당 Stage 작업 폴더</span></small><button class="copy" data-copy="${i}">요청 복사</button></div><pre class="prompt" id="prompt-${i}">${marked(resolve(s.prompt))}</pre>${explainList(s)}</section>
+        <section><div class="label"><small>Claude Code에 입력 · <span style="text-transform:none">해당 Stage 작업 폴더</span></small><button class="copy" data-copy="${i}">요청 복사</button></div><pre class="prompt" id="prompt-${i}">${promptMarkup(resolve(s.prompt))}</pre>${explainList(s)}</section>
         <section><div class="label"><small>실행 후 직접 확인</small><strong>체크</strong></div>${checkList(s, i)}</section>
       </div></div>
       <div class="bottom-note"><b>안 되면</b><div class="fix-line"><span>${marked(s.repair)}</span></div><button class="copy small" data-repair="${i}">다시 요청 복사</button></div>`;
