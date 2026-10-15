@@ -222,8 +222,6 @@
 
   // Unit plans exported by Stage 1 (schema apartment-planner-unit/1): orthogonal outline, rooms, entry room.
   const UNIT_PLAN_FILES = ['unit-plans/unit-59.json', 'unit-plans/unit-74.json', 'unit-plans/unit-84.json'];
-  // Planning assumption: about 43 ㎡, in line with the two-unit core areas in the reference area table.
-  const DEFAULT_CORE = { width: 8.6, depth: 5.0 };
   const FACES = {
     S: { name: '남측', facing: '남향', origin: c => [0, c.depth], u: [1, 0], v: [0, 1], length: c => c.width },
     E: { name: '동측', facing: '동향', origin: c => [c.width, c.depth], u: [0, -1], v: [1, 0], length: c => c.depth },
@@ -231,6 +229,80 @@
     W: { name: '서측', facing: '서향', origin: c => [0, 0], u: [0, 1], v: [-1, 0], length: c => c.depth }
   };
   const DOOR = 1.0, EPS = 1e-6;
+
+  // Parametric stair-hall core. Rules follow 주택건설기준 등에 관한 규칙 제4조 (lifts) and 건축법 시행령 제35조 (stairs);
+  // every dimension below is a planning assumption, not a manufacturer or code minimum.
+  const CORE_DIMENSIONS = {
+    stairWidth: 2.7, stairLength: 5.4, lobbyLength: 2.0, hallDepth: 2.2, sideHallWidth: 1.8, shaftWidth: 0.9, floorHeight: 2.9,
+    // Lift shaft (width × depth, m) by passenger capacity.
+    lifts: { 13: [2.05, 2.15], 15: [2.15, 2.25], 17: [2.25, 2.35], 20: [2.45, 2.45], 24: [2.65, 2.55] }
+  };
+  const LIFT_CAPACITIES = [13, 15, 17, 20, 24];
+
+  function coreRules(floors, unitsPerFloor, dims) {
+    const rules = [], height = round(floors * dims.floorHeight);
+    // Lifts: one per stair hall from 6 floors; two when 3+ units share it at 22+ floors. Capacity ≥ 0.3 persons per unit on floors 4+.
+    let count = floors >= 6 ? (unitsPerFloor >= 3 && floors >= 22 ? 2 : 1) : 0, capacity = null;
+    const persons = floors >= 4 ? Math.max(1, Math.ceil(unitsPerFloor * (floors - 3) * 0.3)) : 0;
+    if (count) {
+      for (;;) { capacity = LIFT_CAPACITIES.find(c => c * count >= persons); if (capacity) break; count++; }
+    }
+    rules.push({ label: '승용승강기', value: count ? `${count}대 × ${capacity}인승` : '설치 의무 없음 (5층 이하)',
+      basis: `계단실형: 계단실마다 1대, 층당 3세대 이상·22층 이상이면 2대. 탑승인원 ≥ 4층 이상 세대 ${unitsPerFloor * Math.max(0, floors - 3)}세대 × 0.3 = ${persons}명 (규칙 제4조)` });
+    const stairKind = floors >= 16 ? 'special' : floors >= 5 ? 'escape' : 'direct';
+    rules.push({ label: '계단 형식', value: { special: '특별피난계단 (부속실)', escape: '피난계단', direct: '직통계단' }[stairKind],
+      basis: '공동주택 16층 이상 특별피난계단, 5층 이상 피난계단 (시행령 제35조, 갓복도식 예외 미적용)' });
+    const emergency = height > 31;
+    rules.push({ label: '비상용승강기', value: emergency ? `필요 (높이 약 ${fmt(height)} m > 31 m) · 승용 1대 겸용 가정` : `해당 없음 (높이 약 ${fmt(height)} m)`,
+      basis: '건축법 제64조 높이 31 m 초과. 승강장·부속실 겸용 면적과 구조는 미검토' });
+    return { rules, lifts: { count, capacity, persons, emergency }, stairKind, height };
+  }
+
+  // Layout (y down = south): a north band holds the stair (+ lobby) and the lift bank; the hall runs along its south side
+  // and may extend left/right as a corridor (extLeft/extRight) or wrap up its east/west sides (sideHalls) for wing units.
+  function buildCore(options) {
+    options = options || {};
+    const floors = Math.max(1, Math.round(Number(options.floors) || 25)), unitsPerFloor = Math.max(1, Math.round(Number(options.unitsPerFloor) || 2));
+    const dims = { ...CORE_DIMENSIONS, ...(options.dims || {}) }, spec = coreRules(floors, unitsPerFloor, dims);
+    const sides = options.sideHalls === 'both' ? ['W', 'E'] : options.sideHalls === 'E' ? ['E'] : [];
+    const sideW = sides.includes('W') ? dims.sideHallWidth : 0, sideE = sides.includes('E') ? dims.sideHallWidth : 0;
+    // A side hall replaces the corridor extension on that side so the hall edge stays on the core boundary.
+    const extLeft = sideW ? 0 : Math.max(0, Number(options.extLeft) || 0), extRight = sideE ? 0 : Math.max(0, Number(options.extRight) || 0);
+    const [lw, ld] = spec.lifts.count ? dims.lifts[spec.lifts.capacity] : [0, 0];
+    const parts = [], stairDepth = dims.stairLength + (spec.stairKind === 'special' ? dims.lobbyLength : 0), bandDepth = round(Math.max(stairDepth, ld));
+    const bandLeft = extLeft + sideW;
+    let x = bandLeft;
+    parts.push({ kind: 'stair', name: spec.stairKind === 'special' ? '특별피난계단' : '계단실', rect: [x, 0, x + dims.stairWidth, dims.stairLength] });
+    if (spec.stairKind === 'special') parts.push({ kind: 'lobby', name: '부속실', rect: [x, dims.stairLength, x + dims.stairWidth, stairDepth] });
+    x += dims.stairWidth;
+    const liftLeft = x;
+    for (let i = 0; i < spec.lifts.count; i++) {
+      parts.push({ kind: 'lift', name: (spec.lifts.emergency && i === 0 ? '비상용 겸용 ' : '') + '승강기', rect: [x, bandDepth - ld, x + lw, bandDepth] });
+      x += lw;
+    }
+    // Space over the lift bank left by a deeper stair: kept as core reserve (pit access, storage) in the drawing.
+    if (x > liftLeft && bandDepth - ld > .3) parts.push({ kind: 'spare', name: '코어 여유', rect: [liftLeft, 0, x, bandDepth - ld] });
+    parts.push({ kind: 'shaft', name: 'EPS·TPS·PS', rect: [x, 0, x + dims.shaftWidth, bandDepth] });
+    x += dims.shaftWidth;
+    if (x < bandLeft + dims.stairWidth + 1.2) parts.push({ kind: 'spare', name: '코어 여유', rect: [x, 0, bandLeft + dims.stairWidth + 1.2, bandDepth] });
+    const bandRight = round(Math.max(x, bandLeft + dims.stairWidth + 1.2)), width = round(bandRight + sideE + extRight), depth = round(bandDepth + dims.hallDepth);
+    const hallName = (extLeft || extRight || sides.length ? '승강기홀·복도' : '승강기홀') + (spec.lifts.emergency ? ' (비상용 승강장 겸용)' : '');
+    parts.push({ kind: 'hall', name: hallName, rect: [0, bandDepth, width, depth] });
+    if (sideW) parts.push({ kind: 'hall', name: '', rect: [0, 0, sideW, bandDepth] });
+    if (sideE) parts.push({ kind: 'hall', name: '', rect: [bandRight, 0, bandRight + sideE, bandDepth] });
+    parts.forEach(p => { p.rect = p.rect.map(round); });
+    // Entrances open only onto the hall: its south edge, plus its east/west ends (the full depth where a side hall runs).
+    const doorZones = [{ face: 'S', from: 0, to: width },
+      { face: 'E', from: 0, to: sideE ? depth : round(depth - bandDepth) },
+      { face: 'W', from: sideW ? 0 : bandDepth, to: depth }];
+    const rects = [[bandLeft, 0, bandRight, bandDepth], [0, bandDepth, width, depth]];
+    if (sideW) rects.push([0, 0, sideW, bandDepth]);
+    if (sideE) rects.push([bandRight, 0, bandRight + sideE, bandDepth]);
+    rects.forEach((r, i) => { rects[i] = r.map(round); });
+    const commonArea = round(rects.reduce((sum, r) => sum + (r[2] - r[0]) * (r[3] - r[1]), 0));
+    return { width, depth, floors, unitsPerFloor, parts, rects, commonArea, extLeft, extRight, sideHalls: sides.join('') || 'none', doorZones,
+      lifts: spec.lifts, stairKind: spec.stairKind, height: spec.height, rules: spec.rules, dims };
+  }
 
   // Splits an orthogonal polygon into rectangles [x0, y0, x1, y1] by vertical slabs.
   function polygonRects(outline) {
@@ -296,20 +368,23 @@
 
   // All single placements: a corner on the entrance side aligned to a target along the face.
   function corePlacements(profiles, core) {
-    const placements = [], rejected = {}, seen = new Set(), coreRect = [0, 0, core.width, core.depth];
+    const placements = [], rejected = {}, seen = new Set(), coreRects = core.rects || [[0, 0, core.width, core.depth]];
     const reject = r => { rejected[r] = (rejected[r] || 0) + 1; };
     // Face start/middle/end, plus the entrance depths of other units so side wings can line up with them.
-    const depths = profiles.map(p => p.door.y);
-    const targets = L => [...new Set([0, L / 2, L, ...depths, ...depths.map(d => L - d)].map(round))].filter(v => v >= 0 && v <= L);
+    const depths = profiles.map(p => p.door.y), zones = core.doorZones || Object.keys(FACES).map(face => ({ face, from: 0, to: FACES[face].length(core) }));
+    const zoneEnds = face => zones.filter(z => z.face === face).flatMap(z => [z.from, z.to]);
+    const targets = (L, face) => [...new Set([0, L / 2, L, ...zoneEnds(face), ...depths, ...depths.map(d => L - d)].map(round))].filter(v => v >= 0 && v <= L);
+    const inZone = (face, t) => zones.some(z => z.face === face && t >= z.from + DOOR / 2 - EPS && t <= z.to - DOOR / 2 + EPS);
     for (const profile of profiles) for (const faceKey of Object.keys(FACES)) for (const mirrored of [false, true]) {
       const p = mirrored ? mirrorProfile(profile) : profile, L = FACES[faceKey].length(core);
-      for (const anchor of p.anchors) for (const target of targets(L)) {
+      for (const anchor of p.anchors) for (const target of targets(L, faceKey)) {
         const t = round(target + p.door.x - anchor), key = [p.type, faceKey, mirrored, t].join('|');
         if (seen.has(key)) continue;
         seen.add(key);
         if (t < DOOR / 2 - EPS || t > L - DOOR / 2 + EPS) { reject('현관이 코어 면을 벗어남'); continue; }
+        if (!inZone(faceKey, t)) { reject('현관이 승강기홀에 닿지 않음'); continue; }
         const placed = placeOnCore(profile, mirrored, faceKey, t, core);
-        if (placed.rects.some(r => overlaps(r, coreRect))) { reject('세대가 코어와 겹침'); continue; }
+        if (placed.rects.some(r => coreRects.some(c => overlaps(r, c)))) { reject('세대가 코어와 겹침'); continue; }
         placements.push(placed);
       }
     }
@@ -324,9 +399,37 @@
   }
 
   // Enumerates sets of units around one core: pairwise no overlap, separate entrances, mirror and slide duplicates merged.
+  // Builds the core for each requested unit count from floors (coreWidth/coreDepth give a plain box instead) and merges the results.
   function generateCoreCombos(plans, options) {
     options = options || {};
-    const core = { width: Number(options.coreWidth) > 0 ? Number(options.coreWidth) : DEFAULT_CORE.width, depth: Number(options.coreDepth) > 0 ? Number(options.coreDepth) : DEFAULT_CORE.depth };
+    const counts = [...new Set((options.counts || [2, 3, 4]).map(Number))].filter(n => n >= 1 && n <= 4).sort((a, b) => b - a);
+    const fixed = Number(options.coreWidth) > 0 && Number(options.coreDepth) > 0;
+    // Hall extensions (corridor reach) tried on each side; mirrored pairs are skipped because results are mirror-merged.
+    const steps = (options.hallExtensions || [0, 1.5, 3, 4.5, 6]).map(Number).filter(v => v >= 0 && v <= 20);
+    const pairs = fixed ? [[0, 0]] : steps.flatMap(a => steps.filter(b => b >= a).map(b => [a, b]));
+    const variants = n => fixed ? [{ sideHalls: 'none', ext: [0, 0] }] : [...pairs.map(ext => ({ sideHalls: 'none', ext })),
+      ...(n >= 3 ? [...steps.map(e => ({ sideHalls: 'E', ext: [e, 0] })), { sideHalls: 'both', ext: [0, 0] }] : [])];
+    const rejected = {}, cores = {}, combos = [];
+    let placements = 0, profiles = [];
+    for (const n of counts) {
+      const best = new Map();
+      for (const { sideHalls, ext: [extLeft, extRight] } of variants(n)) {
+        const core = fixed ? { width: Number(options.coreWidth), depth: Number(options.coreDepth) } : buildCore({ floors: options.floors, unitsPerFloor: n, dims: options.dims, extLeft, extRight, sideHalls });
+        if (!cores[n]) cores[n] = core;
+        const r = searchCore(plans, { ...options, counts: [n] }, core);
+        placements += r.placements; profiles = r.profiles;
+        Object.entries(r.rejected).forEach(([k, v]) => { rejected[k] = (rejected[k] || 0) + v; });
+        for (const c of r.combos) {
+          const prev = best.get(c.topology);
+          if (!prev || c.commonArea < prev.commonArea - EPS || (Math.abs(c.commonArea - prev.commonArea) < EPS && c.footprintArea < prev.footprintArea - EPS)) best.set(c.topology, c);
+        }
+      }
+      combos.push(...[...best.values()].sort((a, b) => b.southCount - a.southCount || a.commonArea - b.commonArea || a.footprintArea - b.footprintArea || a.id.localeCompare(b.id)));
+    }
+    return { combos, cores, core: cores[counts[0]] || null, profiles, placements, rejected };
+  }
+
+  function searchCore(plans, options, core) {
     const types = (options.types || TYPES).map(Number);
     const profiles = (plans || []).map(p => p.outline && p.door && p.rects ? p : profileFromPlan(p)).filter(p => types.includes(p.type));
     const counts = [...new Set((options.counts || [2, 3, 4]).map(Number))].filter(n => n >= 1 && n <= 4);
@@ -357,6 +460,7 @@
     const best = new Map();
     for (const units of results) {
       const c = coreComboTypology(units, core), k = topo(units), prev = best.get(k);
+      c.topology = k;
       if (!prev || c.footprintArea < prev.footprintArea - EPS || (Math.abs(c.footprintArea - prev.footprintArea) < EPS && c.id < prev.id)) best.set(k, c);
     }
     if (results.length > best.size) rejected['같은 구성의 미세 위치 차이'] = results.length - best.size;
@@ -374,14 +478,26 @@
       outline: u.outline.map(shift), rects: u.rects.map(shiftRect), rooms: u.rooms.map(r => ({ ...r, rect: shiftRect(r.rect) })), door: u.door.map(shift), centre: shift(u.centre) }));
     const mix = TYPES.map(t => ({ type: t, count: units.filter(u => u.type === t).length })).filter(m => m.count);
     const total = units.reduce((s, u) => s + u.type, 0), n = units.length, order = { S: 0, E: 1, W: 2, N: 3 };
-    const key = units.map(u => u.type + u.face + (u.mirrored ? 'm' : '') + u.t).sort().join('_');
+    const key = units.map(u => u.type + u.face + (u.mirrored ? 'm' : '') + u.t).sort().join('_') + (core.floors ? '_f' + core.floors + '_e' + core.extLeft + '-' + core.extRight + '_s' + core.sideHalls : '');
     return { id: 'core-' + key, name: n + '세대 · ' + mix.map(m => m.type + '×' + m.count).join(' + '),
       width: round(maxX - minX), depth: round(maxY - minY), unitsPerFloor: n, unitArea: round(total / n), totalUnitArea: total, nominalArea: total,
-      coreArea: round(core.width * core.depth), coreOnlyArea: round(core.width * core.depth), coreCount: 1, coreCapacity: n, unitMix: mix,
+      coreArea: core.commonArea || round(core.width * core.depth), coreOnlyArea: core.commonArea || round(core.width * core.depth), commonArea: core.commonArea || round(core.width * core.depth), coreCount: 1, coreCapacity: n, unitMix: mix,
       southCount: units.filter(u => u.face === 'S').length, facings: [...units].sort((a, b) => order[a.face] - order[b.face]).map(u => u.facing),
       footprintArea: round((maxX - minX) * (maxY - minY)), source: 'core-attachment', layout: 'core-cluster', sourceUnitIds: [...new Set(units.map(u => u.unitId).filter(Boolean))],
       reviewStatus: '단위세대 평면 외곽 + 코어 가정 · 채광·피난·구조·설비 미검토',
-      geometry: { units: placed, core: { x: round(-minX), y: round(-minY), width: core.width, depth: core.depth } } };
+      core: core.lifts ? { floors: core.floors, lifts: core.lifts, stairKind: core.stairKind, rules: core.rules, width: core.width, depth: core.depth, extLeft: core.extLeft, extRight: core.extRight, sideHalls: core.sideHalls } : null,
+      geometry: { units: placed, core: { x: round(-minX), y: round(-minY), width: core.width, depth: core.depth, rects: core.rects ? core.rects.map(shiftRect) : null, parts: (core.parts || []).map(p => ({ ...p, rect: shiftRect(p.rect) })) } } };
+  }
+
+  const PART_FILL = { stair: '#3f6b93', lobby: '#5d86ad', lift: '#2c4f75', shaft: '#8aa6c0', hall: '#c9d8e6', spare: '#dfe6ee' };
+  function coreParts(parts) {
+    return parts.map(p => {
+      const [x0, y0, x1, y1] = p.rect, w = round(x1 - x0), h = round(y1 - y0), cx = round(x0 + w / 2), cy = round(y0 + h / 2);
+      const steps = p.kind === 'stair' ? Array.from({ length: Math.max(0, Math.floor(h / .55)) }, (_, i) => `<line x1="${x0 + .2}" y1="${round(y0 + .3 + i * .55)}" x2="${round(x0 + w / 2 - .1)}" y2="${round(y0 + .3 + i * .55)}" stroke="#c8dcea" stroke-width=".05"/><line x1="${round(x0 + w / 2 + .1)}" y1="${round(y0 + .3 + i * .55)}" x2="${x1 - .2}" y2="${round(y0 + .3 + i * .55)}" stroke="#c8dcea" stroke-width=".05"/>`).join('') : '';
+      const cross = p.kind === 'lift' ? `<path d="M${x0 + .25} ${y0 + .25}L${x1 - .25} ${y1 - .25}M${x1 - .25} ${y0 + .25}L${x0 + .25} ${y1 - .25}" stroke="#c8dcea" stroke-width=".06"/>` : '';
+      const label = p.kind === 'hall' ? p.name : { stair: '계단', lobby: '부속실', lift: 'EV', shaft: 'PS', spare: '' }[p.kind];
+      return `<g><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="${PART_FILL[p.kind] || '#507ca5'}" stroke="#fff" stroke-width=".06"/>${steps}${cross}<text x="${cx}" y="${cy + .22}" text-anchor="middle" font-size="${p.kind === 'hall' ? .55 : .6}" fill="${p.kind === 'hall' ? '#24476b' : '#fff'}" ${p.kind === 'shaft' ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(label)}</text></g>`;
+    }).join('');
   }
 
   const ROOM_FILL = { living: '#f4efe2', kitchen: '#f1ead8', bedroom: '#e5eef6', wet: '#d9ecef', service: '#ecedf0', circulation: '#f5f6f8', balcony: '#e9f2e6' };
@@ -394,8 +510,8 @@
         <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.7" font-weight="750" fill="${stroke[u.type]}" paint-order="stroke" stroke="#fff" stroke-width=".35">${u.type}</text>
         <text x="${u.centre[0]}" y="${u.centre[1] + 1.25}" text-anchor="middle" font-size=".9" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25">${u.facing}</text>
         <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/></g>`).join('')}
-      <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.depth}" fill="#3f6b93" stroke="#fff" stroke-width=".1"/>
-      <text x="${c.x + c.width / 2}" y="${c.y + c.depth / 2 + .4}" text-anchor="middle" font-size="1.1" fill="#fff" font-weight="650">코어</text>
+      ${c.parts && c.parts.length ? coreParts(c.parts) : `<rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.depth}" fill="#3f6b93" stroke="#fff" stroke-width=".1"/><text x="${c.x + c.width / 2}" y="${c.y + c.depth / 2 + .4}" text-anchor="middle" font-size="1.1" fill="#fff" font-weight="650">코어</text>`}
+      ${(c.rects || [[c.x, c.y, c.x + c.width, c.y + c.depth]]).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="none" stroke="#24476b" stroke-width=".16"/>`).join('')}
     </svg>`;
   }
 
@@ -409,7 +525,7 @@
     if (doc.getElementById('planner-units-style')) return;
     const style = doc.createElement('style'); style.id = 'planner-units-style';
     style.textContent = `
-      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
       @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector,.pu-ref-body{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
     `;
     doc.head.appendChild(style);
@@ -567,8 +683,8 @@
 
   function mountCombinations(container, project, onChange, onPlace) {
     ensureUnits(project); injectStyles(container.ownerDocument);
-    const PRESETS = [{ label: '2세대 코어', width: 8.6, depth: 5.0 }, { label: '3~4세대 코어', width: 8.6, depth: 8.0 }];
-    let opts = { types: [59, 74, 84], counts: [2, 3, 4], coreWidth: PRESETS[1].width, coreDepth: PRESETS[1].depth, allowSide: true, allowNorth: false, sort: 'default' };
+    const DIM_FIELDS = [['stairWidth', '계단실 폭'], ['stairLength', '계단실 길이'], ['lobbyLength', '부속실 깊이'], ['hallDepth', '승강기홀 깊이'], ['sideHallWidth', '측면 홀 폭'], ['shaftWidth', '샤프트 폭'], ['floorHeight', '층고']];
+    let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowSide: true, allowNorth: false, sort: 'default' };
     let shown = { 2: 12, 3: 12, 4: 12 }, status = '', plans = null, planSource = '', loadError = '';
     async function loadDefaultPlans() {
       try {
@@ -617,22 +733,23 @@
           <div><div class="section-label" style="margin-bottom:8px">향</div><div class="pu-mix">${box('data-cc-side', 1, opts.allowSide, '동·서향 허용')}${box('data-cc-north', 1, opts.allowNorth, '북향 허용')}</div></div>
         </div>
         <div class="pu-combo-fields">
-          <label>코어 폭 (m)<input class="pu-num" type="number" min="3" max="30" step=".1" value="${opts.coreWidth}" data-cc-cw></label>
-          <label>코어 깊이 (m)<input class="pu-num" type="number" min="3" max="30" step=".1" value="${opts.coreDepth}" data-cc-cd></label>
-          <div><div class="section-label" style="margin-bottom:8px">코어 크기 가정</div><div class="pu-mix">${PRESETS.map((p, i) => `<button class="btn" type="button" data-cc-preset="${i}">${p.label} ${fmt(p.width)}×${fmt(p.depth)}</button>`).join('')}</div></div>
+          <label>층수<input class="pu-num" type="number" min="1" max="80" step="1" value="${opts.floors}" data-cc-floors></label>
           <label>정렬<select data-cc-sort>${[['default', '남향 세대 많은 순'], ['compact', '세대당 점유 면적 작은 순'], ['narrow', '동 폭 좁은 순'], ['area', '전용 합계 큰 순']].map(([k, l]) => `<option value="${k}" ${opts.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         </div>
-        <div class="pu-warning">코어 ${fmt(result.core.width)} × ${fmt(result.core.depth)}m(${fmt(result.core.width * result.core.depth)}㎡)는 계획 가정입니다. 참고 면적표의 2세대 코어 약 43㎡, 3세대 코어 57~67㎡ 수준을 기준으로 잡았습니다. 계단·승강기 배치, 채광·일조, 피난, 구조, 설비 적합성은 검토하지 않았습니다.</div>
+        <div class="pu-warning">코어는 층수와 코어당 세대 수로 승강기 대수·용량, 계단 형식, 비상용승강기 필요 여부를 정한 뒤 계단실·부속실·승강기·샤프트·승강기홀을 조립합니다. 승강기홀은 현관에 닿도록 좌우로 0~6 m 복도처럼 늘리거나(판상형) 측면으로 감쌀 수 있고(타워형), 공용면적이 가장 작은 경우를 남깁니다. 부품 치수는 계획 가정이며, 규정은 선별 계산일 뿐 법규 적합 판정이 아닙니다. 채광·일조, 피난 거리, 구조, 설비는 검토하지 않았습니다.</div>
+        <details class="pu-reference"><summary>코어 부품 치수 가정 (m)</summary><div class="pu-combo-fields">${DIM_FIELDS.map(([k, l]) => `<label>${l}<input class="pu-num" type="number" min=".5" max="20" step=".05" value="${opts.dims[k] != null ? opts.dims[k] : CORE_DIMENSIONS[k]}" data-cc-dim="${k}"></label>`).join('')}</div>
+          <p>승강로 크기(인승별): ${Object.entries(CORE_DIMENSIONS.lifts).map(([c, d]) => c + '인승 ' + d.join('×')).join(' · ')}. 제조사 사양과 다를 수 있습니다.</p></details>
         <p class="pu-note">탐색: 코어 면에 붙일 수 있는 단일 배치 ${result.placements}개 · 제외 ${rejects.length ? rejects.map(([r, n]) => esc(r) + ' ' + n).join(' · ') : '없음'}</p>
         ${profileNote(result.profiles, planSource)}<div class="pu-combo-actions"><label class="btn">세대 평면 JSON 다시 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label>${loadError ? `<span class="pu-ng">${esc(loadError)}</span>` : ''}</div></div>
         <div class="pu-status" role="status">${esc(status)}</div>
         ${groups.map(g => `<section class="pu-cc-group"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>
+          ${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b>${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
           ${g.list.length ? `<div class="pu-combo-grid">${visible[g.n].map((c, i) => `<article class="pu-combo-card pu-cc-card">${coreComboSvg(c)}<h3>${esc(c.name)}</h3>
-            <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m</div>
-            <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>코어 / 층 (가정)</span><b>${fmt(c.coreArea)}㎡</b></div></div>
+            <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
+            <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>코어·홀 공용 / 층</span><b>${fmt(c.commonArea)}㎡</b></div></div>
             <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn primary" type="button" data-cc-place="${g.n}:${i}">대지에 배치 →</button></div></article>`).join('')}</div>
             ${g.list.length > visible[g.n].length ? `<div class="pu-combo-actions"><button class="btn" type="button" data-cc-more="${g.n}">${g.list.length - visible[g.n].length}안 더 보기</button></div>` : ''}`
-          : `<div class="pu-empty">이 조건에서는 ${g.n}세대를 붙일 수 없습니다.${g.n > 2 ? ' 코어 깊이를 늘려 보세요(3~4세대 코어 프리셋).' + (opts.allowSide ? '' : ' 동·서향 세대를 허용하면 늘어납니다.') : ''}</div>`}</section>`).join('')}
+          : `<div class="pu-empty">이 조건에서는 ${g.n}세대를 붙일 수 없습니다.${g.n > 2 && !opts.allowSide ? ' 동·서향 세대를 허용하면 늘어납니다.' : ''}</div>`}</section>`).join('')}
         <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}</small></div><button class="btn" type="button" data-saved-place="${i}">배치에 추가</button></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>
         <details class="pu-reference"><summary>참고: 수색4 101동 편복도 재현 (A-303)</summary>${referencePanel(reference)}</details>`;
       const toggle = (list, value) => list.includes(value) ? list.filter(v => v !== value) : [...list, value].sort((a, b) => a - b);
@@ -642,9 +759,8 @@
       container.querySelectorAll('[data-cc-count]').forEach(el => el.addEventListener('change', () => { opts.counts = toggle(opts.counts, Number(el.dataset.ccCount)); render(); }));
       container.querySelector('[data-cc-side]').addEventListener('change', e => { opts.allowSide = e.target.checked; render(); });
       container.querySelector('[data-cc-north]').addEventListener('change', e => { opts.allowNorth = e.target.checked; render(); });
-      container.querySelector('[data-cc-cw]').addEventListener('change', e => { const v = Number(e.target.value); if (v >= 3 && v <= 30) opts.coreWidth = v; render(); });
-      container.querySelector('[data-cc-cd]').addEventListener('change', e => { const v = Number(e.target.value); if (v >= 3 && v <= 30) opts.coreDepth = v; render(); });
-      container.querySelectorAll('[data-cc-preset]').forEach(b => b.addEventListener('click', () => { const p = PRESETS[Number(b.dataset.ccPreset)]; opts.coreWidth = p.width; opts.coreDepth = p.depth; render(); }));
+      container.querySelector('[data-cc-floors]').addEventListener('change', e => { const v = Math.round(Number(e.target.value)); if (v >= 1 && v <= 80) opts.floors = v; render(); });
+      container.querySelectorAll('[data-cc-dim]').forEach(el => el.addEventListener('change', () => { const v = Number(el.value); if (v >= .5 && v <= 20) opts.dims = { ...opts.dims, [el.dataset.ccDim]: v }; render(); }));
       container.querySelector('[data-cc-sort]').addEventListener('change', e => { opts.sort = e.target.value; render(); });
       container.querySelectorAll('[data-cc-more]').forEach(b => b.addEventListener('click', () => { shown[b.dataset.ccMore] += 12; render(); }));
       container.querySelectorAll('[data-cc-save]').forEach(b => b.addEventListener('click', () => { save(pick(b.dataset.ccSave)); render(); }));
@@ -655,5 +771,5 @@
     }
     render(); loadDefaultPlans(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, DEFAULT_CORE, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, buildCore, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });

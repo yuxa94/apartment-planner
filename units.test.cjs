@@ -195,3 +195,50 @@ test('saved core combo is a valid project typology', () => {
   p.typologies.push(JSON.parse(JSON.stringify(U.generateCoreCombos(plans, { coreDepth: 8 }).combos[0])));
   assert.equal(S.validateProject(p).typologies.length, 1);
 });
+
+test('core rules: lift count and capacity, stair type and fire lift follow floors and units per core', () => {
+  const low = U.buildCore({ floors: 5, unitsPerFloor: 2 });
+  assert.equal(low.lifts.count, 0);
+  assert.equal(low.stairKind, 'escape');
+  const mid = U.buildCore({ floors: 15, unitsPerFloor: 2 });
+  assert.equal(mid.lifts.count, 1);
+  assert.equal(mid.stairKind, 'escape');
+  assert.ok(!mid.parts.some(p => p.kind === 'lobby'));
+  const tall2 = U.buildCore({ floors: 25, unitsPerFloor: 2 });
+  assert.equal(tall2.lifts.count, 1);
+  assert.equal(tall2.stairKind, 'special');
+  assert.ok(tall2.parts.some(p => p.kind === 'lobby'));
+  assert.equal(tall2.lifts.emergency, true);
+  const tall4 = U.buildCore({ floors: 25, unitsPerFloor: 4 });
+  assert.equal(tall4.lifts.count, 2);
+  // 4 units × 22 floors × 0.3 = 26.4 → 27 persons over two lifts.
+  assert.equal(tall4.lifts.persons, 27);
+  assert.ok(tall4.lifts.count * tall4.lifts.capacity >= 27);
+  assert.equal(U.buildCore({ floors: 21, unitsPerFloor: 3 }).lifts.count, 1);
+  assert.equal(U.buildCore({ floors: 22, unitsPerFloor: 3 }).lifts.count, 2);
+});
+
+test('core parts tile the core rectangles and the hall carries every door zone', () => {
+  for (const options of [{ floors: 25, unitsPerFloor: 2, extLeft: 1.5, extRight: 3 }, { floors: 25, unitsPerFloor: 4, sideHalls: 'both' }, { floors: 12, unitsPerFloor: 3, sideHalls: 'E', extLeft: 3 }]) {
+    const c = U.buildCore(options);
+    const partArea = c.parts.reduce((s, p) => s + (p.rect[2] - p.rect[0]) * (p.rect[3] - p.rect[1]), 0);
+    assert.ok(partArea <= c.commonArea + 1e-6, 'parts exceed core');
+    for (const p of c.parts) assert.ok(c.rects.some(r => p.rect[0] >= r[0] - 1e-6 && p.rect[2] <= r[2] + 1e-6 && p.rect[1] >= r[1] - 1e-6 && p.rect[3] <= r[3] + 1e-6), p.name + ' outside core');
+    for (let i = 0; i < c.parts.length; i++) for (let j = i + 1; j < c.parts.length; j++) assert.ok(!boxesOverlap(c.parts[i].rect, c.parts[j].rect), c.parts[i].kind + '/' + c.parts[j].kind);
+  }
+});
+
+test('parametric core: hall extensions and side halls open 2–4 unit combinations with entrances on the hall', () => {
+  const r = U.generateCoreCombos(plans, { floors: 25 });
+  for (const n of [2, 3, 4]) assert.ok(r.combos.some(c => c.unitsPerFloor === n), n + ' units');
+  for (const c of r.combos) {
+    const hall = c.geometry.core.parts.filter(p => p.kind === 'hall').map(p => p.rect);
+    for (const u of c.geometry.units) {
+      const [[x0, y0], [x1, y1]] = u.door, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+      assert.ok(hall.some(h => mx >= h[0] - 1e-6 && mx <= h[2] + 1e-6 && my >= h[1] - 1e-6 && my <= h[3] + 1e-6), c.id + ' door not on hall');
+    }
+    assert.ok(c.core && c.core.rules.length === 3);
+  }
+  const pair = r.combos.find(c => c.unitsPerFloor === 2 && c.facings.join() === '남향,남향');
+  assert.ok(pair && pair.commonArea < 70);
+});
