@@ -258,34 +258,94 @@
     return { rules, lifts: { count, capacity, persons, emergency }, stairKind, height };
   }
 
-  // Layout (y down = south): a north band holds the stair (+ lobby) and the lift bank; the hall runs along its south side
-  // and may extend left/right as a corridor (extLeft/extRight) or wrap up its east/west sides (sideHalls) for wing units.
+  // Fixed stair/lift/shaft blocks read from 인천계양1 standard-floor core drawings
+  // (HAUD 04_인천계양1_동별코어조합/00-XREF-계양/core/CORE-*-기준층.dwg, ObjectDBX read-only). Coordinates are metres in the
+  // drawing frame with y down, rooms taken from the A-CON wall lines and rounded to 5 cm. The internal hall touches the block's
+  // south edge, where the generated hall/corridor attaches. rotate180 turns a block whose hall opens north.
+  const CORE_TEMPLATES = {
+    'gyeyang-59A': { name: '계양 59A 코어', source: 'CORE-59A-기준층.dwg', lifts: [20],
+      observed: '계단 상부 · 승강기 20인승 120 m/min 1대 · 승강기홀 동측 EPS·TPS·AV',
+      parts: [['stair', [0, 0, 5.3, 3.05]], ['lift', [0.3, 3.05, 2.85, 5.85]], ['hall', [2.85, 3.05, 4.85, 5.85]], ['shaft', [4.85, 3.05, 6.0, 5.85], 'EPS·TPS·AV']] },
+    'gyeyang-84A': { name: '계양 84A 코어', source: 'CORE-84A-기준층.dwg', lifts: [20],
+      observed: '계단 상부 · 승강기 20인승 120 m/min 1대 · 승강기홀 동측 EPS·TPS',
+      parts: [['stair', [0, 0, 5.3, 3.05]], ['lift', [0.25, 3.05, 2.85, 5.65]], ['hall', [2.85, 3.05, 4.9, 5.85]], ['shaft', [4.9, 3.05, 6.0, 5.85], 'EPS·TPS']] },
+    'gyeyang-53A': { name: '계양 53A 코어', source: 'CORE-53A-기준층.dwg', lifts: [15, 15], rotate180: true,
+      observed: '승강기 15인승 2대와 계단이 중앙 복도를 사이에 두고 마주 봄 · 복도 북측 개구를 남측으로 돌려 사용',
+      parts: [['lift', [0.3, 1.85, 2.5, 4.2]], ['lift', [0.3, 4.2, 2.5, 6.6]], ['stair', [4.38, 1.65, 9.58, 4.65]], ['shaft', [0.2, 6.8, 2.7, 9.55], 'EPS·TPS·PD'],
+        ['shaft', [4.38, 4.65, 7.47, 6.13], 'PD'], ['shaft', [4.38, 0.13, 5.6, 1.65], 'PD'], ['shaft', [2.7, 8.47, 4.38, 9.55], 'AV·PD'], ['hall', [2.7, 0, 4.38, 8.47]]] },
+    'gyeyang-101': { name: '계양 101동 코어', source: 'CORE-101동-기준층.dwg', lifts: [20],
+      observed: '타워형 · 승강기 20인승 1대와 계단 사이 홀 · 하부 홀 동·서측으로 현관 개구 · 원 도면의 사선 세대 벽은 제외',
+      parts: [['lift', [4.43, 5.86, 7.23, 8.76]], ['hall', [7.23, 5.61, 9.18, 12.36]], ['stair', [9.18, 6.41, 12.23, 11.66]], ['shaft', [5.35, 8.76, 6.86, 12.36], 'EPS·TPS·AV·PD'],
+        ['shaft', [10.47, 11.66, 11.98, 12.36], 'PD']] },
+    'gyeyang-103': { name: '계양 103동 코어', source: 'CORE-103동-기준층.dwg', lifts: [17, 15],
+      observed: '타워형 · 승강기 17·15인승 2대와 계단 사이 홀 · 하부 홀 동·서측으로 현관 개구 · 원 도면의 사선 세대 벽은 제외',
+      parts: [['stair', [6.24, 6.41, 9.29, 11.46]], ['hall', [9.29, 4.41, 11.44, 11.46]], ['lift', [11.44, 4.66, 13.84, 7.16]], ['lift', [11.44, 7.16, 13.84, 9.66]],
+        ['shaft', [11.44, 9.66, 14.09, 11.46], 'AV·PD']] },
+    'gyeyang-104': { name: '계양 104동 코어', source: 'CORE-104동-기준층.dwg', lifts: [20],
+      observed: '타워형 · 승강기 20인승 1대와 계단 사이 홀 · 하부 홀 동·서측으로 현관 개구 · 원 도면의 사선 세대 벽은 제외',
+      parts: [['lift', [4.93, 7.36, 7.73, 10.16]], ['shaft', [4.93, 10.16, 7.73, 12.41], 'AV·PD'], ['hall', [7.73, 5.36, 9.68, 12.41]], ['stair', [9.68, 7.11, 12.73, 12.41]]] }
+  };
+
+  // Normalises a drawn block to its own frame (origin top-left, y down), turning it 180° when its hall opens north.
+  function drawnBlock(id) {
+    const t = CORE_TEMPLATES[id];
+    let rects = t.parts.map(p => p[1]);
+    const x0 = Math.min(...rects.map(r => r[0])), y0 = Math.min(...rects.map(r => r[1])), x1 = Math.max(...rects.map(r => r[2])), y1 = Math.max(...rects.map(r => r[3]));
+    const w = x1 - x0, d = y1 - y0;
+    const place = ([a, b, c, e]) => t.rotate180 ? [w - (c - x0), d - (e - y0), w - (a - x0), d - (b - y0)] : [a - x0, b - y0, c - x0, e - y0];
+    let liftNo = 0;
+    const parts = t.parts.map(([kind, rect, name]) => ({ kind, rect: place(rect).map(round),
+      name: name || (kind === 'lift' ? '승강기 ' + t.lifts[liftNo++] + '인승' : kind === 'stair' ? '계단실' : kind === 'hall' ? '' : kind) }));
+    return { width: round(w), depth: round(d), parts };
+  }
+
+  // Layout (y down = south): a north band holds the stair (+ lobby) and the lift bank — assembled from rules, or a drawn block
+  // (options.template) — and the hall runs along its south side. The hall may extend left/right as a corridor (extLeft/extRight)
+  // or wrap up its east/west sides (sideHalls) for wing units.
   function buildCore(options) {
     options = options || {};
     const floors = Math.max(1, Math.round(Number(options.floors) || 25)), unitsPerFloor = Math.max(1, Math.round(Number(options.unitsPerFloor) || 2));
     const dims = { ...CORE_DIMENSIONS, ...(options.dims || {}) }, spec = coreRules(floors, unitsPerFloor, dims);
+    const template = CORE_TEMPLATES[options.template] ? options.template : null;
     const sides = options.sideHalls === 'both' ? ['W', 'E'] : options.sideHalls === 'E' ? ['E'] : [];
     const sideW = sides.includes('W') ? dims.sideHallWidth : 0, sideE = sides.includes('E') ? dims.sideHallWidth : 0;
     // A side hall replaces the corridor extension on that side so the hall edge stays on the core boundary.
     const extLeft = sideW ? 0 : Math.max(0, Number(options.extLeft) || 0), extRight = sideE ? 0 : Math.max(0, Number(options.extRight) || 0);
-    const [lw, ld] = spec.lifts.count ? dims.lifts[spec.lifts.capacity] : [0, 0];
-    const parts = [], stairDepth = dims.stairLength + (spec.stairKind === 'special' ? dims.lobbyLength : 0), bandDepth = round(Math.max(stairDepth, ld));
-    const bandLeft = extLeft + sideW;
-    let x = bandLeft;
-    parts.push({ kind: 'stair', name: spec.stairKind === 'special' ? '특별피난계단' : '계단실', rect: [x, 0, x + dims.stairWidth, dims.stairLength] });
-    if (spec.stairKind === 'special') parts.push({ kind: 'lobby', name: '부속실', rect: [x, dims.stairLength, x + dims.stairWidth, stairDepth] });
-    x += dims.stairWidth;
-    const liftLeft = x;
-    for (let i = 0; i < spec.lifts.count; i++) {
-      parts.push({ kind: 'lift', name: (spec.lifts.emergency && i === 0 ? '비상용 겸용 ' : '') + '승강기', rect: [x, bandDepth - ld, x + lw, bandDepth] });
-      x += lw;
+    const bandLeft = extLeft + sideW, parts = [];
+    let bandRight, bandDepth, rules = spec.rules, lifts = spec.lifts, stairKind = spec.stairKind;
+    if (template) {
+      const t = CORE_TEMPLATES[template], block = drawnBlock(template);
+      block.parts.forEach(p => parts.push({ ...p, rect: [p.rect[0] + bandLeft, p.rect[1], p.rect[2] + bandLeft, p.rect[3]] }));
+      bandRight = round(bandLeft + block.width); bandDepth = block.depth;
+      const capacity = t.lifts.reduce((s, c) => s + c, 0);
+      const liftOk = t.lifts.length >= spec.lifts.count && capacity >= spec.lifts.persons, stairOk = spec.stairKind !== 'special';
+      lifts = { ...spec.lifts, count: t.lifts.length, capacity: Math.min(...t.lifts) };
+      stairKind = 'drawn';
+      rules = [
+        { label: '승용승강기', value: `도면 ${t.lifts.map(c => c + '인승').join('·')} ${t.lifts.length}대 · 필요 ${spec.lifts.count ? spec.lifts.count + '대 · ' + spec.lifts.persons + '명' : '없음'} → ${liftOk ? '충족' : '부족'}`, basis: spec.rules[0].basis, ok: liftOk },
+        { label: '계단 형식', value: `도면 계단 · 필요 ${spec.rules[1].value} → ${stairOk ? '충족' : '부속실 여부 확인 필요'}`, basis: spec.rules[1].basis + '. 도면 블록에 부속실을 따로 표시하지 않음', ok: stairOk },
+        spec.rules[2]];
+    } else {
+      const [lw, ld] = spec.lifts.count ? dims.lifts[spec.lifts.capacity] : [0, 0];
+      const stairDepth = dims.stairLength + (spec.stairKind === 'special' ? dims.lobbyLength : 0);
+      bandDepth = round(Math.max(stairDepth, ld));
+      let x = bandLeft;
+      parts.push({ kind: 'stair', name: spec.stairKind === 'special' ? '특별피난계단' : '계단실', rect: [x, 0, x + dims.stairWidth, dims.stairLength] });
+      if (spec.stairKind === 'special') parts.push({ kind: 'lobby', name: '부속실', rect: [x, dims.stairLength, x + dims.stairWidth, stairDepth] });
+      x += dims.stairWidth;
+      const liftLeft = x;
+      for (let i = 0; i < spec.lifts.count; i++) {
+        parts.push({ kind: 'lift', name: (spec.lifts.emergency && i === 0 ? '비상용 겸용 ' : '') + '승강기', rect: [x, bandDepth - ld, x + lw, bandDepth] });
+        x += lw;
+      }
+      // Space over the lift bank left by a deeper stair: kept as core reserve (pit access, storage) in the drawing.
+      if (x > liftLeft && bandDepth - ld > .3) parts.push({ kind: 'spare', name: '코어 여유', rect: [liftLeft, 0, x, bandDepth - ld] });
+      parts.push({ kind: 'shaft', name: 'EPS·TPS·PS', rect: [x, 0, x + dims.shaftWidth, bandDepth] });
+      x += dims.shaftWidth;
+      if (x < bandLeft + dims.stairWidth + 1.2) parts.push({ kind: 'spare', name: '코어 여유', rect: [x, 0, bandLeft + dims.stairWidth + 1.2, bandDepth] });
+      bandRight = round(Math.max(x, bandLeft + dims.stairWidth + 1.2));
     }
-    // Space over the lift bank left by a deeper stair: kept as core reserve (pit access, storage) in the drawing.
-    if (x > liftLeft && bandDepth - ld > .3) parts.push({ kind: 'spare', name: '코어 여유', rect: [liftLeft, 0, x, bandDepth - ld] });
-    parts.push({ kind: 'shaft', name: 'EPS·TPS·PS', rect: [x, 0, x + dims.shaftWidth, bandDepth] });
-    x += dims.shaftWidth;
-    if (x < bandLeft + dims.stairWidth + 1.2) parts.push({ kind: 'spare', name: '코어 여유', rect: [x, 0, bandLeft + dims.stairWidth + 1.2, bandDepth] });
-    const bandRight = round(Math.max(x, bandLeft + dims.stairWidth + 1.2)), width = round(bandRight + sideE + extRight), depth = round(bandDepth + dims.hallDepth);
+    const width = round(bandRight + sideE + extRight), depth = round(bandDepth + dims.hallDepth);
     const hallName = (extLeft || extRight || sides.length ? '승강기홀·복도' : '승강기홀') + (spec.lifts.emergency ? ' (비상용 승강장 겸용)' : '');
     parts.push({ kind: 'hall', name: hallName, rect: [0, bandDepth, width, depth] });
     if (sideW) parts.push({ kind: 'hall', name: '', rect: [0, 0, sideW, bandDepth] });
@@ -301,7 +361,8 @@
     rects.forEach((r, i) => { rects[i] = r.map(round); });
     const commonArea = round(rects.reduce((sum, r) => sum + (r[2] - r[0]) * (r[3] - r[1]), 0));
     return { width, depth, floors, unitsPerFloor, parts, rects, commonArea, extLeft, extRight, sideHalls: sides.join('') || 'none', doorZones,
-      lifts: spec.lifts, stairKind: spec.stairKind, height: spec.height, rules: spec.rules, dims };
+      lifts, stairKind, height: spec.height, rules, dims,
+      template: template ? { id: template, name: CORE_TEMPLATES[template].name, source: CORE_TEMPLATES[template].source, observed: CORE_TEMPLATES[template].observed } : null };
   }
 
   // Splits an orthogonal polygon into rectangles [x0, y0, x1, y1] by vertical slabs.
@@ -403,7 +464,7 @@
   function generateCoreCombos(plans, options) {
     options = options || {};
     const counts = [...new Set((options.counts || [2, 3, 4]).map(Number))].filter(n => n >= 1 && n <= 4).sort((a, b) => b - a);
-    const fixed = Number(options.coreWidth) > 0 && Number(options.coreDepth) > 0;
+    const fixed = Number(options.coreWidth) > 0 && Number(options.coreDepth) > 0, template = CORE_TEMPLATES[options.coreTemplate] ? options.coreTemplate : null;
     // Hall extensions (corridor reach) tried on each side; mirrored pairs are skipped because results are mirror-merged.
     const steps = (options.hallExtensions || [0, 1.5, 3, 4.5, 6]).map(Number).filter(v => v >= 0 && v <= 20);
     const pairs = fixed ? [[0, 0]] : steps.flatMap(a => steps.filter(b => b >= a).map(b => [a, b]));
@@ -414,7 +475,7 @@
     for (const n of counts) {
       const best = new Map();
       for (const { sideHalls, ext: [extLeft, extRight] } of variants(n)) {
-        const core = fixed ? { width: Number(options.coreWidth), depth: Number(options.coreDepth) } : buildCore({ floors: options.floors, unitsPerFloor: n, dims: options.dims, extLeft, extRight, sideHalls });
+        const core = fixed ? { width: Number(options.coreWidth), depth: Number(options.coreDepth) } : buildCore({ floors: options.floors, unitsPerFloor: n, dims: options.dims, extLeft, extRight, sideHalls, template });
         if (!cores[n]) cores[n] = core;
         const r = searchCore(plans, { ...options, counts: [n] }, core);
         placements += r.placements; profiles = r.profiles;
@@ -478,14 +539,14 @@
       outline: u.outline.map(shift), rects: u.rects.map(shiftRect), rooms: u.rooms.map(r => ({ ...r, rect: shiftRect(r.rect) })), door: u.door.map(shift), centre: shift(u.centre) }));
     const mix = TYPES.map(t => ({ type: t, count: units.filter(u => u.type === t).length })).filter(m => m.count);
     const total = units.reduce((s, u) => s + u.type, 0), n = units.length, order = { S: 0, E: 1, W: 2, N: 3 };
-    const key = units.map(u => u.type + u.face + (u.mirrored ? 'm' : '') + u.t).sort().join('_') + (core.floors ? '_f' + core.floors + '_e' + core.extLeft + '-' + core.extRight + '_s' + core.sideHalls : '');
+    const key = units.map(u => u.type + u.face + (u.mirrored ? 'm' : '') + u.t).sort().join('_') + (core.floors ? '_f' + core.floors + (core.template ? '_t' + core.template.id : '_e' + core.extLeft + '-' + core.extRight + '_s' + core.sideHalls) : '');
     return { id: 'core-' + key, name: n + '세대 · ' + mix.map(m => m.type + '×' + m.count).join(' + '),
       width: round(maxX - minX), depth: round(maxY - minY), unitsPerFloor: n, unitArea: round(total / n), totalUnitArea: total, nominalArea: total,
       coreArea: core.commonArea || round(core.width * core.depth), coreOnlyArea: core.commonArea || round(core.width * core.depth), commonArea: core.commonArea || round(core.width * core.depth), coreCount: 1, coreCapacity: n, unitMix: mix,
       southCount: units.filter(u => u.face === 'S').length, facings: [...units].sort((a, b) => order[a.face] - order[b.face]).map(u => u.facing),
       footprintArea: round((maxX - minX) * (maxY - minY)), source: 'core-attachment', layout: 'core-cluster', sourceUnitIds: [...new Set(units.map(u => u.unitId).filter(Boolean))],
       reviewStatus: '단위세대 평면 외곽 + 코어 가정 · 채광·피난·구조·설비 미검토',
-      core: core.lifts ? { floors: core.floors, lifts: core.lifts, stairKind: core.stairKind, rules: core.rules, width: core.width, depth: core.depth, extLeft: core.extLeft, extRight: core.extRight, sideHalls: core.sideHalls } : null,
+      core: core.lifts ? { floors: core.floors, lifts: core.lifts, stairKind: core.stairKind, rules: core.rules, width: core.width, depth: core.depth, extLeft: core.extLeft, extRight: core.extRight, sideHalls: core.sideHalls, template: core.template || null } : null,
       geometry: { units: placed, core: { x: round(-minX), y: round(-minY), width: core.width, depth: core.depth, rects: core.rects ? core.rects.map(shiftRect) : null, parts: (core.parts || []).map(p => ({ ...p, rect: shiftRect(p.rect) })) } } };
   }
 
@@ -510,9 +571,227 @@
         <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.7" font-weight="750" fill="${stroke[u.type]}" paint-order="stroke" stroke="#fff" stroke-width=".35">${u.type}</text>
         <text x="${u.centre[0]}" y="${u.centre[1] + 1.25}" text-anchor="middle" font-size=".9" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25">${u.facing}</text>
         <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/></g>`).join('')}
-      ${c.parts && c.parts.length ? coreParts(c.parts) : `<rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.depth}" fill="#3f6b93" stroke="#fff" stroke-width=".1"/><text x="${c.x + c.width / 2}" y="${c.y + c.depth / 2 + .4}" text-anchor="middle" font-size="1.1" fill="#fff" font-weight="650">코어</text>`}
+      ${(c.rects || []).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="${PART_FILL.spare}"/>`).join('')}${c.parts && c.parts.length ? coreParts(c.parts) : `<rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.depth}" fill="#3f6b93" stroke="#fff" stroke-width=".1"/><text x="${c.x + c.width / 2}" y="${c.y + c.depth / 2 + .4}" text-anchor="middle" font-size="1.1" fill="#fff" font-weight="650">코어</text>`}
       ${(c.rects || [[c.x, c.y, c.x + c.width, c.y + c.depth]]).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="none" stroke="#24476b" stroke-width=".16"/>`).join('')}
     </svg>`;
+  }
+
+  // ── Unit-first assembly ("tetris"): units are snapped wall-to-wall first, then the hall and the core parts are fitted into
+  // the gap their entrances face. The core takes whatever shape the gap allows instead of a fixed rectangle.
+  const FACINGS = {
+    S: { facing: '남향', m: [1, 0, 0, 1] }, W: { facing: '서향', m: [0, -1, 1, 0] },
+    E: { facing: '동향', m: [0, 1, -1, 0] }, N: { facing: '북향', m: [-1, 0, 0, -1] }
+  };
+  // FRONT_CLEAR: planning assumption for daylight in front of each unit (no other unit inside it).
+  const LANDING = 1.5, HALL_MIN = 1.8, CONTACT_MIN = 2.0, FRONT_CLEAR = 6;
+
+  function unionArea(rects) {
+    const xs = [...new Set(rects.flatMap(r => [r[0], r[2]]))].sort((a, b) => a - b);
+    let area = 0;
+    for (let i = 0; i + 1 < xs.length; i++) {
+      const xm = (xs[i] + xs[i + 1]) / 2, spans = rects.filter(r => r[0] < xm && xm < r[2]).map(r => [r[1], r[3]]).sort((a, b) => a[0] - b[0]);
+      let len = 0, lo = null, hi = null;
+      for (const [a, b] of spans) { if (hi === null || a > hi) { if (hi !== null) len += hi - lo; lo = a; hi = b; } else hi = Math.max(hi, b); }
+      if (hi !== null) len += hi - lo;
+      area += (xs[i + 1] - xs[i]) * len;
+    }
+    return round(area);
+  }
+  const contactLength = (a, b) => {
+    const ox = Math.min(a[2], b[2]) - Math.max(a[0], b[0]), oy = Math.min(a[3], b[3]) - Math.max(a[1], b[1]);
+    if ((Math.abs(a[2] - b[0]) < EPS || Math.abs(b[2] - a[0]) < EPS) && oy > EPS) return oy;
+    if ((Math.abs(a[3] - b[1]) < EPS || Math.abs(b[3] - a[1]) < EPS) && ox > EPS) return ox;
+    return 0;
+  };
+  const boxOf = rects => [Math.min(...rects.map(r => r[0])), Math.min(...rects.map(r => r[1])), Math.max(...rects.map(r => r[2])), Math.max(...rects.map(r => r[3]))];
+
+  // One unit turned to a facing (front towards S/W/E/N) and optionally mirrored, in a frame whose box starts at 0,0.
+  function orientUnit(profile, facing, mirrored) {
+    const p = mirrored ? mirrorProfile(profile) : profile, [a, b, c, d] = FACINGS[facing].m;
+    const raw = ([x, y]) => [a * x + b * y, c * x + d * y];
+    const pts = p.outline.map(raw), x0 = Math.min(...pts.map(q => q[0])), y0 = Math.min(...pts.map(q => q[1]));
+    const tf = q => { const [x, y] = raw(q); return [round(x - x0), round(y - y0)]; };
+    const tr = r => rectOf([tf([r[0], r[1]]), tf([r[2], r[3]])]);
+    const [nx, ny] = raw([0, -1]);
+    return { type: p.type, unitId: p.id, facing: FACINGS[facing].facing, face: facing, mirrored: Boolean(mirrored),
+      outline: p.outline.map(tf), rects: p.rects.map(tr), rooms: p.rooms.map(r => ({ name: r.name, category: r.category, rect: tr(r.rect) })),
+      door: { a: tf([p.door.x - DOOR / 2, p.door.y]), b: tf([p.door.x + DOOR / 2, p.door.y]), nx, ny }, centre: tf([p.width / 2, (p.door.y + p.depth) / 2]),
+      front: tr([0, p.depth, p.width, p.depth + FRONT_CLEAR]) };
+  }
+
+  function moveUnit(u, dx, dy) {
+    const mv = ([x, y]) => [round(x + dx), round(y + dy)], mr = r => [round(r[0] + dx), round(r[1] + dy), round(r[2] + dx), round(r[3] + dy)];
+    return { ...u, outline: u.outline.map(mv), rects: u.rects.map(mr), rooms: u.rooms.map(r => ({ ...r, rect: mr(r.rect) })),
+      door: { ...u.door, a: mv(u.door.a), b: mv(u.door.b) }, centre: mv(u.centre), front: mr(u.front) };
+  }
+  const doorMid = u => [(u.door.a[0] + u.door.b[0]) / 2, (u.door.a[1] + u.door.b[1]) / 2];
+  // The strip just outside an entrance that must stay clear for the hall.
+  const landing = u => rectOf([u.door.a, u.door.b, [u.door.a[0] + u.door.nx * LANDING, u.door.a[1] + u.door.ny * LANDING], [u.door.b[0] + u.door.nx * LANDING, u.door.b[1] + u.door.ny * LANDING]]);
+
+  // Translations that put a new unit wall-to-wall with a placed one (edges flush, ends aligned).
+  function snapOffsets(placed, piece) {
+    const out = new Map();
+    for (const a of placed.rects) for (const b of piece.rects) {
+      const ys = [a[1] - b[1], a[3] - b[3]], xs = [a[0] - b[0], a[2] - b[2]];
+      for (const dy of ys) { out.set((a[2] - b[0]) + ',' + dy, [a[2] - b[0], dy]); out.set((a[0] - b[2]) + ',' + dy, [a[0] - b[2], dy]); }
+      for (const dx of xs) { out.set(dx + ',' + (a[3] - b[1]), [dx, a[3] - b[1]]); out.set(dx + ',' + (a[1] - b[3]), [dx, a[1] - b[3]]); }
+    }
+    return [...out.values()].map(([dx, dy]) => [round(dx), round(dy)]);
+  }
+
+  function clusterKey(units) {
+    const box = boxOf(units.flatMap(u => u.rects));
+    return units.map(u => u.type + u.face + (u.mirrored ? 'm' : '') + '@' + round(u.rects[0][0] - box[0]) + ',' + round(u.rects[0][1] - box[1])).sort().join('|');
+  }
+
+  // Grows clusters unit by unit. Each new unit snaps wall-to-wall onto a placed unit or onto the core fitted so far, then the
+  // hall and core parts are refitted; only clusters whose core still fits survive, smallest common area first.
+  function unitClusters(profiles, options, fit, reject) {
+    const counts = options.counts, maxN = Math.max(...counts), spread = Number(options.doorSpread) > 0 ? Number(options.doorSpread) : 14;
+    const beam = Number(options.beam) || 60, tryCap = Number(options.tryCap) || 2500;
+    const faces = ['S', 'W', 'E', ...(options.allowNorth ? ['N'] : [])].filter(f => options.allowSide !== false || f === 'S' || f === 'N');
+    const pieces = profiles.flatMap(p => faces.flatMap(f => [false, true].map(m => orientUnit(p, f, m))));
+    const results = [];
+    let layer = profiles.flatMap(p => [false, true].map(m => ({ units: [orientUnit(p, 'S', m)], hall: [], parts: [] })));
+    for (let n = 2; n <= maxN; n++) {
+      const next = new Map();
+      for (const item of layer) {
+        const cluster = item.units, coreRects = [...item.hall, ...item.parts.map(p => p.rect)];
+        const hosts = [...cluster, ...coreRects.map(r => ({ rects: [r] }))];
+        for (const piece of pieces) for (const host of hosts) for (const [dx, dy] of snapOffsets(host, piece)) {
+          const u = moveUnit(piece, dx, dy), m = doorMid(u);
+          if (cluster.some(v => { const q = doorMid(v); return Math.abs(q[0] - m[0]) > spread || Math.abs(q[1] - m[1]) > spread; })) continue;
+          if (cluster.some(v => v.rects.some(r => u.rects.some(s => overlaps(r, s))))) continue;
+          if (item.hall.some(h => u.rects.some(s => overlaps(h, s)))) continue;
+          if (cluster.some(v => v.rects.some(r => overlaps(r, u.front)) || u.rects.some(r => overlaps(r, v.front)))) continue;
+          const touch = [...cluster.flatMap(v => v.rects), ...coreRects].reduce((s, r) => s + u.rects.reduce((w, q) => w + contactLength(r, q), 0), 0);
+          if (touch < CONTACT_MIN) continue;
+          const all = [...cluster, u], lands = all.map(landing);
+          if (lands.some(l => all.some(v => v.rects.some(r => overlaps(l, r))))) continue;
+          const key = clusterKey(all);
+          if (!next.has(key)) { const ds = all.map(doorMid), xs = ds.map(d => d[0]), ys = ds.map(d => d[1]); next.set(key, { units: all, pre: (Math.max(...xs) - Math.min(...xs)) + (Math.max(...ys) - Math.min(...ys)) }); }
+        }
+      }
+      const fitted = [];
+      for (const cand of [...next.values()].sort((a, b) => a.pre - b.pre).slice(0, tryCap)) {
+        const f = fit(cand.units);
+        if (!f.ok) { reject(f.reason); continue; }
+        const box = boxOf([...cand.units.flatMap(u => u.rects), ...f.hall, ...f.parts.map(p => p.rect)]);
+        fitted.push({ units: cand.units, hall: f.hall, parts: f.parts, score: unionArea([...f.hall, ...f.parts.map(p => p.rect)]) + .01 * (box[2] - box[0]) * (box[3] - box[1]) });
+      }
+      fitted.sort((a, b) => a.score - b.score);
+      if (counts.includes(n)) results.push(...fitted.slice(0, beam * 3));
+      layer = fitted.slice(0, beam);
+    }
+    return results;
+  }
+
+  // Hall: entrance landings joined in order around their centroid; every joining box must stay clear of the units.
+  function fitHall(units) {
+    const lands = units.map(landing), cx = lands.reduce((s, l) => s + l[0] + l[2], 0) / (2 * lands.length), cy = lands.reduce((s, l) => s + l[1] + l[3], 0) / (2 * lands.length);
+    const order = lands.map((l, i) => [Math.atan2((l[1] + l[3]) / 2 - cy, (l[0] + l[2]) / 2 - cx), i]).sort((a, b) => a[0] - b[0]).map(x => lands[x[1]]);
+    const clear = r => !units.some(u => u.rects.some(q => overlaps(r, q)));
+    const widen = r => {
+      let [x0, y0, x1, y1] = r;
+      if (x1 - x0 < HALL_MIN) { const tries = [[x0, x0 + HALL_MIN], [x1 - HALL_MIN, x1], [(x0 + x1 - HALL_MIN) / 2, (x0 + x1 + HALL_MIN) / 2]].map(([a, b]) => [a, y0, b, y1]); const ok = tries.find(clear); if (!ok) return null; [x0, , x1] = ok; }
+      if (y1 - y0 < HALL_MIN) { const tries = [[y0, y0 + HALL_MIN], [y1 - HALL_MIN, y1], [(y0 + y1 - HALL_MIN) / 2, (y0 + y1 + HALL_MIN) / 2]].map(([a, b]) => [x0, a, x1, b]); const ok = tries.find(clear); if (!ok) return null; [, y0, , y1] = ok; }
+      return [x0, y0, x1, y1].map(round);
+    };
+    const whole = widen(boxOf(lands));
+    if (whole && clear(whole)) return [whole];
+    // Otherwise join neighbouring landings with a straight box or an L of two corridor strips.
+    const half = HALL_MIN / 2, mid = l => [(l[0] + l[2]) / 2, (l[1] + l[3]) / 2];
+    const strip = (p, q) => Math.abs(p[1] - q[1]) < EPS ? [Math.min(p[0], q[0]) - half, p[1] - half, Math.max(p[0], q[0]) + half, p[1] + half].map(round) : [p[0] - half, Math.min(p[1], q[1]) - half, p[0] + half, Math.max(p[1], q[1]) + half].map(round);
+    const hall = [...lands];
+    for (let i = 0; i + 1 < order.length; i++) {
+      const A = order[i], B = order[i + 1], pa = mid(A), pb = mid(B), direct = widen(boxOf([A, B]));
+      if (direct && clear(direct)) { hall.push(direct); continue; }
+      const routes = [[pb[0], pa[1]], [pa[0], pb[1]]].map(k => [strip(pa, k), strip(k, pb)]).filter(rs => rs.every(clear));
+      if (!routes.length) return null;
+      hall.push(...routes.sort((x, y) => unionArea(x) - unionArea(y))[0]);
+    }
+    return hall;
+  }
+
+  // Places stair, lifts and shaft one by one against the hall (stair and lifts need a 1 m hall contact for their doors),
+  // keeping the arrangements with the smallest core extent.
+  function fitCoreParts(units, hall, spec, dims) {
+    const [lw, ld] = spec.lifts.count ? dims.lifts[spec.lifts.capacity] : [0, 0];
+    const stairLen = dims.stairLength + (spec.stairKind === 'special' ? dims.lobbyLength : 0);
+    const pieces = [{ kind: 'stair', name: spec.stairKind === 'special' ? '특별피난계단·부속실' : '계단실', w: dims.stairWidth, h: stairLen, door: true },
+      ...Array.from({ length: spec.lifts.count }, (_, i) => ({ kind: 'lift', name: (spec.lifts.emergency && i === 0 ? '비상용 겸용 ' : '') + '승강기 ' + spec.lifts.capacity + '인승', w: lw, h: ld, door: true })),
+      { kind: 'shaft', name: 'EPS·TPS·PS', w: dims.shaftWidth, h: 2.4, door: false }];
+    const blocked = units.flatMap(u => u.rects), hull = boxOf(blocked);
+    const outside = r => (r[2] - r[0]) * (r[3] - r[1]) - Math.max(0, Math.min(r[2], hull[2]) - Math.max(r[0], hull[0])) * Math.max(0, Math.min(r[3], hull[3]) - Math.max(r[1], hull[1]));
+    let states = [{ parts: [], score: 0 }];
+    for (const piece of pieces) {
+      const next = [];
+      for (const st of states) {
+        const taken = [...hall, ...st.parts.map(p => p.rect)], anchors = piece.door ? hall : taken;
+        for (const [w, h] of [[piece.w, piece.h], [piece.h, piece.w]]) for (const a of anchors) {
+          const cands = [[a[2], a[1]], [a[2], a[3] - h], [a[0] - w, a[1]], [a[0] - w, a[3] - h], [a[0], a[3]], [a[2] - w, a[3]], [a[0], a[1] - h], [a[2] - w, a[1] - h]];
+          for (const [x, y] of cands) {
+            const r = [x, y, x + w, y + h].map(round);
+            if (blocked.some(q => overlaps(r, q)) || taken.some(q => overlaps(r, q))) continue;
+            const touch = (piece.door ? hall : taken).reduce((s, q) => s + contactLength(r, q), 0);
+            if (touch < (piece.door ? DOOR : .5) - EPS) continue;
+            const parts = [...st.parts, { kind: piece.kind, name: piece.name, rect: r }], box = boxOf([...hall, ...parts.map(p => p.rect)]);
+            // Compact cores that fill the gap: inside the units' outline, against unit walls, lifts banked together.
+            const hug = parts.reduce((s, p) => s + blocked.reduce((t, q) => t + contactLength(p.rect, q), 0), 0);
+            const out = parts.reduce((s, p) => s + outside(p.rect), 0) + hall.reduce((s, h) => s + outside(h), 0);
+            const lifts = parts.filter(p => p.kind === 'lift'), bank = lifts.reduce((s, p, i) => s + lifts.slice(i + 1).reduce((t, q) => t + contactLength(p.rect, q.rect), 0), 0);
+            next.push({ parts, score: (box[2] - box[0]) * (box[3] - box[1]) + 3 * out - hug - 2 * bank });
+          }
+        }
+      }
+      if (!next.length) return null;
+      states = next.sort((a, b) => a.score - b.score).filter((s, i, arr) => i === 0 || JSON.stringify(s.parts) !== JSON.stringify(arr[i - 1].parts)).slice(0, 6);
+    }
+    return states[0].parts;
+  }
+
+  function assembleUnitsFirst(plans, options) {
+    options = options || {};
+    const types = (options.types || TYPES).map(Number);
+    const profiles = (plans || []).map(p => p.outline && p.door && p.rects ? p : profileFromPlan(p)).filter(p => types.includes(p.type));
+    const counts = [...new Set((options.counts || [2, 3, 4]).map(Number))].filter(n => n >= 2 && n <= 4);
+    if (!profiles.length || !counts.length) return { combos: [], cores: {}, rejected: {}, profiles };
+    const dims = { ...CORE_DIMENSIONS, ...(options.dims || {}) }, floors = Math.max(1, Math.round(Number(options.floors) || 25));
+    const rejected = {}, reject = r => { rejected[r] = (rejected[r] || 0) + 1; }, combos = [], seen = new Set(), cores = {};
+    const coreFor = n => cores[n] || (cores[n] = buildCore({ floors, unitsPerFloor: n, dims }));
+    const fit = units => {
+      const core = coreFor(units.length), hall = fitHall(units);
+      if (!hall) return { ok: false, reason: '현관 사이 홀이 세대와 겹침' };
+      const parts = fitCoreParts(units, hall, { lifts: core.lifts, stairKind: core.stairKind }, dims);
+      return parts ? { ok: true, hall, parts } : { ok: false, reason: '계단·승강기를 끼울 빈틈 없음' };
+    };
+    for (const { units, hall, parts } of unitClusters(profiles, { ...options, counts }, fit, reject)) {
+      const c = unitsFirstTypology(units, hall, parts, coreFor(units.length));
+      if (seen.has(c.topology)) { reject('같은 구성의 미세 위치 차이'); continue; }
+      seen.add(c.topology);
+      combos.push(c);
+    }
+    combos.sort((a, b) => b.unitsPerFloor - a.unitsPerFloor || b.southCount - a.southCount || a.commonArea - b.commonArea || a.footprintArea - b.footprintArea || a.id.localeCompare(b.id));
+    return { combos, cores, rejected, profiles, placements: 0 };
+  }
+
+  function unitsFirstTypology(units, hall, parts, core) {
+    const coreRects = [...hall, ...parts.map(p => p.rect)], all = [...units.flatMap(u => u.rects), ...coreRects], box = boxOf(all);
+    const sx = v => round(v - box[0]), sy = v => round(v - box[1]), sp = ([x, y]) => [sx(x), sy(y)], sr = r => [sx(r[0]), sy(r[1]), sx(r[2]), sy(r[3])];
+    const placed = units.map((u, i) => ({ id: 'u' + i, type: u.type, unitId: u.unitId, name: u.type + '형', facing: u.facing, face: u.face, mirrored: u.mirrored,
+      outline: u.outline.map(sp), rects: u.rects.map(sr), rooms: u.rooms.map(r => ({ ...r, rect: sr(r.rect) })), door: [sp(u.door.a), sp(u.door.b)], centre: sp(u.centre) }));
+    const mix = TYPES.map(t => ({ type: t, count: units.filter(u => u.type === t).length })).filter(m => m.count), n = units.length;
+    const total = units.reduce((s, u) => s + u.type, 0), common = unionArea(coreRects), cbox = boxOf(coreRects), order = { S: 0, E: 1, W: 2, N: 3 };
+    const topology = units.map(u => u.type + u.face + (u.mirrored ? 'm' : '')).sort().join('_') + '#' + coreRects.length + '#' + Math.round(common);
+    const partsOut = [...hall.map(r => ({ kind: 'hall', name: '홀·복도', rect: sr(r) })), ...parts.map(p => ({ ...p, rect: sr(p.rect) }))];
+    return { id: 'fit-' + clusterKey(units).replace(/[^0-9A-Za-z@,|.-]/g, '') + '-f' + core.floors, name: n + '세대 · ' + mix.map(m => m.type + '×' + m.count).join(' + '),
+      width: round(box[2] - box[0]), depth: round(box[3] - box[1]), unitsPerFloor: n, unitArea: round(total / n), totalUnitArea: total, nominalArea: total,
+      coreArea: common, coreOnlyArea: common, commonArea: common, coreCount: 1, coreCapacity: n, unitMix: mix, topology,
+      southCount: units.filter(u => u.face === 'S').length, facings: [...units].sort((a, b) => order[a.face] - order[b.face]).map(u => u.facing),
+      footprintArea: round((box[2] - box[0]) * (box[3] - box[1])), source: 'units-first', layout: 'units-first', sourceUnitIds: [...new Set(units.map(u => u.unitId).filter(Boolean))],
+      reviewStatus: '세대 먼저 맞붙인 뒤 빈틈에 코어 배치 · 채광·피난·구조·설비 미검토',
+      core: { floors: core.floors, lifts: core.lifts, stairKind: core.stairKind, rules: core.rules, width: round(cbox[2] - cbox[0]), depth: round(cbox[3] - cbox[1]), extLeft: 0, extRight: 0, sideHalls: 'none', template: null, fitted: true },
+      geometry: { units: placed, core: { x: sx(cbox[0]), y: sy(cbox[1]), width: round(cbox[2] - cbox[0]), depth: round(cbox[3] - cbox[1]), rects: coreRects.map(sr), parts: partsOut } } };
   }
 
   function ensureUnits(project) {
@@ -684,7 +963,8 @@
   function mountCombinations(container, project, onChange, onPlace) {
     ensureUnits(project); injectStyles(container.ownerDocument);
     const DIM_FIELDS = [['stairWidth', '계단실 폭'], ['stairLength', '계단실 길이'], ['lobbyLength', '부속실 깊이'], ['hallDepth', '승강기홀 깊이'], ['sideHallWidth', '측면 홀 폭'], ['shaftWidth', '샤프트 폭'], ['floorHeight', '층고']];
-    let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowSide: true, allowNorth: false, sort: 'default' };
+    let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowSide: true, allowNorth: false, sort: 'default', coreTemplate: 'parametric', mode: 'units' };
+    let cache = { key: '', result: null };
     let shown = { 2: 12, 3: 12, 4: 12 }, status = '', plans = null, planSource = '', loadError = '';
     async function loadDefaultPlans() {
       try {
@@ -712,12 +992,15 @@
     }
     function render() {
       if (!plans) {
-        container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개에 세대 붙이기 · 경우의 수 탐색</h3></div><p class="pu-note">${esc(loadError || '세대 평면을 불러오는 중입니다.')}</p>
+        container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3></div><p class="pu-note">${esc(loadError || '세대 평면을 불러오는 중입니다.')}</p>
           <label class="btn">세대 평면 JSON 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label></div>`;
         container.querySelector('[data-cc-files]').addEventListener('change', e => loadFiles(e.target.files));
         return;
       }
-      const result = generateCoreCombos(plans, opts), reference = reproduceReference('susaek4-101');
+      // Unit-first search takes about a second; reuse it while only the view (sorting, paging) changes.
+      const key = JSON.stringify([opts.mode, opts.types, opts.counts, opts.floors, opts.dims, opts.allowSide, opts.allowNorth, opts.coreTemplate, plans.length, planSource]);
+      if (cache.key !== key) cache = { key, result: opts.mode === 'units' ? assembleUnitsFirst(plans, opts) : generateCoreCombos(plans, opts) };
+      const result = { ...cache.result, combos: [...cache.result.combos] }, reference = reproduceReference('susaek4-101');
       const sorters = { default: null, compact: (a, b) => a.footprintArea / a.unitsPerFloor - b.footprintArea / b.unitsPerFloor, narrow: (a, b) => a.width - b.width || a.depth - b.depth, area: (a, b) => b.totalUnitArea - a.totalUnitArea };
       if (sorters[opts.sort]) result.combos.sort(sorters[opts.sort]);
       const groups = [4, 3, 2].filter(n => opts.counts.includes(n)).map(n => ({ n, list: result.combos.filter(c => c.unitsPerFloor === n) }));
@@ -725,7 +1008,7 @@
       groups.forEach(g => { visible[g.n] = g.list.slice(0, shown[g.n]); });
       const box = (attr, value, on, label) => `<label><input type="checkbox" ${attr}="${value}" ${on ? 'checked' : ''}>${label}</label>`;
       const rejects = Object.entries(result.rejected);
-      container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개에 세대 붙이기 · 경우의 수 탐색</h3><span class="tag">${result.combos.length}안</span></div>
+      container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3><span class="tag">${result.combos.length}안</span></div>
         <p class="pu-note">단위세대 단계에서 만든 59·74·84형 평면의 현관이 코어 면에 닿도록 남·동·서·북 네 면에 세대를 붙입니다. 현관 앞 오목한 부분에 코어가 들어가고, 세대 외곽끼리나 세대와 코어가 겹치는 배치는 제외합니다. 세대끼리 겹치지 않는 조합만 남기고, 좌우 대칭이거나 위치만 조금 다른 안은 하나로 묶습니다.</p>
         <div class="pu-combo-fields">
           <div><div class="section-label" style="margin-bottom:8px">포함할 평형</div><div class="pu-mix">${TYPES.map(t => box('data-cc-type', t, opts.types.includes(t), t + '㎡')).join('')}</div></div>
@@ -734,6 +1017,8 @@
         </div>
         <div class="pu-combo-fields">
           <label>층수<input class="pu-num" type="number" min="1" max="80" step="1" value="${opts.floors}" data-cc-floors></label>
+          <label>조합 방식<select data-cc-mode><option value="units" ${opts.mode === 'units' ? 'selected' : ''}>세대 먼저 맞붙이고 빈틈에 코어 (테트리스)</option><option value="core" ${opts.mode === 'core' ? 'selected' : ''}>코어 먼저 놓고 세대 붙이기</option></select></label>
+          <label>코어<select data-cc-template ${opts.mode === 'units' ? 'disabled title="세대 먼저 방식은 계단·승강기·샤프트를 빈틈에 하나씩 끼웁니다"' : ''}><option value="parametric" ${opts.coreTemplate === 'parametric' ? 'selected' : ''}>규칙 조립 코어 (가정 치수)</option>${Object.entries(CORE_TEMPLATES).map(([k, t]) => `<option value="${k}" ${opts.coreTemplate === k ? 'selected' : ''}>${esc(t.name)} (도면 블록)</option>`).join('')}</select></label>
           <label>정렬<select data-cc-sort>${[['default', '남향 세대 많은 순'], ['compact', '세대당 점유 면적 작은 순'], ['narrow', '동 폭 좁은 순'], ['area', '전용 합계 큰 순']].map(([k, l]) => `<option value="${k}" ${opts.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         </div>
         <div class="pu-warning">코어는 층수와 코어당 세대 수로 승강기 대수·용량, 계단 형식, 비상용승강기 필요 여부를 정한 뒤 계단실·부속실·승강기·샤프트·승강기홀을 조립합니다. 승강기홀은 현관에 닿도록 좌우로 0~6 m 복도처럼 늘리거나(판상형) 측면으로 감쌀 수 있고(타워형), 공용면적이 가장 작은 경우를 남깁니다. 부품 치수는 계획 가정이며, 규정은 선별 계산일 뿐 법규 적합 판정이 아닙니다. 채광·일조, 피난 거리, 구조, 설비는 검토하지 않았습니다.</div>
@@ -743,9 +1028,9 @@
         ${profileNote(result.profiles, planSource)}<div class="pu-combo-actions"><label class="btn">세대 평면 JSON 다시 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label>${loadError ? `<span class="pu-ng">${esc(loadError)}</span>` : ''}</div></div>
         <div class="pu-status" role="status">${esc(status)}</div>
         ${groups.map(g => `<section class="pu-cc-group"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>
-          ${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b>${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
+          ${result.cores[g.n] && result.cores[g.n].template ? `<p class="pu-note">${esc(result.cores[g.n].template.name)} · ${esc(result.cores[g.n].template.source)} · 계단·승강기·샤프트 블록은 도면 그대로, 홀·복도는 세대에 맞춰 생성 · ${esc(result.cores[g.n].template.observed)}</p>` : ''}${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b class="${r.ok === false ? 'pu-ng' : ''}">${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
           ${g.list.length ? `<div class="pu-combo-grid">${visible[g.n].map((c, i) => `<article class="pu-combo-card pu-cc-card">${coreComboSvg(c)}<h3>${esc(c.name)}</h3>
-            <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
+            <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.fitted ? ' · 빈틈 맞춤 코어' : c.core.template ? ' · ' + c.core.template.name : c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
             <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>코어·홀 공용 / 층</span><b>${fmt(c.commonArea)}㎡</b></div></div>
             <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn primary" type="button" data-cc-place="${g.n}:${i}">대지에 배치 →</button></div></article>`).join('')}</div>
             ${g.list.length > visible[g.n].length ? `<div class="pu-combo-actions"><button class="btn" type="button" data-cc-more="${g.n}">${g.list.length - visible[g.n].length}안 더 보기</button></div>` : ''}`
@@ -759,6 +1044,8 @@
       container.querySelectorAll('[data-cc-count]').forEach(el => el.addEventListener('change', () => { opts.counts = toggle(opts.counts, Number(el.dataset.ccCount)); render(); }));
       container.querySelector('[data-cc-side]').addEventListener('change', e => { opts.allowSide = e.target.checked; render(); });
       container.querySelector('[data-cc-north]').addEventListener('change', e => { opts.allowNorth = e.target.checked; render(); });
+      container.querySelector('[data-cc-template]').addEventListener('change', e => { opts.coreTemplate = e.target.value; render(); });
+      container.querySelector('[data-cc-mode]').addEventListener('change', e => { opts.mode = e.target.value; shown = { 2: 12, 3: 12, 4: 12 }; render(); });
       container.querySelector('[data-cc-floors]').addEventListener('change', e => { const v = Math.round(Number(e.target.value)); if (v >= 1 && v <= 80) opts.floors = v; render(); });
       container.querySelectorAll('[data-cc-dim]').forEach(el => el.addEventListener('change', () => { const v = Number(el.value); if (v >= .5 && v <= 20) opts.dims = { ...opts.dims, [el.dataset.ccDim]: v }; render(); }));
       container.querySelector('[data-cc-sort]').addEventListener('change', e => { opts.sort = e.target.value; render(); });
@@ -771,5 +1058,5 @@
     }
     render(); loadDefaultPlans(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, buildCore, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });

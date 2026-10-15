@@ -242,3 +242,54 @@ test('parametric core: hall extensions and side halls open 2–4 unit combinatio
   const pair = r.combos.find(c => c.unitsPerFloor === 2 && c.facings.join() === '남향,남향');
   assert.ok(pair && pair.commonArea < 70);
 });
+
+test('drawn core blocks keep their stair/lift/shaft parts and get a generated hall on the south side', () => {
+  for (const id of Object.keys(U.CORE_TEMPLATES)) {
+    const t = U.CORE_TEMPLATES[id];
+    const c = U.buildCore({ floors: 25, unitsPerFloor: 2, template: id, extLeft: 1.5, extRight: 3 });
+    assert.equal(c.template.id, id);
+    // Every drawn part survives with its size.
+    assert.equal(c.parts.filter(p => p.kind === 'lift').length, t.lifts.length, id + ' lifts');
+    const drawnStair = t.parts.find(p => p[0] === 'stair')[1], stair = c.parts.find(p => p.kind === 'stair').rect;
+    assert.ok(Math.abs((stair[2] - stair[0]) - (drawnStair[2] - drawnStair[0])) < 1e-6 && Math.abs((stair[3] - stair[1]) - (drawnStair[3] - drawnStair[1])) < 1e-6, id + ' stair size');
+    // The drawn internal hall reaches the generated hall band.
+    const band = c.rects[0], hall = c.parts.filter(p => p.kind === 'hall');
+    assert.ok(hall.some(h => Math.abs(h.rect[3] - band[3]) < 1e-6 && h.rect[1] < band[3]), id + ' internal hall reaches south edge');
+    for (let i = 0; i < c.parts.length; i++) for (let j = i + 1; j < c.parts.length; j++) assert.ok(!boxesOverlap(c.parts[i].rect, c.parts[j].rect), id + ' ' + c.parts[i].kind + '/' + c.parts[j].kind);
+    assert.ok(c.rules[0].ok, id + ' lift rule');
+  }
+});
+
+test('drawn core blocks combine with the Stage 1 unit plans', () => {
+  for (const id of ['gyeyang-59A', 'gyeyang-101']) {
+    const r = U.generateCoreCombos(plans, { floors: 25, coreTemplate: id });
+    assert.ok(r.combos.some(c => c.unitsPerFloor === 2 && c.facings.join() === '남향,남향'), id + ' south pair');
+    assert.ok(r.combos.some(c => c.unitsPerFloor >= 3), id + ' wings');
+    assert.ok(r.combos.every(c => c.core.template && c.core.template.id === id));
+  }
+});
+
+test('unit-first assembly: units snap wall to wall and the core fills the gap their entrances face', () => {
+  const r = U.assembleUnitsFirst(plans, { floors: 25 });
+  assert.ok(r.combos.some(c => c.unitsPerFloor === 2) && r.combos.some(c => c.unitsPerFloor === 3));
+  const touch = (a, b) => {
+    const ox = Math.min(a[2], b[2]) - Math.max(a[0], b[0]), oy = Math.min(a[3], b[3]) - Math.max(a[1], b[1]);
+    if ((Math.abs(a[2] - b[0]) < 1e-6 || Math.abs(b[2] - a[0]) < 1e-6) && oy > 0) return oy;
+    if ((Math.abs(a[3] - b[1]) < 1e-6 || Math.abs(b[3] - a[1]) < 1e-6) && ox > 0) return ox;
+    return 0;
+  };
+  for (const c of r.combos) {
+    const units = c.geometry.units, parts = c.geometry.core.parts, hall = parts.filter(p => p.kind === 'hall').map(p => p.rect), solid = parts.filter(p => p.kind !== 'hall');
+    for (let i = 0; i < units.length; i++) {
+      for (const p of parts) assert.ok(!units[i].rects.some(q => boxesOverlap(q, p.rect)), c.id + ' core part over unit');
+      for (let j = i + 1; j < units.length; j++) assert.ok(!units[i].rects.some(q => units[j].rects.some(w => boxesOverlap(q, w))), c.id + ' units overlap');
+      const [[x0, y0], [x1, y1]] = units[i].door, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+      assert.ok(hall.some(h => mx >= h[0] - 1e-6 && mx <= h[2] + 1e-6 && my >= h[1] - 1e-6 && my <= h[3] + 1e-6), c.id + ' entrance off hall');
+    }
+    for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) assert.ok(!boxesOverlap(solid[i].rect, solid[j].rect), c.id + ' parts overlap');
+    for (const p of solid.filter(p => p.kind === 'stair' || p.kind === 'lift')) assert.ok(hall.reduce((s, h) => s + touch(p.rect, h), 0) >= 1 - 1e-6, c.id + ' ' + p.kind + ' not on hall');
+    assert.equal(c.core.fitted, true);
+  }
+  const pair = r.combos.find(c => c.unitsPerFloor === 2 && c.facings.join() === '남향,남향');
+  assert.ok(pair && pair.commonArea < 50, 'south pair core stays compact');
+});
