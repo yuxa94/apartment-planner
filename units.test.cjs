@@ -293,3 +293,37 @@ test('unit-first assembly: units snap wall to wall and the core fills the gap th
   const pair = r.combos.find(c => c.unitsPerFloor === 2 && c.facings.join() === '남향,남향');
   assert.ok(pair && pair.commonArea < 50, 'south pair core stays compact');
 });
+
+test('unit-first hall is a connected corridor network sized to the entrances', () => {
+  const r = U.assembleUnitsFirst(plans, { floors: 25 });
+  assert.ok(r.combos.some(c => c.unitsPerFloor === 4), '4-unit cores');
+  const touches = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) >= -1e-6 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) >= -1e-6;
+  for (const c of r.combos) {
+    const hall = c.geometry.core.parts.filter(p => p.kind === 'hall').map(p => p.rect);
+    // Every hall rect is reachable from the first one through rects that touch or overlap.
+    const seen = new Set([0]), queue = [0];
+    while (queue.length) { const i = queue.shift(); hall.forEach((r, j) => { if (!seen.has(j) && touches(hall[i], r)) { seen.add(j); queue.push(j); } }); }
+    assert.equal(seen.size, hall.length, c.id + ' hall split');
+  }
+  const median = n => { const a = r.combos.filter(c => c.unitsPerFloor === n).map(c => c.commonArea).sort((x, y) => x - y); return a[a.length >> 1]; };
+  assert.ok(median(3) < 65, 'three-unit cores stay near the 57–67 ㎡ reference range');
+});
+
+test('candidates export as standalone building JSON that round-trips', () => {
+  const r = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] });
+  const one = U.exportCandidates(r.combos[0], { mode: 'units', floors: 25 });
+  assert.equal(one.schema, 'apartment-planner-building/1');
+  assert.equal(one.coordinateUnit, 'm');
+  assert.equal(one.count, 1);
+  const back = JSON.parse(JSON.stringify(one));
+  assert.deepEqual(back.candidates[0].geometry, r.combos[0].geometry);
+  assert.equal(back.settings.floors, 25);
+  const all = U.exportCandidates(r.combos.slice(0, 5), { floors: 25 });
+  assert.equal(all.count, 5);
+  assert.match(U.candidateFileName(r.combos[0], {}), /^building-2u-[0-9x-]+-[0-9A-Za-z]*\.json$/);
+  assert.match(U.candidateFileName(r.combos.slice(0, 5), { floors: 25 }), /^building-candidates-2u-5-f25\.json$/);
+  // The exported candidate is still a valid project typology.
+  const S = require('./state.js'), p = S.createProject();
+  p.typologies.push(back.candidates[0]);
+  assert.equal(S.validateProject(p).typologies.length, 1);
+});

@@ -583,7 +583,7 @@
     E: { facing: '동향', m: [0, 1, -1, 0] }, N: { facing: '북향', m: [-1, 0, 0, -1] }
   };
   // FRONT_CLEAR: planning assumption for daylight in front of each unit (no other unit inside it).
-  const LANDING = 1.5, HALL_MIN = 1.8, CONTACT_MIN = 2.0, FRONT_CLEAR = 6;
+  const LANDING = 1.8, HALL_MIN = 1.8, CONTACT_MIN = 2.0, FRONT_CLEAR = 6;
 
   function unionArea(rects) {
     const xs = [...new Set(rects.flatMap(r => [r[0], r[2]]))].sort((a, b) => a - b);
@@ -686,31 +686,37 @@
     return results;
   }
 
-  // Hall: entrance landings joined in order around their centroid; every joining box must stay clear of the units.
+  // Hall: a 1.8 m corridor network that links the entrance landings, grown nearest-first (Prim). Each landing joins the
+  // network by the straight or L-shaped strip that adds the least area; strips must stay clear of every unit.
   function fitHall(units) {
-    const lands = units.map(landing), cx = lands.reduce((s, l) => s + l[0] + l[2], 0) / (2 * lands.length), cy = lands.reduce((s, l) => s + l[1] + l[3], 0) / (2 * lands.length);
-    const order = lands.map((l, i) => [Math.atan2((l[1] + l[3]) / 2 - cy, (l[0] + l[2]) / 2 - cx), i]).sort((a, b) => a[0] - b[0]).map(x => lands[x[1]]);
-    const clear = r => !units.some(u => u.rects.some(q => overlaps(r, q)));
-    const widen = r => {
-      let [x0, y0, x1, y1] = r;
-      if (x1 - x0 < HALL_MIN) { const tries = [[x0, x0 + HALL_MIN], [x1 - HALL_MIN, x1], [(x0 + x1 - HALL_MIN) / 2, (x0 + x1 + HALL_MIN) / 2]].map(([a, b]) => [a, y0, b, y1]); const ok = tries.find(clear); if (!ok) return null; [x0, , x1] = ok; }
-      if (y1 - y0 < HALL_MIN) { const tries = [[y0, y0 + HALL_MIN], [y1 - HALL_MIN, y1], [(y0 + y1 - HALL_MIN) / 2, (y0 + y1 + HALL_MIN) / 2]].map(([a, b]) => [x0, a, x1, b]); const ok = tries.find(clear); if (!ok) return null; [, y0, , y1] = ok; }
-      return [x0, y0, x1, y1].map(round);
-    };
-    const whole = widen(boxOf(lands));
-    if (whole && clear(whole)) return [whole];
-    // Otherwise join neighbouring landings with a straight box or an L of two corridor strips.
-    const half = HALL_MIN / 2, mid = l => [(l[0] + l[2]) / 2, (l[1] + l[3]) / 2];
-    const strip = (p, q) => Math.abs(p[1] - q[1]) < EPS ? [Math.min(p[0], q[0]) - half, p[1] - half, Math.max(p[0], q[0]) + half, p[1] + half].map(round) : [p[0] - half, Math.min(p[1], q[1]) - half, p[0] + half, Math.max(p[1], q[1]) + half].map(round);
-    const hall = [...lands];
-    for (let i = 0; i + 1 < order.length; i++) {
-      const A = order[i], B = order[i + 1], pa = mid(A), pb = mid(B), direct = widen(boxOf([A, B]));
-      if (direct && clear(direct)) { hall.push(direct); continue; }
-      const routes = [[pb[0], pa[1]], [pa[0], pb[1]]].map(k => [strip(pa, k), strip(k, pb)]).filter(rs => rs.every(clear));
-      if (!routes.length) return null;
-      hall.push(...routes.sort((x, y) => unionArea(x) - unionArea(y))[0]);
+    const half = HALL_MIN / 2, clear = r => !units.some(u => u.rects.some(q => overlaps(r, q)));
+    const lands = units.map(landing), starts = units.map(u => { const [mx, my] = doorMid(u); return [round(mx + u.door.nx * half), round(my + u.door.ny * half)]; });
+    const strip = (p, q) => Math.abs(p[1] - q[1]) < EPS
+      ? [Math.min(p[0], q[0]) - half, p[1] - half, Math.max(p[0], q[0]) + half, p[1] + half].map(round)
+      : [p[0] - half, Math.min(p[1], q[1]) - half, p[0] + half, Math.max(p[1], q[1]) + half].map(round);
+    // Point of a hall rect nearest to p, kept a half-width inside so the joining strip stays within the corridor.
+    const target = (p, r) => [0, 1].map(k => { const lo = r[k] + half, hi = r[k + 2] - half; return round(lo > hi ? (r[k] + r[k + 2]) / 2 : Math.min(Math.max(p[k], lo), hi)); });
+    const routes = (p, q) => Math.abs(p[0] - q[0]) < EPS || Math.abs(p[1] - q[1]) < EPS ? [[strip(p, q)]] : [[strip(p, [q[0], p[1]]), strip([q[0], p[1]], q)], [strip(p, [p[0], q[1]]), strip([p[0], q[1]], q)]];
+    const cx = starts.reduce((s, p) => s + p[0], 0) / starts.length, cy = starts.reduce((s, p) => s + p[1], 0) / starts.length;
+    const first = starts.map((p, i) => [Math.hypot(p[0] - cx, p[1] - cy), i]).sort((a, b) => a[0] - b[0])[0][1];
+    // The first landing seeds the network as a full-width square in front of its door.
+    let hall = [lands[first], strip(starts[first], starts[first])];
+    if (!clear(hall[hall.length - 1])) return null;
+    const left = new Set(starts.map((_, i) => i).filter(i => i !== first));
+    while (left.size) {
+      let best = null;
+      const base = unionArea(hall);
+      for (const i of left) for (const r of hall) for (const route of routes(starts[i], target(starts[i], r))) {
+        if (!route.every(clear)) continue;
+        const add = unionArea([...hall, ...route]) - base;
+        if (!best || add < best.add - EPS) best = { i, route, add };
+      }
+      if (!best) return null;
+      hall = [...hall, lands[best.i], ...best.route];
+      left.delete(best.i);
     }
-    return hall;
+    // Drop rects already covered by others so the drawing stays clean.
+    return hall.filter((r, i) => !hall.some((q, j) => j !== i && q[0] <= r[0] + EPS && q[1] <= r[1] + EPS && q[2] >= r[2] - EPS && q[3] >= r[3] - EPS && (unionArea([q]) > unionArea([r]) + EPS || j < i)));
   }
 
   // Places stair, lifts and shaft one by one against the hall (stair and lifts need a 1 m hall contact for their doors),
@@ -960,6 +966,21 @@
       <p>외곽선과 실 구획은 Stage 1이 내보낸 세대 평면 JSON(apartment-planner-unit/1)을 그대로 씁니다. 현관은 현관 실의 북측 변 중앙이며, 이 점이 코어 면에 닿도록 세대를 붙입니다. 세대는 좌우를 뒤집어 붙일 수 있습니다.</p></details>`;
   }
 
+  // Building-plan candidates as a standalone file (one or many), with the search settings that produced them.
+  function exportCandidates(candidates, settings) {
+    const list = (Array.isArray(candidates) ? candidates : [candidates]).map(c => JSON.parse(JSON.stringify(c)));
+    return { schema: 'apartment-planner-building/1', coordinateUnit: 'm', areaUnit: '㎡', axes: 'x 오른쪽(동), y 아래(남), 원점 = 후보 외곽 좌상단',
+      exportedAt: new Date().toISOString(), settings: settings || {}, count: list.length, candidates: list,
+      note: '세대 외곽은 단위세대 평면 JSON, 코어 부품 치수와 규칙은 계획 가정 · 법규 적합 판정 아님 · 채광·피난·구조·설비 미검토' };
+  }
+
+  function candidateFileName(candidates, settings) {
+    const list = Array.isArray(candidates) ? candidates : [candidates], c = list[0] || {};
+    const mix = (c.unitMix || []).map(m => m.type + 'x' + m.count).join('-');
+    return list.length > 1 ? `building-candidates-${c.unitsPerFloor || 0}u-${list.length}-f${(settings && settings.floors) || ''}.json`
+      : `building-${c.unitsPerFloor || 0}u-${mix}-${String(c.id || '').replace(/[^0-9A-Za-z]+/g, '').slice(-10)}.json`;
+  }
+
   function mountCombinations(container, project, onChange, onPlace) {
     ensureUnits(project); injectStyles(container.ownerDocument);
     const DIM_FIELDS = [['stairWidth', '계단실 폭'], ['stairLength', '계단실 길이'], ['lobbyLength', '부속실 깊이'], ['hallDepth', '승강기홀 깊이'], ['sideHallWidth', '측면 홀 폭'], ['shaftWidth', '샤프트 폭'], ['floorHeight', '층고']];
@@ -981,6 +1002,15 @@
         plans = TYPES.filter(t => byType.has(t)).map(t => byType.get(t)); planSource = '불러온 파일'; loadError = ''; status = loaded.length + '개 세대 평면을 불러왔습니다.';
       } catch (e) { loadError = '불러오기 실패: ' + e.message; }
       render();
+    }
+    function downloadJson(candidates) {
+      const settings = { mode: opts.mode, floors: opts.floors, types: opts.types, counts: opts.counts, allowSide: opts.allowSide, allowNorth: opts.allowNorth,
+        coreTemplate: opts.mode === 'core' ? opts.coreTemplate : null, dims: opts.dims, unitPlans: planSource, unitRevision: [...new Set((plans || []).map(p => p.projectRevision).filter(v => v != null))] };
+      const doc = container.ownerDocument, blob = new Blob([JSON.stringify(exportCandidates(candidates, settings), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob), a = doc.createElement('a');
+      a.href = url; a.download = candidateFileName(candidates, settings); doc.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      status = (Array.isArray(candidates) ? candidates.length + '개 후보' : candidates.name) + ' JSON 저장';
     }
     function save(candidate) {
       const existing = project.typologies.findIndex(t => t.id === candidate.id);
@@ -1027,12 +1057,12 @@
         <p class="pu-note">탐색: 코어 면에 붙일 수 있는 단일 배치 ${result.placements}개 · 제외 ${rejects.length ? rejects.map(([r, n]) => esc(r) + ' ' + n).join(' · ') : '없음'}</p>
         ${profileNote(result.profiles, planSource)}<div class="pu-combo-actions"><label class="btn">세대 평면 JSON 다시 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label>${loadError ? `<span class="pu-ng">${esc(loadError)}</span>` : ''}</div></div>
         <div class="pu-status" role="status">${esc(status)}</div>
-        ${groups.map(g => `<section class="pu-cc-group"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>
+        ${groups.map(g => `<section class="pu-cc-group"><div class="pu-toolbar"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>${g.list.length ? `<button class="btn" type="button" data-cc-json-all="${g.n}">${g.n}세대 후보 전체 JSON ↓</button>` : ''}</div>
           ${result.cores[g.n] && result.cores[g.n].template ? `<p class="pu-note">${esc(result.cores[g.n].template.name)} · ${esc(result.cores[g.n].template.source)} · 계단·승강기·샤프트 블록은 도면 그대로, 홀·복도는 세대에 맞춰 생성 · ${esc(result.cores[g.n].template.observed)}</p>` : ''}${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b class="${r.ok === false ? 'pu-ng' : ''}">${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
           ${g.list.length ? `<div class="pu-combo-grid">${visible[g.n].map((c, i) => `<article class="pu-combo-card pu-cc-card">${coreComboSvg(c)}<h3>${esc(c.name)}</h3>
             <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.fitted ? ' · 빈틈 맞춤 코어' : c.core.template ? ' · ' + c.core.template.name : c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
             <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>코어·홀 공용 / 층</span><b>${fmt(c.commonArea)}㎡</b></div></div>
-            <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn primary" type="button" data-cc-place="${g.n}:${i}">대지에 배치 →</button></div></article>`).join('')}</div>
+            <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn" type="button" data-cc-json="${g.n}:${i}">JSON ↓</button><button class="btn primary" type="button" data-cc-place="${g.n}:${i}">대지에 배치 →</button></div></article>`).join('')}</div>
             ${g.list.length > visible[g.n].length ? `<div class="pu-combo-actions"><button class="btn" type="button" data-cc-more="${g.n}">${g.list.length - visible[g.n].length}안 더 보기</button></div>` : ''}`
           : `<div class="pu-empty">이 조건에서는 ${g.n}세대를 붙일 수 없습니다.${g.n > 2 && !opts.allowSide ? ' 동·서향 세대를 허용하면 늘어납니다.' : ''}</div>`}</section>`).join('')}
         <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}</small></div><button class="btn" type="button" data-saved-place="${i}">배치에 추가</button></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>
@@ -1051,6 +1081,8 @@
       container.querySelector('[data-cc-sort]').addEventListener('change', e => { opts.sort = e.target.value; render(); });
       container.querySelectorAll('[data-cc-more]').forEach(b => b.addEventListener('click', () => { shown[b.dataset.ccMore] += 12; render(); }));
       container.querySelectorAll('[data-cc-save]').forEach(b => b.addEventListener('click', () => { save(pick(b.dataset.ccSave)); render(); }));
+      container.querySelectorAll('[data-cc-json]').forEach(b => b.addEventListener('click', () => { downloadJson(pick(b.dataset.ccJson)); render(); }));
+      container.querySelectorAll('[data-cc-json-all]').forEach(b => b.addEventListener('click', () => { const g = groups.find(x => x.n === Number(b.dataset.ccJsonAll)); if (g) downloadJson(g.list); render(); }));
       container.querySelectorAll('[data-cc-place]').forEach(b => b.addEventListener('click', () => { const saved = save(pick(b.dataset.ccPlace)); if (typeof onPlace === 'function') onPlace(saved); }));
       container.querySelector('[data-ref-save]').addEventListener('click', () => { save(reference); render(); });
       container.querySelector('[data-ref-place]').addEventListener('click', () => { const saved = save(reference); if (typeof onPlace === 'function') onPlace(saved); });
@@ -1058,5 +1090,5 @@
     }
     render(); loadDefaultPlans(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, exportCandidates, candidateFileName, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });
