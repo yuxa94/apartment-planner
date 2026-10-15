@@ -118,33 +118,58 @@
       alongText(from, to, `(기준 ${need})`, 1.4 * k, color, 1.7 * k);
   }
 
+  // Local outline around the building centre: the imported shape or the rectangle.
+  function localOutline(bl) {
+    if (bl.shape && bl.shape.outline) return bl.shape.outline;
+    const w = bl.width / 2, d = bl.depth / 2;
+    return [[-w, -d], [w, -d], [w, d], [-w, d]];
+  }
+
+  function corePlan(bl, color) {
+    if (bl.shape) {
+      return ((bl.shape.core && bl.shape.core.parts) || []).map(c =>
+        `<rect x="${Math.min(c.rect[0], c.rect[2])}" y="${Math.min(c.rect[1], c.rect[3])}" width="${Math.abs(c.rect[2] - c.rect[0])}" height="${Math.abs(c.rect[3] - c.rect[1])}" fill="${color}" stroke="#fff" stroke-width=".15"/>`).join('');
+    }
+    return `<rect x="-3" y="${-bl.depth / 2 - 2}" width="6" height="${bl.depth / 2 + 2}" fill="${color}" stroke="#fff" stroke-width=".25"/>`;
+  }
+
   function buildingPlan(bl, q, sel, k) {
     const color = sel ? '#78a5bd' : q.pass ? '#b4c3c6' : '#d9b3a9';
-    const w = bl.width, d = bl.depth;
+    const w = bl.width, d = bl.depth, outline = pts(localOutline(bl)), shadow = pts(localOutline(bl).map(p => [p[0] + 0.8, p[1] + 1.3]));
     return `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})">` +
       `<rect x="${-w / 2 - 1}" y="${-d / 2 - 1}" width="${w + 2}" height="${d + 2}" rx=".3" fill="none" stroke="${sel ? '#367a9e' : 'transparent'}" stroke-width=".5" stroke-dasharray="1 .7"/>` +
-      `<rect x="${-w / 2 + 0.8}" y="${-d / 2 + 1.3}" width="${w}" height="${d}" fill="#143c4320"/>` +
-      `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="${color}" stroke="${q.pass ? sel ? '#457c99' : '#7d999b' : '#bd6f60'}" stroke-width=".45"/>` +
-      `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="url(#rooms)"/>` +
-      `<rect x="-3" y="${-d / 2 - 2}" width="6" height="${d / 2 + 2}" fill="${sel ? '#5086a4' : '#819fa6'}" stroke="#fff" stroke-width=".25"/></g>` +
+      `<polygon points="${shadow}" fill="#143c4320"/>` +
+      `<polygon points="${outline}" fill="${color}" stroke="${q.pass ? sel ? '#457c99' : '#7d999b' : '#bd6f60'}" stroke-width=".45"/>` +
+      `<polygon points="${outline}" fill="url(#rooms)"/>` +
+      corePlan(bl, sel ? '#5086a4' : '#819fa6') + `</g>` +
       // Labels stay upright below the rotated footprint's lowest point.
       `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y + halfHeight(bl)})">` +
       `<text x="0" y="${4.2 * k}" text-anchor="middle" font-size="${3.3 * k}" font-weight="700" fill="${sel ? '#285f7d' : '#617b7b'}">${esc(bl.name)}${bl.locked ? ' ▣' : ''}</text>` +
       `<text x="0" y="${7.5 * k}" text-anchor="middle" font-size="${2.3 * k}" fill="#92a4a0">${bl.floors}F · ${bl.floors * bl.unitsPerFloor}세대${bl.pilotiFull ? ' · 필로티' : ''}</text></g>`;
   }
 
-  // Vertical half-extent of a rotated footprint.
+  // Lowest point of the rotated outline below the centre.
   function halfHeight(bl) {
-    const a = bl.rotation * Math.PI / 180;
-    return Math.abs(bl.width / 2 * Math.sin(a)) + Math.abs(bl.depth / 2 * Math.cos(a));
+    const a = bl.rotation * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
+    return Math.max(...localOutline(bl).map(p => p[0] * s + p[1] * c));
   }
 
+  // CAD view: hatched outline; imported shapes also show unit outlines, core
+  // parts and window segments (the faces that count as 채광면).
   function buildingCad(bl, q, sel, k) {
     const w = bl.width, d = bl.depth, edge = !q.pass ? THEMES.cad.fail : sel ? '#4fc3f7' : '#f3c5d8';
+    const outline = pts(localOutline(bl)), sh = bl.shape;
+    let detail = '';
+    if (sh) {
+      detail += (sh.units || []).map(u => `<polygon points="${pts(u.outline)}" fill="none" stroke="#f3c5d8" stroke-width="${0.15 * k}" opacity=".8"/>`).join('');
+      detail += corePlan(bl, '#5d676e');
+      detail += (sh.windows || []).map(wd => `<line x1="${wd.a[0]}" y1="${wd.a[1]}" x2="${wd.b[0]}" y2="${wd.b[1]}" stroke="#4fd6e8" stroke-width="${0.45 * k}" stroke-linecap="round"/>`).join('');
+    } else {
+      detail = `<rect x="-3" y="${-d / 2}" width="6" height="${d * 0.55}" fill="none" stroke="#f3c5d8" stroke-width="${0.2 * k}"/>`;
+    }
     return `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})">` +
-      `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="#e7a3bf55" stroke="${edge}" stroke-width="${(sel ? 0.5 : 0.3) * k}"/>` +
-      `<rect x="${-w / 2}" y="${-d / 2}" width="${w}" height="${d}" fill="url(#cadHatch)"/>` +
-      `<rect x="-3" y="${-d / 2}" width="6" height="${d * 0.55}" fill="none" stroke="#f3c5d8" stroke-width="${0.2 * k}"/>` +
+      `<polygon points="${outline}" fill="#e7a3bf55" stroke="${edge}" stroke-width="${(sel ? 0.5 : 0.3) * k}"/>` +
+      `<polygon points="${outline}" fill="url(#cadHatch)"/>` + detail +
       (sel ? `<rect x="${-w / 2 - 1}" y="${-d / 2 - 1}" width="${w + 2}" height="${d + 2}" fill="none" stroke="#4fc3f7" stroke-width="${0.3 * k}" stroke-dasharray="${k} ${0.6 * k}"/>` : '') +
       `</g>`;
   }

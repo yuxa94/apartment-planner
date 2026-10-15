@@ -56,17 +56,27 @@
     return areaOf(polygon(points, 'Input'));
   }
 
-  function footprint(building) {
+  // Local → world transform of a building (rotation about its centre x, y).
+  function placement(building) {
     if (!building || typeof building !== 'object') throw new TypeError('Building is invalid');
     const x = number(building.x, 'Building x');
     const y = number(building.y, 'Building y');
-    const width = number(building.width, 'Building width', EPS);
-    const depth = number(building.depth, 'Building depth', EPS);
     const angle = number(building.rotation, 'Building rotation') * Math.PI / 180;
     const cos = Math.cos(angle), sin = Math.sin(angle);
+    return ([px, py]) => [x + px * cos - py * sin, y + px * sin + py * cos];
+  }
+
+  // World outline: the imported shape outline (local metres around the centre)
+  // when present, otherwise the width × depth rectangle.
+  function footprint(building) {
+    const place = placement(building);
+    const width = number(building.width, 'Building width', EPS);
+    const depth = number(building.depth, 'Building depth', EPS);
+    if (building.shape && building.shape.outline) {
+      return polygon(building.shape.outline, 'Building shape').map(place);
+    }
     return [[-width / 2, -depth / 2], [width / 2, -depth / 2],
-      [width / 2, depth / 2], [-width / 2, depth / 2]].map(([px, py]) =>
-      [x + px * cos - py * sin, y + px * sin + py * cos]);
+      [width / 2, depth / 2], [-width / 2, depth / 2]].map(place);
   }
 
   function pointOnSegment(p, a, b) {
@@ -278,7 +288,10 @@
 
   // Rectangle faces in footprint order. Long edges are treated as window
   // (채광) faces and short edges as side walls (측벽); a square has only window faces.
+  // An imported shape instead marks a face as a window face when one of its
+  // window segments lies on that edge (overlap ≥ 0.2 m); others are side walls.
   function faces(b, poly) {
+    if (b.shape && b.shape.outline) return shapeFaces(b, poly);
     const longest = Math.max(b.width, b.depth), center = [b.x, b.y];
     return poly.map((p, i) => {
       const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
@@ -287,6 +300,28 @@
       if (dot(n, sub(lerp(p, q, 0.5), center)) < 0) n = [-n[0], -n[1]];
       return { p, q, t, n, length, kind: length >= longest - 1e-6 ? 'light' : 'side' };
     });
+  }
+
+  function shapeFaces(b, poly) {
+    const place = placement(b), outward = areaSign(poly);
+    const windows = (b.shape.windows || []).map(w => [place(w.a), place(w.b)]);
+    return poly.map((p, i) => {
+      const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
+      const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
+      const n = outward > 0 ? [t[1], -t[0]] : [-t[1], t[0]];
+      const lit = windows.some(([a, c]) => {
+        if (Math.abs(dot(sub(a, p), n)) > 0.05 || Math.abs(dot(sub(c, p), n)) > 0.05) return false;
+        const s0 = dot(sub(a, p), t), s1 = dot(sub(c, p), t);
+        return Math.min(length, Math.max(s0, s1)) - Math.max(0, Math.min(s0, s1)) >= 0.2;
+      });
+      return { p, q, t, n, length, kind: lit ? 'light' : 'side' };
+    });
+  }
+
+  function areaSign(poly) {
+    let a = 0;
+    poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; });
+    return a >= 0 ? 1 : -1;
   }
 
   // Nearest point of poly inside the strip swept perpendicular from face f.
@@ -419,7 +454,7 @@
     number(b.unitsPerFloor, 'Building unitsPerFloor', 0, true);
     number(b.unitArea, 'Building unitArea', 0);
     number(b.coreArea, 'Building coreArea', 0);
-    return { poly, height: buildingHeight(b, rules), area: b.width * b.depth,
+    return { poly, height: buildingHeight(b, rules), area: areaOf(poly),
       building: b, center: [b.x, b.y], faces: faces(b, poly) };
   }
 
