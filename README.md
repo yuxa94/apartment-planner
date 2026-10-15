@@ -44,3 +44,16 @@ HTML은 대화나 외부 API를 직접 호출하지 않습니다. Astra 대화�
 - 주차·소방 접근·피난·실제 일조: 미검토입니다. 주차 수요 추정과 거리 검사를 실제 설치·안전·일조 검증으로 사용하지 않습니다.
 
 기본 숫자는 예시 대지의 계획 가정입니다. 지자체가 정해지면 적용 기준일·용도지역·조례·사업별 조건을 공식 원문으로 확인하고 별도 규칙으로 기록해야 합니다. 과거 참고 도면의 계수를 현재 법규로 전용하지 않습니다. [건축법 제61조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0061&lsiSeq=273437&urlMode=lsScJoRltInfoR), [건축법 시행령 제86조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0086&lsiSeq=290833&urlMode=lsScJoRltInfoR).
+
+## 단계별 브랜치
+
+세 단계는 각각의 브랜치에서 따로 개발합니다. 공통 계산 모듈(`engine.js`, `state.js`, `units.js`)과 데이터 계약은 공유하며, 브랜치마다 `stage.js`의 `window.PLANBY_STAGE` 값만 다릅니다.
+
+| 브랜치 | `PLANBY_STAGE` | 화면 |
+|---|---|---|
+| `main` | `null` | 세 단계 모두 |
+| `stage1-unit-plan` | `'units'` | 01 단위세대 계획 |
+| `stage2-building-plan` | `'combinations'` | 02 동평면 조합 |
+| `stage3-site-plan` | `'site'` | 03 단지 배치 검토 |
+
+단계를 고정하면 해당 탭만 표시되고, 브라우저 자동 저장 키가 `planby-apartment-v1-<stage>`로 분리됩니다. 처음 열 때 이 키에 저장된 값이 없으면 기존 공용 키(`planby-apartment-v1`)의 프로젝트를 불러옵니다. 각 브랜치의 개발 범위는 `STAGE.md`에 있습니다.
