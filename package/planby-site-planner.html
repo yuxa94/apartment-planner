@@ -1,0 +1,2089 @@
+<!doctype html>
+<!-- PLANBY site planner · single-file build · 2026-10-15 · scripts: stage.js, engine.js, state.js, units.js, presets.js, drawing.js, massing.js, building-import.js, app.js --><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PLANBY · 공동주택 사업성 스튜디오</title><style>
+:root{--navy:#142b39;--blue:#2374ab;--teal:#217f73;--ink:#243b49;--muted:#7b8d98;--line:#e2e9ed;--bg:#f4f7f8;--red:#cb655b;--amber:#ac792b;--radius:12px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Segoe UI','Malgun Gothic',sans-serif;font-size:13px}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:default}input,select,textarea{border:1px solid #d6e0e5;border-radius:7px;padding:9px;background:#fff;color:var(--ink);min-width:0}input:focus,select:focus,textarea:focus{outline:2px solid #86bacf;outline-offset:1px}button:focus-visible{outline:3px solid #65a6ca}button{transition:background .12s}button:hover{filter:brightness(.97)}.topbar{height:68px;background:var(--navy);padding:0 32px;display:flex;align-items:center;justify-content:space-between;color:#fff}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}.brand strong{letter-spacing:2px;font-size:19px}.brand-sub{font-size:10px;letter-spacing:1.6px;opacity:.5;border-left:1px solid #51616a;padding-left:18px;margin-left:6px}.brand-icon{width:29px;height:31px;border:1px solid #5ba69d;color:#a2d8c5;display:grid;place-items:center;border-radius:7px;font-weight:bold;font-size:22px}.top-actions{display:flex;align-items:center;gap:10px}.local-dot{font-size:9px;letter-spacing:1px;color:#abbdc3;margin-right:18px}.local-dot:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#8cc9a3;margin-right:7px}.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px 13px;font-weight:600;color:var(--ink);font-size:12px;white-space:nowrap}.btn.primary{background:var(--teal);border-color:var(--teal);color:white}.topbar .btn:not(.primary){background:transparent;color:#d8e2e7;border-color:#43535e}.full{width:100%}main{padding:26px 30px 0;max-width:1900px;margin:auto}.project-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.eyebrow{font-size:10px;color:#79909b;letter-spacing:1.1px;margin-bottom:8px}.project-name{border:none;background:transparent;padding:0;font-size:23px;letter-spacing:-.7px;font-weight:700;width:min(650px,50vw)}.subheading{display:flex;align-items:center;gap:8px;margin-top:10px;color:#8b9ba4;font-size:10px}.pill{background:#e4ebe9;color:#42766c;padding:3px 6px;font-size:8px;font-weight:bold;letter-spacing:1px;border-radius:3px}.heading-actions{display:flex;gap:8px}.workflow{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.workflow nav{display:flex;align-items:center;gap:8px}.workflow nav button{border:none;border-radius:8px;background:transparent;padding:11px 16px;color:#7a8e9b;font-size:12px;font-weight:600}.workflow nav button.active{background:#fff;box-shadow:0 2px 7px #142b3909;color:var(--teal);border:1px solid #d9e6e1}.workflow nav button span{font-size:10px;margin-right:10px;opacity:.6}.workflow nav i{color:#b4c2c9;font-style:normal}.workflow-note{font-size:11px;color:#99a7ae}.site-layout{display:grid;grid-template-columns:238px minmax(420px,1fr) 286px;gap:16px}.sidebar,.inspector,.map-panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.sidebar{padding:20px 17px;display:flex;flex-direction:column}.panel-title{font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:space-between}.tag{background:#eef3f5;border-radius:4px;padding:4px 6px;color:#78909d;font-size:9px;font-weight:600}.tag.amber{background:#fbf2df;color:#ac792b}.section-label{font-size:10px;font-weight:600;color:#97a5ad;letter-spacing:.3px;margin:24px 0 10px}.line-label{display:flex;justify-content:space-between;align-items:center}.text-btn{border:0;background:none;color:#478478;font-size:10px;font-weight:600;padding:3px 0}.site-card{display:flex;align-items:center;gap:9px;text-align:left;border:1px solid var(--line);background:#f9fbfc;border-radius:7px;padding:12px 9px;width:100%;color:var(--ink)}.site-card strong{display:block;font-size:10px}.site-card small{color:#98a6ae;font-size:10px;display:block;margin-top:5px}.site-card b{margin-left:auto;color:#a7b6bc}.site-icon{font-size:24px;color:#7b9692}.building-item{width:100%;display:flex;gap:10px;align-items:center;text-align:left;padding:10px 9px;margin-bottom:7px;border:1px solid transparent;border-radius:7px;background:#f7f9fa;color:var(--ink)}.building-item.selected{background:#edf5f9;border-color:#8fb5c8}.building-item .mini-block{width:24px;height:30px;background:repeating-linear-gradient(0deg,#a0b3bd 0 2px,#dbe4e9 2px 5px);border-radius:2px}.building-item.selected .mini-block{background:repeating-linear-gradient(0deg,#447c9d 0 2px,#b7d8e7 2px 5px)}.building-item strong{font-size:11px;display:block}.building-item small{font-size:10px;color:#8396a1;display:block;margin-top:4px}.building-item .state-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:#5ca18b}.building-item .state-dot.fail{background:var(--red)}.toggle-row{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:11px}.toggle-row input{accent-color:var(--teal);width:13px;height:13px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:2px}.legend-dot.green{background:#9dcab6}.legend-dot.blue{background:#6c9ebd}.legend-dot.red{background:#d78c83}.legend-line{display:inline-block;width:15px;border-top:1px dashed #59888a}.toggle-row .legend-dot,.toggle-row .legend-line{margin-left:auto}.layer-note{font-size:10px;color:#96a5ad;line-height:1.8;margin:6px 0 16px}.sidebar-bottom{padding-top:20px;margin-top:auto;border-top:1px solid #edf1f3}.sidebar-bottom p{font-size:10px;line-height:1.8;color:#8a9ca5}.map-panel{display:flex;flex-direction:column;min-height:565px}.map-toolbar{height:52px;padding:0 17px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.map-toolbar strong{font-size:11px}.map-toolbar #selectionHint{font-size:10px;color:#98a7b1;margin-left:12px}.map-tools{display:flex;align-items:center;gap:4px}.map-tools button{border:0;background:#f5f8fa;padding:5px 8px;color:#65808e;border-radius:4px;font-size:12px}.map-tools span{height:14px;border-left:1px solid #dfe7ea;margin:0 3px}.map-body{position:relative;flex:1;min-height:450px;background:#f5f8f7;overflow:hidden}#siteSvg{width:100%;height:100%;position:absolute;inset:0;touch-action:none;user-select:none}#siteSvg .building-shape{cursor:grab}#siteSvg .building-shape:active{cursor:grabbing}.map-badge{position:absolute;top:16px;left:16px;background:#ffffffeb;border:1px solid #e0e9e5;border-radius:5px;font-size:8px;font-weight:700;letter-spacing:.8px;padding:8px;color:#559382;pointer-events:none}.map-badge span:last-child{font-size:9px;color:#9ba8ae;font-weight:400;margin-left:6px;letter-spacing:0}.live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#56a28a;margin-right:6px}.map-legend{position:absolute;bottom:42px;left:14px;display:flex;gap:13px;font-size:9px;color:#80988e;pointer-events:none}.map-legend i{margin-right:3px}.map-help{position:absolute;bottom:11px;left:14px;padding:6px 9px;background:#ffffffd9;border-radius:4px;font-size:9px;color:#91a39f;pointer-events:none}.map-help b{margin:0 7px;font-weight:400;color:#c4ceca}.map-status{height:37px;padding:0 15px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);font-size:10px;color:#8c9fa8}.inspector{padding:20px 17px}.inspector-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.inspector-head h2{font-size:19px;margin:0}.inspector-head small{font-size:10px;color:#92a3ac;display:block;margin-top:4px}.inspector-icon{width:35px;height:35px;background:#eaf3f7;border-radius:7px;color:#528ba7;display:grid;place-items:center;font-size:20px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}.field{display:flex;flex-direction:column;gap:6px;font-size:10px;color:#8a9ba5}.field input,.field select{width:100%;font-size:12px;padding:8px}.field.wide{grid-column:1/-1}.field .input-unit{position:relative}.field .input-unit input{padding-right:28px}.field .input-unit span{position:absolute;right:9px;top:9px;color:#a4b2ba;font-size:10px}.range-row{display:flex;align-items:center;gap:7px}.range-row input[type=range]{flex:1;accent-color:var(--blue);padding:0}.range-row input[type=number]{width:68px}.button-row{display:flex;gap:7px;margin-top:14px}.button-row .btn{flex:1;font-size:10px;padding:8px}.check-section{margin-top:21px;padding-top:20px;border-top:1px solid var(--line)}.check-item{padding:11px 0;border-bottom:1px solid #edf1f4;display:flex;align-items:flex-start;gap:8px}.check-icon{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:9px;background:#e8f4ed;color:#4c977d}.check-item.fail .check-icon{background:#fbece9;color:#cb655b}.check-item.pending .check-icon{background:#f2f3f3;color:#9aa6ac}.check-item strong{display:block;font-size:10px;font-weight:600}.check-item small{display:block;margin-top:4px;color:#94a3ad;font-size:9px;line-height:1.6}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:16px}.metric{padding:17px 20px;background:#fff;border:1px solid var(--line);border-radius:9px}.metric-label{font-size:10px;color:#8ca0ab;display:flex;justify-content:space-between}.metric-value{font-size:27px;font-weight:600;letter-spacing:-1px;margin:9px 0;color:#233f4f}.metric-value small{font-size:11px;letter-spacing:0;font-weight:400;color:#8b9ca6;margin-left:5px}.metric-note{font-size:9px;color:#98a6af}.metric-bar{height:3px;background:#eef3f4;margin:9px 0;border-radius:4px}.metric-bar span{display:block;height:100%;background:#80b6a3;border-radius:4px}.metric.over .metric-bar span{background:#d47e70}.metric.over .metric-value{color:#b96455}.assumption-strip{display:flex;align-items:center;gap:8px;color:#97a5ae;font-size:10px;margin:14px 1px 0;line-height:1.6}footer{display:flex;justify-content:space-between;color:#9cabb3;font-size:9px;padding:22px 0}footer b{font-weight:400;margin:0 8px;color:#c3cdd2}.panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px}.muted{color:var(--muted);font-size:11px;line-height:1.8}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:17px;border:1px solid var(--line);border-radius:10px;background:white}dialog{padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 100px #102b3940;width:min(760px,92vw);max-height:88vh;color:var(--ink)}dialog::backdrop{background:#152d3d55;backdrop-filter:blur(2px)}.modal-head{padding:22px 24px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.modal-head h2{margin:0;font-size:18px}.modal-head button{border:0;background:none;font-size:22px;color:#92a0a7}.modal-content{padding:20px 24px;overflow:auto;max-height:65vh}.modal-actions{padding:15px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}.modal-content .fields{grid-template-columns:1fr 1fr;gap:16px}.notice{background:#f8f3e8;border:1px solid #eae0c9;border-radius:7px;padding:12px;line-height:1.8;color:#9c8050;font-size:11px;margin-bottom:18px}.modal-content h3{font-size:12px;margin:22px 0 12px}.modal-content textarea{width:100%;line-height:1.7}.source-list{line-height:1.9;font-size:12px}.source-list a{color:#277c93}.source-list li{margin-bottom:12px}#toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,20px);background:#183d48;color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 25px #1233;opacity:0;pointer-events:none;transition:all .2s;font-size:12px;z-index:10;max-width:85vw}#toast.visible{opacity:1;transform:translate(-50%,0)}.kbd{font-family:monospace}.empty-note{padding:30px;text-align:center;color:#8398a4;line-height:1.8}@media(min-width:1600px){.map-panel{min-height:650px}.site-layout{grid-template-columns:250px minmax(500px,1fr) 310px}}@media(max-width:1150px){main{padding:20px 16px 0}.site-layout{grid-template-columns:205px minmax(350px,1fr)}.inspector{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.check-section{border:0;margin:0;padding:0}.map-panel{min-height:520px}.workflow-note{display:none}.metrics{gap:8px}.metric{padding:14px}.metric-value{font-size:23px}}@media(max-width:700px){.topbar{padding:0 15px}.brand-sub,.local-dot{display:none}.topbar .btn{font-size:10px;padding:7px}.project-heading{display:block}.project-name{width:100%;font-size:19px}.heading-actions{margin-top:14px}.workflow nav{gap:0}.workflow nav button{padding:10px 8px;font-size:10px}.workflow nav button span{margin-right:5px}.site-layout{display:flex;flex-direction:column}.sidebar{order:2}.inspector{order:3;display:block}.check-section{margin-top:20px}.map-panel{order:1;min-height:460px}.map-toolbar #selectionHint{display:none}.metrics{grid-template-columns:repeat(2,1fr)}.metrics .metric:last-child{grid-column:1/-1}.map-help{font-size:8px}.cards{grid-template-columns:1fr}.project-heading{margin-bottom:15px}footer{gap:10px;line-height:1.6}.sidebar-bottom{margin-top:16px}}
+
+/* CAD review drawing (인동거리배치도 style) */
+.map-tools #cadBtn{background:#e8f1ee;color:#2f6f5e;font-weight:600}
+.map-tools #cadBtn[aria-pressed="true"]{background:#1f2428;color:#e8edf0}
+.map-body.cad{background:#1f2428}
+.map-body.cad .map-badge{background:#2a3036eb;border-color:#3a434b;color:#7ee08a}
+.map-body.cad .map-legend{color:#9fb0b8}
+.map-body.cad .map-help{background:#2a3036d9;color:#9fb0b8}
+.map-body.cad .map-help b{color:#56636b}
+.map-body.cad .map-badge,.map-body.cad .map-legend{display:none}
+.cad-overlay{position:absolute;top:12px;left:12px;width:min(340px,calc(100% - 24px));max-height:calc(100% - 64px);overflow:auto;display:flex;flex-direction:column;gap:8px;z-index:2}
+.cad-box{background:#262c31f2;border:1px solid #d55fd5;color:#e8edf0;font-size:11px;line-height:1.55;padding:8px 10px;border-radius:3px}
+.cad-box summary{cursor:pointer;font-weight:700;color:#ff8bff;font-size:12px}
+.cad-box ol,.cad-box ul{margin:6px 0 4px;padding-left:18px}
+.cad-box li{margin:2px 0}
+.cad-box p{margin:6px 0 0}
+.cad-box a{color:#7fd3ff}
+.cad-meta{color:#9fb0b8;font-size:10px}
+.cad-caution{color:#ffd27a}
+.cad-sub summary{font-size:11px;color:#c9a7ff;font-weight:600;margin-top:6px}
+.cad-box table{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:tabular-nums}
+.cad-box th,.cad-box td{border:1px solid #4a535b;padding:3px 5px;text-align:right}
+.cad-box th{background:#323a40;color:#cfd8dc;font-weight:600;text-align:center}
+.cad-box td:first-child,.cad-box td:last-child{text-align:left}
+.modal-content .wide{grid-column:1/-1}
+@media(max-width:700px){.cad-overlay{width:calc(100% - 24px);max-height:45%}}
+
+/* View switch and 3D massing */
+.view-switch{display:inline-flex;border:1px solid #dfe7ea;border-radius:5px;overflow:hidden}
+.map-tools .view-switch button{border-radius:0;background:#fff;color:#65808e;padding:5px 10px}
+.map-tools .view-switch button[aria-pressed="true"]{background:#1f4f63;color:#fff;font-weight:600}
+#massSvg{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+#massSvg[hidden]{display:none}
+#massSvg .mass-building{cursor:pointer}
+.map-body.mass .map-legend{display:none}
+#siteSvg[hidden]{display:none}
+.cad-overlay[hidden]{display:none}
+.map-tools #siteModeBtn[aria-pressed="true"]{background:#2f6f99;color:#fff;font-weight:600}
+.map-tools #siteModeBtn:disabled{opacity:.45}
+
+/* Building-file import and imported shape notes */
+.import-list{display:flex;flex-direction:column;gap:8px;max-height:48vh;overflow:auto;margin:12px 0}
+.import-row{display:grid;grid-template-columns:auto 1fr 96px;gap:10px;align-items:center;border:1px solid #dfe7ea;border-radius:8px;padding:10px}
+.import-row strong{display:block;font-size:13px}
+.import-row small{display:block;color:#7b8da0;font-size:11px;margin-top:3px}
+.import-row .import-warn{color:#a2661a}
+.shape-note{background:#eef5fb;border:1px solid #d3e3f1;border-radius:8px;padding:9px 11px;font-size:11px;line-height:1.6;color:#36536e;margin:0 0 12px}
+
+/* Layout versions */
+.layout-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.layout-item{display:flex;align-items:stretch;border:1px solid #e1e8ec;border-radius:8px;background:#fff}
+.layout-item.current{border-color:#78a5bd;background:#f2f8fb}
+.layout-load{flex:1;min-width:0;text-align:left;border:0;background:transparent;padding:8px 10px;cursor:pointer;font:inherit;color:inherit}
+.layout-load strong{display:block;font-size:12px;color:#24496c}
+.layout-load strong em{font-style:normal;font-size:10px;color:#fff;background:#4f88a8;border-radius:3px;padding:1px 5px;margin-left:4px}
+.layout-load small{display:block;font-size:10px;color:#7b8da0;margin-top:3px;line-height:1.5}
+.layout-load .ok{color:#2f8f6b}.layout-load .bad{color:#c4513f}
+.layout-load .layout-note{color:#5f7487}
+.layout-actions{display:flex;flex-direction:column;border-left:1px solid #edf1f4}
+.layout-actions button{flex:1;border:0;background:transparent;color:#8394a3;cursor:pointer;padding:0 8px;font-size:13px}
+.layout-actions button:hover{color:#24496c;background:#f3f6f8}
+.layout-empty{font-size:11px;color:#97a5ad;padding:6px 2px}
+.layout-count{font-size:10px;color:#97a5ad;margin-left:4px}
+
+</style></head><body>
+<header class="topbar"><a class="brand" href="#"><span class="brand-icon">P<span></span></span><strong>PLANBY</strong><span class="brand-sub">FEASIBILITY STUDIO</span></a><div class="top-actions"><span class="local-dot">LOCAL WORKSPACE</span><button id="importBtn" class="btn">불러오기</button><button id="saveBtn" class="btn primary">프로젝트 저장 ↗</button></div></header>
+<main><div class="project-heading"><div><div class="eyebrow">주거 계획 / 초기 사업성 검토</div><input id="projectName" class="project-name" aria-label="프로젝트 이름"><div class="subheading"><span class="pill">FIRST EDITION</span> <span id="revisionLabel"></span><span class="dot-separator">·</span><span id="saveStatus">브라우저 자동 저장</span></div></div><div class="heading-actions"><button id="reportBtn" class="btn">검토표 내보내기</button></div></div>
+<div class="workflow"><nav aria-label="계획 단계"><button data-tab="units"><span>01</span> 단위세대 계획</button><i>›</i><button data-tab="combinations"><span>02</span> 동평면 조합</button><i>›</i><button data-tab="site" class="active"><span>03</span> 단지 배치 검토</button></nav><span class="workflow-note">계획 가정으로 빠르게 탐색하고, 근거를 남기세요.</span></div>
+<section id="siteView"><div class="site-layout"><aside class="sidebar"><div class="panel-title">프로젝트 구성 <span id="buildingCount" class="tag"></span></div><div class="section-label">대지</div><button class="site-card" id="siteEdit"><span class="site-icon">▱</span><span><strong id="siteName"></strong><small id="siteArea"></small></span><b>↗</b></button><div class="section-label line-label">계획 동 <button id="addBuilding" class="text-btn">＋ 추가</button></div><div id="buildingList"></div><div class="section-label line-label">배치안 버전 <span id="layoutCount" class="layout-count"></span><button id="saveLayout" class="text-btn">＋ 현재 배치 저장</button></div><div id="layoutList" class="layout-list"></div><div class="section-label">검토 레이어</div><label class="toggle-row"><input type="checkbox" id="showHeat" checked><span>이동 가능 후보 영역</span><span class="legend-dot green"></span></label><label class="toggle-row"><input type="checkbox" id="showDistances" checked><span>인동거리 검토선</span><span class="legend-line"></span></label><label class="toggle-row"><input type="checkbox" id="snap" checked><span>1 m 그리드 스냅</span></label><div class="layer-note">초록 영역은 선택한 동의 중심 위치를 5 m 간격으로 검토한 후보입니다. 이동 후 정확한 위치에서 재계산합니다.</div><button id="rulesBtn" class="btn full">⚙ 검토 조건 설정</button><div class="sidebar-bottom"><span class="tag amber">조건부 검토</span><p>예시 대지 · 사용자 가정 기준<br>지자체 법규 및 일조시간 미확정</p><button id="referenceBtn" class="text-btn">검토 범위와 참고자료 ↗</button></div></aside>
+<div class="map-panel"><div class="map-toolbar"><div><strong>배치 편집</strong><span id="selectionHint">동을 선택해 이동하세요</span></div><div class="map-tools"><button id="undoBtn" title="실행 취소 (Ctrl+Z)">↶</button><button id="redoBtn" title="다시 실행">↷</button><span></span><button id="zoomOut" title="축소">−</button><button id="zoomIn" title="확대">＋</button><button id="fitBtn">전체</button><span></span><button id="siteModeBtn" aria-pressed="false" title="대지 경계 꼭짓점 편집">▱ 대지 편집</button><span></span><div class="view-switch" role="group" aria-label="보기 방식"><button data-view="cad" aria-pressed="true" title="인동거리배치도 형식">도면</button><button data-view="3d" aria-pressed="false" title="높이를 반영한 매스">3D</button></div></div></div><div class="map-body" id="mapBody"><svg id="siteSvg" xmlns="http://www.w3.org/2000/svg" aria-label="대지와 동 배치 편집기" role="img"></svg><svg id="massSvg" xmlns="http://www.w3.org/2000/svg" aria-label="동 높이 3D 매스" role="img" hidden></svg><div id="cadOverlay" class="cad-overlay" hidden></div><div class="map-badge"><span class="live-dot"></span> LIVE CHECK <span id="liveLabel">실시간 검토</span></div><div class="map-legend"><span><i class="legend-dot green"></i> 배치 후보</span><span><i class="legend-dot blue"></i> 선택 동</span><span><i class="legend-dot red"></i> 조건 미충족</span></div><div class="map-help">드래그 이동 <b>·</b> ↻ 핸들 드래그 회전 <b>·</b> 방향키 1 m <b>·</b> Shift + 방향키 5 m <b>·</b> R / Shift+R 15° 회전</div></div><div class="map-status"><span id="mapStatus"></span><button id="dxfBtn" class="text-btn">배치 DXF ↓</button></div></div>
+<aside class="inspector"><div id="properties"></div><div class="check-section"><div class="panel-title">배치 검토 <span class="tag">SCREENING</span></div><div id="checkList"></div></div></aside></div><div id="metrics" class="metrics"></div><div class="assumption-strip"><span>ⓘ</span><span>건폐율·용적률은 동 외곽과 층수에 따른 개략 물량입니다. 필로티·지하층·산입 제외 면적은 미반영이며 수지 분석과 인허가 판정은 포함하지 않습니다.</span></div></section>
+<section id="unitsView" hidden></section><section id="combinationsView" hidden></section>
+<footer><span>PLANBY LAB <b>/</b> Reference-led apartment planning</span><span>단위 m · 면적 ㎡ <b>·</b> 외부 LLM API 호출 없음</span></footer></main>
+<input type="file" id="fileInput" accept=".json,application/json" hidden><dialog id="modal"><div id="modalBody"></div></dialog><div id="toast" role="status"></div>
+<script>
+/* stage.js */
+/* Stage lock for this branch. null = all three stages (main).
+   'units' = 01 단위세대 계획, 'combinations' = 02 동평면 조합, 'site' = 03 단지 배치 검토.
+   When set, only that stage's tab is shown and the project autosaves under
+   planby-apartment-v1-<stage> (falls back to the shared v1 key on first load). */
+window.PLANBY_STAGE = 'site';
+
+</script><script>
+/* engine.js */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerEngine = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  // Planning proxies only: metres, square metres, percentages; x right, y down.
+  // The optional "facing" profile classifies rectangle faces (long = window,
+  // short = side wall) as a screening assumption, not a legal determination.
+  // No legal applicability, terrain correction, sunlight,
+  // balconies, floor-area exemptions, or section-specific heights are inferred.
+  const EPS = 1e-8;
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1];
+  const cross = (a, b) => a[0] * b[1] - a[1] * b[0];
+  const magnitude = a => Math.hypot(a[0], a[1]);
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const samePoint = (a, b) => magnitude(sub(a, b)) <= EPS;
+  const clamp = t => Math.max(0, Math.min(1, t));
+
+  function number(value, label, minimum, integer) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new TypeError(`${label} must be a finite number`);
+    }
+    if (minimum !== undefined && value < minimum) {
+      throw new RangeError(`${label} is invalid; expected ${minimum === 0 ? 'nonnegative' : 'positive'} value`);
+    }
+    if (integer && !Number.isInteger(value)) throw new RangeError(`${label} must be an integer`);
+    return value;
+  }
+
+  function point(value, label) {
+    if (!Array.isArray(value) || value.length !== 2) throw new TypeError(`${label} must be [x, y]`);
+    number(value[0], `${label}.x`);
+    number(value[1], `${label}.y`);
+  }
+
+  function polygon(value, label) {
+    if (!Array.isArray(value) || value.length < 3) throw new TypeError(`${label} polygon needs at least 3 points`);
+    value.forEach((p, i) => point(p, `${label}[${i}]`));
+    const result = samePoint(value[0], value[value.length - 1]) ? value.slice(0, -1) : value;
+    if (result.length < 3) throw new TypeError(`${label} polygon needs at least 3 distinct points`);
+    return result;
+  }
+
+  function areaOf(poly) {
+    // Translate to a nearby origin to reduce cancellation at large map coordinates.
+    let twiceArea = 0;
+    for (let i = 1; i < poly.length - 1; i++) {
+      twiceArea += cross(sub(poly[i], poly[0]), sub(poly[i + 1], poly[0]));
+    }
+    return Math.abs(twiceArea) / 2;
+  }
+
+  function polygonArea(points) {
+    return areaOf(polygon(points, 'Input'));
+  }
+
+  // Local → world transform of a building (rotation about its centre x, y).
+  function placement(building) {
+    if (!building || typeof building !== 'object') throw new TypeError('Building is invalid');
+    const x = number(building.x, 'Building x');
+    const y = number(building.y, 'Building y');
+    const angle = number(building.rotation, 'Building rotation') * Math.PI / 180;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    return ([px, py]) => [x + px * cos - py * sin, y + px * sin + py * cos];
+  }
+
+  // World outline: the imported shape outline (local metres around the centre)
+  // when present, otherwise the width × depth rectangle.
+  function footprint(building) {
+    const place = placement(building);
+    const width = number(building.width, 'Building width', EPS);
+    const depth = number(building.depth, 'Building depth', EPS);
+    if (building.shape && building.shape.outline) {
+      return polygon(building.shape.outline, 'Building shape').map(place);
+    }
+    return [[-width / 2, -depth / 2], [width / 2, -depth / 2],
+      [width / 2, depth / 2], [-width / 2, depth / 2]].map(place);
+  }
+
+  function pointOnSegment(p, a, b) {
+    const ab = sub(b, a), ap = sub(p, a);
+    const length = magnitude(ab);
+    if (length <= EPS) return samePoint(p, a);
+    return Math.abs(cross(ab, ap)) <= EPS * length &&
+      dot(ap, ab) >= -EPS * length && dot(sub(p, b), ab) <= EPS * length;
+  }
+
+  function inside(p, poly) {
+    let contained = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[j], b = poly[i];
+      if (pointOnSegment(p, a, b)) return true;
+      if ((a[1] > p[1]) !== (b[1] > p[1]) &&
+        p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) {
+        contained = !contained;
+      }
+    }
+    return contained;
+  }
+
+  // Boundary points count as inside. Pairwise boundary touching is a collision.
+  function insidePolygon(p, poly) {
+    point(p, 'Point');
+    return inside(p, polygon(poly, 'Input'));
+  }
+
+  function segmentIntersection(a, b, c, d) {
+    const r = sub(b, a), s = sub(d, c), ca = sub(c, a);
+    const rr = dot(r, r), ss = dot(s, s);
+    if (rr <= EPS * EPS) return pointOnSegment(a, c, d) ? { point: a.slice(), t: 0 } : null;
+    if (ss <= EPS * EPS) {
+      return pointOnSegment(c, a, b) ? { point: c.slice(), t: clamp(dot(ca, r) / rr) } : null;
+    }
+    const denominator = cross(r, s);
+    if (Math.abs(denominator) <= EPS * Math.sqrt(rr * ss)) {
+      if (Math.abs(cross(ca, r)) > EPS * Math.sqrt(rr)) return null;
+      const t0 = dot(ca, r) / rr, t1 = dot(sub(d, a), r) / rr;
+      const start = Math.max(0, Math.min(t0, t1)), end = Math.min(1, Math.max(t0, t1));
+      return start <= end + EPS ? { point: lerp(a, b, clamp(start)), t: clamp(start) } : null;
+    }
+    const t = cross(ca, s) / denominator, u = cross(ca, r) / denominator;
+    if (t < -EPS || t > 1 + EPS || u < -EPS || u > 1 + EPS) return null;
+    return { point: lerp(a, b, clamp(t)), t: clamp(t) };
+  }
+
+  function boundaryIntersection(a, b) {
+    for (let i = 0; i < a.length; i++) {
+      for (let j = 0; j < b.length; j++) {
+        const hit = segmentIntersection(a[i], a[(i + 1) % a.length], b[j], b[(j + 1) % b.length]);
+        if (hit) return hit.point;
+      }
+    }
+    return null;
+  }
+
+  function intersection(a, b) {
+    return boundaryIntersection(a, b) || (inside(a[0], b) ? a[0].slice() : null) ||
+      (inside(b[0], a) ? b[0].slice() : null);
+  }
+
+  function polygonsIntersect(a, b) {
+    return intersection(polygon(a, 'First'), polygon(b, 'Second')) !== null;
+  }
+
+  function closestPoint(p, a, b) {
+    const ab = sub(b, a), denominator = dot(ab, ab);
+    return denominator <= EPS * EPS ? a.slice() : lerp(a, b, clamp(dot(sub(p, a), ab) / denominator));
+  }
+
+  function boundaryDistance(a, b) {
+    let result = { distance: Infinity, a: null, b: null };
+    function consider(pa, pb) {
+      const distance = magnitude(sub(pa, pb));
+      if (distance < result.distance) result = { distance, a: pa.slice(), b: pb.slice() };
+    }
+    for (let i = 0; i < a.length; i++) {
+      const pa = a[i], qa = a[(i + 1) % a.length];
+      for (let j = 0; j < b.length; j++) {
+        const pb = b[j], qb = b[(j + 1) % b.length];
+        const hit = segmentIntersection(pa, qa, pb, qb);
+        if (hit) return { distance: 0, a: hit.point, b: hit.point.slice() };
+        consider(pa, closestPoint(pa, pb, qb));
+        consider(qa, closestPoint(qa, pb, qb));
+        consider(closestPoint(pb, pa, qa), pb);
+        consider(closestPoint(qb, pa, qa), qb);
+      }
+    }
+    return result;
+  }
+
+  // Distance between filled polygons is zero for both crossing and containment.
+  // Setback uses boundaryDistance separately, since the building is inside site.
+  function distanceBetween(a, b) {
+    const hit = intersection(a, b);
+    return hit ? { distance: 0, a: hit.slice(), b: hit.slice() } : boundaryDistance(a, b);
+  }
+
+  function polygonDistance(a, b) {
+    return distanceBetween(polygon(a, 'First'), polygon(b, 'Second'));
+  }
+
+  function assertSimple(poly) {
+    if (areaOf(poly) <= EPS) throw new RangeError('Site polygon must have positive area');
+    for (let i = 0; i < poly.length; i++) {
+      const next = (i + 1) % poly.length;
+      if (samePoint(poly[i], poly[next])) throw new RangeError('Site polygon has a zero-length edge');
+      for (let j = i + 1; j < poly.length; j++) {
+        if (j === next || (j + 1) % poly.length === i) continue;
+        if (segmentIntersection(poly[i], poly[next], poly[j], poly[(j + 1) % poly.length])) {
+          throw new RangeError('Site polygon must be simple, without self-intersection');
+        }
+      }
+    }
+  }
+
+  function fullyInside(building, site) {
+    if (!building.every(p => inside(p, site))) return false;
+    // Split each edge at every site crossing, including a reflex vertex touch.
+    // A midpoint in every resulting interval catches concave cut-outs even when
+    // all building corners and the unsplit edge midpoint happen to be inside.
+    for (let i = 0; i < building.length; i++) {
+      const a = building[i], b = building[(i + 1) % building.length];
+      const ab = sub(b, a), lengthSquared = dot(ab, ab), splits = [0, 1];
+      for (let j = 0; j < site.length; j++) {
+        const c = site[j], d = site[(j + 1) % site.length];
+        const hit = segmentIntersection(a, b, c, d);
+        if (hit) splits.push(hit.t);
+        if (pointOnSegment(c, a, b)) splits.push(clamp(dot(sub(c, a), ab) / lengthSquared));
+      }
+      splits.sort((x, y) => x - y);
+      for (let j = 0; j < splits.length - 1; j++) {
+        if (splits[j + 1] - splits[j] > EPS && !inside(lerp(a, b, (splits[j] + splits[j + 1]) / 2), site)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function rayClearance(origin, direction, site) {
+    let nearest = Infinity;
+    for (let i = 0; i < site.length; i++) {
+      const a = site[i], b = site[(i + 1) % site.length];
+      const edge = sub(b, a), offset = sub(a, origin), denominator = cross(direction, edge);
+      if (Math.abs(denominator) <= EPS * magnitude(edge)) {
+        if (Math.abs(cross(offset, direction)) <= EPS) {
+          const t0 = dot(offset, direction), t1 = dot(sub(b, origin), direction);
+          if (Math.max(t0, t1) >= -EPS) nearest = Math.min(nearest, Math.max(0, Math.min(t0, t1)));
+        }
+        continue;
+      }
+      const t = cross(offset, edge) / denominator, u = cross(offset, direction) / denominator;
+      if (t >= -EPS && u >= -EPS && u <= 1 + EPS) nearest = Math.min(nearest, Math.max(0, t));
+    }
+    return Number.isFinite(nearest) ? nearest : 0;
+  }
+
+  // Optional rule extensions; absent fields reproduce the original uniform model.
+  const FACING_DEFAULTS = Object.freeze({ lightFactor: 1, southLowTall: 0.8, southLowLow: 1, southLowMin: 0, sideToSide: 4 });
+
+  function validateRules(rules) {
+    if (!rules || typeof rules !== 'object') throw new TypeError('Rules are required');
+    for (const key of ['setback', 'minDistance', 'distanceFactor', 'northFactor',
+      'northLowHeight', 'northLowSetback', 'coverageLimit', 'farLimit']) number(rules[key], `Rule ${key}`, 0);
+    number(rules.northAngle, 'Rule northAngle');
+    if (typeof rules.northEnabled !== 'boolean') throw new TypeError('Rule northEnabled must be boolean');
+    if (rules.height !== undefined) {
+      if (!rules.height || typeof rules.height !== 'object') throw new TypeError('Rule height must be an object');
+      for (const key of ['base', 'parapet', 'first']) {
+        if (rules.height[key] !== undefined) number(rules.height[key], `Rule height.${key}`, 0);
+      }
+      if (rules.height.top !== undefined) {
+        if (!Array.isArray(rules.height.top)) throw new TypeError('Rule height.top must be an array');
+        rules.height.top.forEach((v, i) => number(v, `Rule height.top[${i}]`, 0));
+      }
+    }
+    if (rules.profile !== undefined && rules.profile !== 'uniform' && rules.profile !== 'facing') {
+      throw new RangeError('Rule profile must be uniform or facing');
+    }
+    if (rules.facing !== undefined) {
+      if (!rules.facing || typeof rules.facing !== 'object') throw new TypeError('Rule facing must be an object');
+      for (const key of Object.keys(FACING_DEFAULTS)) {
+        if (rules.facing[key] !== undefined) number(rules.facing[key], `Rule facing.${key}`, 0);
+      }
+    }
+    if (rules.lightLimit !== undefined) {
+      if (!rules.lightLimit || typeof rules.lightLimit !== 'object') throw new TypeError('Rule lightLimit must be an object');
+      if (typeof rules.lightLimit.enabled !== 'boolean') throw new TypeError('Rule lightLimit.enabled must be boolean');
+      number(rules.lightLimit.factor, 'Rule lightLimit.factor', EPS);
+    }
+  }
+
+  // H = base + first floor + typical floors × floorHeight + top floors + parapet.
+  // first defaults to floorHeight and top to none, so the default is
+  // base + floors × floorHeight + parapet (고양삼송: 0.6 + n × 2.8 + 0.25).
+  // pilotiFull drops a fully open ground floor (청주월명 AG-109:
+  // 3.5 + (n − 3) × 2.8 + 3.0 + 3.0 + 0.4, or the same without the 3.5 m floor).
+  function buildingHeight(b, rules) {
+    const h = rules.height || {};
+    const top = (h.top || []).slice(0, Math.max(0, b.floors - 1));
+    const first = h.first === undefined ? b.floorHeight : h.first;
+    const typical = Math.max(0, b.floors - 1 - top.length);
+    return (h.base || 0) + (b.pilotiFull ? 0 : first) + typical * b.floorHeight +
+      top.reduce((sum, v) => sum + v, 0) + (h.parapet || 0);
+  }
+
+  // Rectangle faces in footprint order. Long edges are treated as window
+  // (채광) faces and short edges as side walls (측벽); a square has only window faces.
+  // An imported shape instead marks a face as a window face when one of its
+  // window segments lies on that edge (overlap ≥ 0.2 m); others are side walls.
+  function faces(b, poly) {
+    if (b.shape && b.shape.outline) return shapeFaces(b, poly);
+    const longest = Math.max(b.width, b.depth), center = [b.x, b.y];
+    return poly.map((p, i) => {
+      const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
+      const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
+      let n = [t[1], -t[0]];
+      if (dot(n, sub(lerp(p, q, 0.5), center)) < 0) n = [-n[0], -n[1]];
+      return { p, q, t, n, length, kind: length >= longest - 1e-6 ? 'light' : 'side' };
+    });
+  }
+
+  function shapeFaces(b, poly) {
+    const place = placement(b), outward = areaSign(poly);
+    const windows = (b.shape.windows || []).map(w => [place(w.a), place(w.b)]);
+    return poly.map((p, i) => {
+      const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
+      const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
+      const n = outward > 0 ? [t[1], -t[0]] : [-t[1], t[0]];
+      const lit = windows.some(([a, c]) => {
+        if (Math.abs(dot(sub(a, p), n)) > 0.05 || Math.abs(dot(sub(c, p), n)) > 0.05) return false;
+        const s0 = dot(sub(a, p), t), s1 = dot(sub(c, p), t);
+        return Math.min(length, Math.max(s0, s1)) - Math.max(0, Math.min(s0, s1)) >= 0.2;
+      });
+      return { p, q, t, n, length, kind: lit ? 'light' : 'side' };
+    });
+  }
+
+  function areaSign(poly) {
+    let a = 0;
+    poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; });
+    return a >= 0 ? 1 : -1;
+  }
+
+  // Nearest point of poly inside the strip swept perpendicular from face f.
+  // Distance is linear along each clipped edge, so interval ends suffice.
+  function faceClearance(f, poly) {
+    const tol = 1e-6;
+    let best = null;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const s0 = dot(sub(a, f.p), f.t), s1 = dot(sub(b, f.p), f.t);
+      const d0 = dot(sub(a, f.p), f.n), d1 = dot(sub(b, f.p), f.n);
+      let lo = 0, hi = 1;
+      for (const [v0, v1, min, max] of [[s0, s1, tol, f.length - tol], [d0, d1, EPS, Infinity]]) {
+        const dv = v1 - v0;
+        if (Math.abs(dv) <= EPS) { if (v0 < min || v0 > max) { lo = 1; hi = 0; } continue; }
+        const u0 = (min - v0) / dv, u1 = (max - v0) / dv;
+        lo = Math.max(lo, Math.min(u0, u1)); hi = Math.min(hi, Math.max(u0, u1));
+      }
+      if (lo > hi) continue;
+      for (const u of [lo, hi]) {
+        const s = lerp(a, b, u), d = dot(sub(s, f.p), f.n);
+        if (!best || d < best.distance) best = { distance: d, a: [s[0] - f.n[0] * d, s[1] - f.n[1] * d], b: s };
+      }
+    }
+    return best;
+  }
+
+  const label = g => g.building.name || String(g.building.id);
+  const fmtFactor = v => `${Math.round(v * 100) / 100}H`;
+  // One requirement term "factor × H of a building", kept for drawing annotations.
+  const term = (g, factor) => ({ id: g.building.id, name: label(g), floors: g.building.floors,
+    height: g.height, factor, value: factor * g.height });
+
+  // Applies the minDistance floor and records it on the basis when it governs.
+  function finish(raw, rules, basis) {
+    const required = Math.max(rules.minDistance, raw);
+    if (required > raw + EPS) {
+      basis.min = rules.minDistance;
+      basis.text += ` (최소 ${rules.minDistance} m)`;
+    }
+    return required;
+  }
+
+  function uniformPair(A, B, rules, closest, type) {
+    const tall = A.height >= B.height ? A : B;
+    const basis = { type, faces: null, factor: rules.distanceFactor, terms: [term(tall, rules.distanceFactor)], fixed: null,
+      text: `${type === 'diagonal' ? '대각 · 단순 가정' : '단순'} ${fmtFactor(rules.distanceFactor)} ${label(tall)} ${tall.building.floors}F` };
+    const required = finish(rules.distanceFactor * tall.height, rules, basis);
+    return { ...closest, required, basis };
+  }
+
+  // Requirement for one building pair. In the facing profile each face that sees
+  // the other building gets its own requirement; the pair is governed by the
+  // smallest margin. Non-facing (diagonal) pairs fall back to the uniform rule.
+  // South-low follows 시행령 제86조제3항제2호나목: the lower building lies in the
+  // half-plane from 정동 clockwise to 정서 of the taller one, and a window face
+  // (main opening) of the taller building faces it.
+  function evaluatePair(A, B, rules, north) {
+    const closest = distanceBetween(A.poly, B.poly);
+    if (rules.profile !== 'facing') return uniformPair(A, B, rules, closest, 'uniform');
+    const cfg = { ...FACING_DEFAULTS, ...(rules.facing || {}) };
+    const hits = [];
+    for (const [X, Y] of [[A, B], [B, A]]) {
+      for (const f of X.faces) {
+        const hit = faceClearance(f, Y.poly);
+        if (!hit) continue;
+        const g = Y.faces.reduce((m, h) => dot(h.n, f.n) < dot(m.n, f.n) ? h : m);
+        hits.push({ X, Y, f, g, ...hit });
+      }
+    }
+    if (!hits.length) return uniformPair(A, B, rules, closest, 'diagonal');
+    const tall = A.height >= B.height ? A : B, low = tall === A ? B : A;
+    const toLow = sub(low.center, tall.center);
+    const southLow = low.height < tall.height - EPS && dot(toLow, north) < -EPS &&
+      hits.some(h => h.X === tall && h.f.kind === 'light' && dot(h.f.n, toLow) > EPS);
+    let governing = null;
+    for (const h of hits) {
+      let raw, basis;
+      if (h.f.kind === 'side' && h.g.kind === 'side') {
+        raw = cfg.sideToSide;
+        basis = { type: 'side-side', factor: null, terms: [], fixed: cfg.sideToSide, text: `측벽↔측벽 ${cfg.sideToSide} m` };
+      } else if (southLow) {
+        const terms = [cfg.southLowTall > 0 && term(tall, cfg.southLowTall), term(low, cfg.southLowLow)].filter(Boolean);
+        raw = Math.max(cfg.southLowMin, ...terms.map(t => t.value));
+        const parts = [cfg.southLowMin > 0 && `${cfg.southLowMin} m`, ...terms.map(t => `${fmtFactor(t.factor)} ${t.name}`)];
+        basis = { type: 'south-low', factor: cfg.southLowLow, terms, fixed: cfg.southLowMin > 0 ? cfg.southLowMin : null,
+          text: `남측저층 ${parts.filter(Boolean).join(' / ')}` };
+      } else {
+        const owner = h.f.kind === 'light' ? h.X : h.Y;
+        const type = h.f.kind === 'light' && h.g.kind === 'light' ? 'light-light' : 'light-side';
+        raw = cfg.lightFactor * owner.height;
+        basis = { type, factor: cfg.lightFactor, terms: [term(owner, cfg.lightFactor)], fixed: null,
+          text: `${type === 'light-light' ? '채광↔채광' : '채광↔측벽'} ${fmtFactor(cfg.lightFactor)} ${label(owner)} ${owner.building.floors}F` };
+      }
+      basis.faces = h.X === A ? [h.f.kind, h.g.kind] : [h.g.kind, h.f.kind];
+      const required = finish(raw, rules, basis);
+      const margin = h.distance - required;
+      if (!governing || margin < governing.margin) {
+        const ends = h.X === A ? { a: h.a, b: h.b } : { a: h.b, b: h.a };
+        governing = { margin, distance: h.distance, ...ends, required, basis };
+      }
+    }
+    // Overlap or contact always fails, whatever face strips report.
+    if (closest.distance <= EPS) return { ...closest, required: governing.required, basis: governing.basis };
+    const { margin, ...result } = governing;
+    return result;
+  }
+
+  // Upper bound on any requirement evaluatePair can return, for box culling.
+  function maxRequirement(A, B, rules) {
+    const h = Math.max(A.height, B.height);
+    let max = Math.max(rules.minDistance, rules.distanceFactor * h);
+    if (rules.profile === 'facing') {
+      const cfg = { ...FACING_DEFAULTS, ...(rules.facing || {}) };
+      max = Math.max(max, cfg.lightFactor * h, cfg.southLowTall * h, cfg.southLowLow * h, cfg.southLowMin, cfg.sideToSide);
+    }
+    return max;
+  }
+
+  function buildingGeometry(b, ids, rules) {
+    const poly = footprint(b);
+    if (!((typeof b.id === 'string' && b.id.length > 0) || (typeof b.id === 'number' && Number.isFinite(b.id)))) {
+      throw new TypeError('Building id must be a nonempty string or finite number');
+    }
+    if (ids.has(b.id)) throw new RangeError('Building ids must be unique; duplicate id');
+    ids.add(b.id);
+    number(b.floors, 'Building floors', 1, true);
+    number(b.floorHeight, 'Building floorHeight', EPS);
+    number(b.baseElevation, 'Building baseElevation');
+    number(b.unitsPerFloor, 'Building unitsPerFloor', 0, true);
+    number(b.unitArea, 'Building unitArea', 0);
+    number(b.coreArea, 'Building coreArea', 0);
+    return { poly, height: buildingHeight(b, rules), area: areaOf(poly),
+      building: b, center: [b.x, b.y], faces: faces(b, poly) };
+  }
+
+  function shortestRay(points, direction, outline) {
+    let best = null;
+    for (const p of points) {
+      const distance = rayClearance(p, direction, outline);
+      if (!best || distance < best.distance) {
+        best = { distance, from: p.slice(), to: [p[0] + direction[0] * distance, p[1] + direction[1] * distance] };
+      }
+    }
+    return best;
+  }
+
+  function boundaryCheck(id, geometry, outline, rules, north) {
+    const { poly, height } = geometry;
+    const contained = fullyInside(poly, outline);
+    const setback = boundaryDistance(poly, outline).distance;
+    const setbackPass = contained && setback + EPS >= rules.setback;
+    // Four vertex rays are a screening proxy, not full-face/legal analysis.
+    const north0 = shortestRay(poly, north, outline);
+    const northDistance = north0.distance;
+    const northRequired = height <= rules.northLowHeight ? rules.northLowSetback : height * rules.northFactor;
+    const northPass = !rules.northEnabled || (contained && northDistance + EPS >= northRequired);
+    // 시행령 제86조제3항제1호: height ≤ factor × horizontal distance from a window
+    // face to the adjacent site boundary. Ends and midpoint of each window face are
+    // sampled; roads (centre-line rule) and partial heights are not modelled.
+    let light = null;
+    const limit = rules.lightLimit;
+    if (limit && limit.enabled) {
+      for (const f of geometry.faces.filter(f => f.kind === 'light')) {
+        const ray = shortestRay([f.p, lerp(f.p, f.q, 0.5), f.q], f.n, outline);
+        if (!light || ray.distance < light.distance) light = ray;
+      }
+      if (light) {
+        light.required = height / limit.factor;
+        light.pass = contained && light.distance + EPS >= light.required;
+      }
+    }
+    const lightPass = !light || light.pass;
+    return { id, inside: contained, setback, setbackPass, northDistance, northFrom: north0.from, northTo: north0.to,
+      northRequired, northPass, light, lightPass, pass: contained && setbackPass && northPass && lightPass, height };
+  }
+
+  function bounds(poly) {
+    return [Math.min(...poly.map(p => p[0])), Math.min(...poly.map(p => p[1])),
+      Math.max(...poly.map(p => p[0])), Math.max(...poly.map(p => p[1]))];
+  }
+
+  // Candidate-only heatmap query. O(N) in stationary building count; no pairs
+  // between stationary buildings and no project-wide coverage/FAR calculation.
+  // Its boolean equals the candidate's building.pass in evaluateSite, not the
+  // whole site's pass. Inputs are read on every call, so edits cannot stale a cache.
+  function canPlace(site, candidate, others, rules) {
+    const outline = polygon(Array.isArray(site) ? site : site && site.polygon, 'Site');
+    assertSimple(outline);
+    validateRules(rules);
+    if (!Array.isArray(others)) throw new TypeError('Other buildings must be an array');
+    const ids = new Set();
+    const current = buildingGeometry(candidate, ids, rules);
+    const stationary = others.map(b => buildingGeometry(b, ids, rules));
+    const angle = rules.northAngle * Math.PI / 180;
+    const north = [Math.sin(angle), -Math.cos(angle)];
+    if (!boundaryCheck(candidate.id, current, outline, rules, north).pass) return false;
+    const box = bounds(current.poly);
+    for (const other of stationary) {
+      const otherBox = bounds(other.poly);
+      const lowerBound = Math.hypot(Math.max(0, box[0] - otherBox[2], otherBox[0] - box[2]),
+        Math.max(0, box[1] - otherBox[3], otherBox[1] - box[3]));
+      // Bounding boxes are only used to prove separation; close boxes still get
+      // the same evaluatePair used by evaluateSite.
+      if (lowerBound > EPS && lowerBound + EPS >= maxRequirement(current, other, rules)) continue;
+      const pair = evaluatePair(current, other, rules, north);
+      if (pair.distance <= EPS || pair.distance + EPS < pair.required) return false;
+    }
+    return true;
+  }
+
+  function evaluateSite(site, buildings, rules) {
+    const outline = polygon(Array.isArray(site) ? site : site && site.polygon, 'Site');
+    assertSimple(outline);
+    validateRules(rules);
+    if (!Array.isArray(buildings)) throw new TypeError('Buildings must be an array');
+    const ids = new Set();
+    const angle = rules.northAngle * Math.PI / 180;
+    const north = [Math.sin(angle), -Math.cos(angle)];
+    let footprintArea = 0, grossFloorArea = 0, households = 0;
+    const geometries = [], checks = [];
+    for (const b of buildings) {
+      const geometry = buildingGeometry(b, ids, rules);
+      footprintArea += geometry.area;
+      grossFloorArea += geometry.area * b.floors;
+      households += b.floors * b.unitsPerFloor;
+      geometries.push(geometry);
+      checks.push(boundaryCheck(b.id, geometry, outline, rules, north));
+    }
+    const pairs = [];
+    for (let i = 0; i < buildings.length; i++) {
+      for (let j = i + 1; j < buildings.length; j++) {
+        const result = evaluatePair(geometries[i], geometries[j], rules, north);
+        const pass = result.distance > EPS && result.distance + EPS >= result.required;
+        pairs.push({ aId: buildings[i].id, bId: buildings[j].id, ...result, pass });
+        if (!pass) { checks[i].pass = false; checks[j].pass = false; }
+      }
+    }
+    const area = areaOf(outline), coverage = footprintArea / area * 100, far = grossFloorArea / area * 100;
+    return { area, footprintArea, grossFloorArea, coverage, far, households, pairs, buildings: checks,
+      pass: checks.every(b => b.pass) && coverage <= rules.coverageLimit + EPS && far <= rules.farLimit + EPS };
+  }
+
+  return Object.freeze({ polygonArea, footprint, polygonsIntersect, polygonDistance, insidePolygon, evaluateSite, canPlace,
+    buildingHeight: (b, rules) => { validateRules(rules); return buildingHeight(b, rules); } });
+}));
+
+</script><script>
+/* state.js */
+(function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.PlannerState=api;})(this,function(){
+ 'use strict'; const clone=o=>JSON.parse(JSON.stringify(o));
+ function createProject(){return {schema:'apartment-planner/1',coordinateUnit:'m',revision:1,name:'공동주택 초기 검토 · 시나리오 A',site:{name:'예시 대지 · 실제 사업지 아님',polygon:[[15,20],[165,20],[190,55],[190,145],[155,165],[15,165]]},rules:{setback:3,minDistance:10,distanceFactor:0.5,northEnabled:false,northFactor:0.5,northLowHeight:10,northLowSetback:1.5,northAngle:0,coverageLimit:30,farLimit:250,parkingPerUnit:1.2,jurisdiction:'미지정',basis:'사용자 가정 · 법규 미확정'},buildings:[{id:'b101',name:'101동',x:53,y:62,width:43,depth:13,rotation:0,floors:20,floorHeight:2.9,baseElevation:0,unitsPerFloor:4,unitArea:74,coreArea:50,locked:false},{id:'b102',name:'102동',x:132,y:64,width:44,depth:14,rotation:0,floors:24,floorHeight:2.9,baseElevation:0,unitsPerFloor:4,unitArea:84,coreArea:52,locked:false},{id:'b103',name:'103동',x:70,y:119,width:43,depth:13,rotation:0,floors:18,floorHeight:2.9,baseElevation:0,unitsPerFloor:4,unitArea:74,coreArea:50,locked:false}],units:[],typologies:[]};}
+ function num(v,min,max,label){if(!Number.isFinite(v)||v<min||v>max)throw Error(label+' 값의 범위를 확인하세요.');}
+ function simple(poly){const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);for(let i=0;i<poly.length;i++)for(let j=i+1;j<poly.length;j++){if(j===i+1||i===0&&j===poly.length-1)continue;const a=poly[i],b=poly[(i+1)%poly.length],c=poly[j],d=poly[(j+1)%poly.length];if(cross(a,b,c)*cross(a,b,d)<=0&&cross(c,d,a)*cross(c,d,b)<=0&&Math.max(Math.min(a[0],b[0]),Math.min(c[0],d[0]))<=Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0]))&&Math.max(Math.min(a[1],b[1]),Math.min(c[1],d[1]))<=Math.min(Math.max(a[1],b[1]),Math.max(c[1],d[1])))return false;}return true;}
+ // Imported building shape (local metres around the building centre).
+function checkShape(sh){const pt=(p,label)=>{if(!Array.isArray(p)||p.length!==2)throw Error(label+' 좌표 오류');num(p[0],-500,500,label);num(p[1],-500,500,label);};const list=(v,max,label)=>{if(!Array.isArray(v)||v.length>max)throw Error(label+' 개수 오류');return v;};if(!sh||typeof sh!=='object')throw Error('동 형상 오류');list(sh.outline,500,'동 외곽').forEach(p=>pt(p,'동 외곽'));if(sh.outline.length<3)throw Error('동 외곽은 꼭짓점 3개 이상이어야 합니다.');list(sh.windows||[],2000,'창').forEach(w=>{if(!w)throw Error('창 정보 오류');pt(w.a,'창');pt(w.b,'창');});list(sh.units||[],60,'세대 외곽').forEach(u=>list(u.outline||[],500,'세대 외곽').forEach(p=>pt(p,'세대 외곽')));if(sh.core){list(sh.core.parts||[],60,'코어 부품').forEach(c=>{if(!Array.isArray(c.rect)||c.rect.length!==4)throw Error('코어 부품 오류');c.rect.forEach(v=>num(v,-500,500,'코어 부품'));});}}
+function validateProject(p){if(!p||p.schema!=='apartment-planner/1'||p.coordinateUnit!=='m')throw Error('이 편집기의 m 단위 프로젝트 JSON이 아닙니다.');num(p.revision,0,1e9,'개정');if(!Number.isInteger(p.revision))throw Error('개정 번호는 정수여야 합니다.');if(typeof p.name!=='string'||p.name.length>180)throw Error('프로젝트 이름을 확인하세요.');const poly=p.site?.polygon;if(!Array.isArray(poly)||poly.length<3||poly.length>100)throw Error('대지 경계는 3~100개 꼭짓점이 필요합니다.');poly.forEach(a=>{if(!Array.isArray(a)||a.length!==2)throw Error('대지 좌표 형식 오류');a.forEach(v=>num(v,-10000,10000,'대지 좌표'));});let area=0;poly.forEach((a,i)=>{const b=poly[(i+1)%poly.length];area+=a[0]*b[1]-b[0]*a[1]});if(Math.abs(area)<2||!simple(poly))throw Error('대지 경계가 교차하거나 면적이 부족합니다.');if(!Array.isArray(p.buildings)||p.buildings.length>60)throw Error('최대 60개 동까지 지원합니다.');const ids=new Set();p.buildings.forEach(b=>{if(typeof b.id!=='string'||!b.id.trim()||b.id.length>100||ids.has(b.id))throw Error('동 ID가 중복되거나 누락되었습니다.');ids.add(b.id);if(typeof b.name!=='string'||b.name.length>60)throw Error('동 이름 오류');for(const k of ['x','y'])num(b[k],-10000,10000,k);for(const k of ['width','depth'])num(b[k],1,500,k);num(b.rotation,-3600,3600,'회전');num(b.floors,1,100,'층수');if(!Number.isInteger(b.floors))throw Error('층수는 정수여야 합니다.');num(b.floorHeight,2,8,'층고');num(b.baseElevation,-1000,10000,'표고');num(b.unitsPerFloor,1,30,'층당 세대');if(!Number.isInteger(b.unitsPerFloor))throw Error('층당 세대 수는 정수여야 합니다.');num(b.unitArea,10,400,'전용면적');num(b.coreArea,0,2000,'공용면적');if(typeof b.locked!=='boolean')throw Error('잠금 정보 오류');if(b.pilotiFull!==undefined&&typeof b.pilotiFull!=='boolean')throw Error('필로티 정보 오류');if(b.shape!==undefined)checkShape(b.shape);});const r=p.rules;if(!r)throw Error('검토 조건이 없습니다.');for(const k of ['setback','minDistance','northLowHeight','northLowSetback'])num(r[k],0,100,k);for(const k of ['distanceFactor','northFactor'])num(r[k],0,5,k);num(r.northAngle,-360,360,'정북');if(r.height!==undefined){if(!r.height||typeof r.height!=='object')throw Error('높이 산정식 설정 오류');for(const k of ['base','parapet','first'])if(r.height[k]!==undefined)num(r.height[k],0,100,'높이 산정식');if(r.height.top!==undefined){if(!Array.isArray(r.height.top)||r.height.top.length>5)throw Error('최상부 층고 목록 오류');r.height.top.forEach(v=>num(v,0,20,'최상부 층고'));}}if(r.profile!==undefined&&!['uniform','facing'].includes(r.profile))throw Error('인동거리 규칙 방식 오류');if(r.facing!==undefined){if(!r.facing||typeof r.facing!=='object')throw Error('면 구분 규칙 설정 오류');for(const k of ['lightFactor','southLowTall','southLowLow'])if(r.facing[k]!==undefined)num(r.facing[k],0,5,'면 구분 계수');if(r.facing.sideToSide!==undefined)num(r.facing.sideToSide,0,100,'측벽 간 거리');if(r.facing.southLowMin!==undefined)num(r.facing.southLowMin,0,100,'남측 저층 최소 거리');}if(r.lightLimit!==undefined){if(!r.lightLimit||typeof r.lightLimit!=='object'||typeof r.lightLimit.enabled!=='boolean')throw Error('채광방향 높이제한 설정 오류');num(r.lightLimit.factor,0.5,10,'채광방향 배수');}if(r.preset!==undefined&&(typeof r.preset!=='string'||r.preset.length>60))throw Error('기준 프리셋 오류');if(r.heightPreset!==undefined&&(typeof r.heightPreset!=='string'||r.heightPreset.length>60))throw Error('높이 산정 프리셋 오류');num(r.coverageLimit,1,100,'건폐율');num(r.farLimit,1,2000,'용적률');num(r.parkingPerUnit,0,10,'주차');if(typeof r.northEnabled!=='boolean')throw Error('정북 검토 설정 오류');if(!Array.isArray(p.units)||p.units.length>100||!Array.isArray(p.typologies)||p.typologies.length>200)throw Error('유형 데이터 오류');const unitIds=new Set();for(const u of p.units){if(!u||typeof u.id!=='string'||!u.id.trim()||unitIds.has(u.id)||![59,74,84].includes(u.type)||typeof u.name!=='string'||u.name.length>100)throw Error('세대 유형 정보 오류');unitIds.add(u.id);num(u.width,1,500,'세대 폭');num(u.depth,1,500,'세대 깊이');const roomIds=new Set();if(!u.reference||typeof u.reference!=='object')throw Error('세대 참고 정보 오류');if(!Array.isArray(u.rooms)||u.rooms.length>80)throw Error('실 데이터 오류');for(const room of u.rooms){if(typeof room.id!=='string'||!room.id.trim()||roomIds.has(room.id)||typeof room.locked!=='boolean')throw Error('실 ID 또는 잠금 정보 오류');roomIds.add(room.id);for(const k of ['x','y','width','depth'])num(room[k],k==='width'||k==='depth'?0.1:-500,500,'실 치수');if(typeof room.name!=='string'||room.name.length>80)throw Error('실 이름 오류');}}const typeIds=new Set();for(const t of p.typologies){if(!t||typeof t.id!=='string'||!t.id.trim()||typeIds.has(t.id)||typeof t.name!=='string'||t.name.length>100)throw Error('동 유형 정보 오류');typeIds.add(t.id);num(t.width,1,500,'동 유형 폭');num(t.depth,1,500,'동 유형 깊이');num(t.unitsPerFloor,1,30,'층당 세대');if(!Number.isInteger(t.unitsPerFloor))throw Error('층당 세대 수는 정수여야 합니다.');num(t.unitArea,10,400,'전용면적');num(t.coreArea,0,2000,'공용면적');if(!Array.isArray(t.sourceUnitIds)||t.sourceUnitIds.some(id=>typeof id!=='string'))throw Error('세대 연결 정보 오류');}if(p.layouts!==undefined){if(!Array.isArray(p.layouts)||p.layouts.length>30)throw Error('배치안 버전은 30개까지 저장할 수 있습니다.');const lids=new Set();for(const L of p.layouts){if(!L||typeof L.id!=='string'||!L.id||L.id.length>60||lids.has(L.id)||typeof L.name!=='string'||!L.name.trim()||L.name.length>80||typeof L.createdAt!=='string'||L.createdAt.length>40||(L.note!==undefined&&(typeof L.note!=='string'||L.note.length>500)))throw Error('배치안 버전 정보 오류');lids.add(L.id);validateProject({...p,buildings:L.buildings,layouts:undefined});}}return clone(p);}
+ function applyPatch(project,patch){if(patch?.schema!=='apartment-planner-patch/1'||patch.baseRevision!==project.revision)throw Error('결과의 기준 버전이 현재 프로젝트와 다릅니다. 최신 요청으로 다시 만들어 주세요.');if(!Array.isArray(patch.changes)||patch.changes.length>60)throw Error('변경 목록 오류');const p=clone(project),seen=new Set();for(const c of patch.changes){if(seen.has(c.id))throw Error('변경 대상 중복');seen.add(c.id);const b=p.buildings.find(b=>b.id===c.id);if(!b)throw Error('존재하지 않는 동입니다.');if(b.locked)throw Error('잠긴 동은 변경할 수 없습니다.');for(const k of Object.keys(c)){if(!['id','x','y','rotation','floors'].includes(k))throw Error('지원하지 않는 변경 항목: '+k);if(k!=='id')b[k]=c[k];}}p.revision++;return validateProject(p);}
+ return {createProject,validateProject,applyPatch,clone};
+});
+
+</script><script>
+/* units.js */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerUnits = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+  const TYPES = [59, 74, 84];
+  const COLORS = { living: '#dbeafe', kitchen: '#e0e7ff', bedroom: '#d1e7f1', wet: '#ccebe8', service: '#f2e9d9' };
+  const round = n => Math.round(n * 1000) / 1000;
+  const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const ROOM_DATA = {
+    59: { width: 12.9, depth: 8.3, livingWidth: 3790, rooms: [
+      ['master', '안방', .2, 4.5, 3.4, 3.6, 'bedroom'], ['living', '거실', 3.7, 4.3, 3.6, 4, 'living'],
+      ['bed2', '침실 2', 7.4, 5, 2.7, 3.3, 'bedroom'], ['bed3', '침실 3', 10.2, 5, 2.6, 3.3, 'bedroom'],
+      ['kitchen', '주방·식당', 3.7, .6, 3, 3.2, 'kitchen'], ['bath1', '공용욕실', 6.9, .5, 1.6, 2.3, 'wet'],
+      ['bath2', '부부욕실', 1.9, .5, 1.4, 2.2, 'wet'], ['dress', '드레스룸', .2, .5, 1.5, 1.8, 'service'],
+      ['entry', '현관', 8.8, 2.9, 1.5, 1.8, 'service'], ['utility', '다용도실', .2, 2.4, 1.5, 2, 'wet'],
+      ['pantry', '팬트리', 10.5, 3.2, 1, 1.2, 'service']
+    ] },
+    74: { width: 13.1, depth: 9, livingWidth: 4590, rooms: [
+      ['master', '안방', .2, 5.2, 3.6, 3.6, 'bedroom'], ['living', '거실', 3.9, 4.6, 4.2, 4.2, 'living'],
+      ['bed2', '침실 2', 8.2, 5.3, 2.8, 3.5, 'bedroom'], ['bed3', '침실 3', 9.9, .2, 3, 3.4, 'bedroom'],
+      ['kitchen', '주방·식당', 4.1, .3, 3.4, 3.6, 'kitchen'], ['bath1', '공용욕실', 7.7, .3, 1.7, 2.3, 'wet'],
+      ['bath2', '부부욕실', 2.3, .3, 1.5, 2.2, 'wet'], ['dress', '드레스룸', .2, .3, 1.8, 2, 'service'],
+      ['entry', '현관', 11.1, 3.8, 1.7, 1.8, 'service'], ['utility', '다용도실', .2, 2.6, 1.6, 2.2, 'wet'],
+      ['pantry', '팬트리', 2.3, 3, 1.2, 1.5, 'service']
+    ] },
+    84: { width: 13.8, depth: 9.4, livingWidth: 4690, rooms: [
+      ['master', '안방', .2, .2, 3.7, 3.8, 'bedroom'], ['living', '거실', 6.5, 4.9, 4.5, 4.4, 'living'],
+      ['bed2', '침실 2', 3.4, 5.6, 3, 3.6, 'bedroom'], ['bed3', '침실 3', .2, 5.6, 3.1, 3.6, 'bedroom'],
+      ['kitchen', '주방·식당', 6.5, .2, 3.6, 3.9, 'kitchen'], ['bath1', '공용욕실', 11.1, 6.9, 1.7, 2.4, 'wet'],
+      ['bath2', '부부욕실', 11.1, 4.4, 1.6, 2.3, 'wet'], ['dress', '드레스룸', 4.1, .2, 2.1, 2.4, 'service'],
+      ['entry', '현관', 10.3, .2, 1.8, 2, 'service'], ['utility', '다용도실', .2, 4.1, 1.8, 1.4, 'wet'],
+      ['powder', '파우더룸', 4.1, 2.8, 1.2, 1.4, 'service']
+    ] }
+  };
+
+  function createUnit(type) {
+    type = Number(type);
+    if (!ROOM_DATA[type]) throw new Error('지원하는 평형은 59, 74, 84입니다.');
+    const source = ROOM_DATA[type];
+    return {
+      id: 'unit-' + type, type, name: type + '형 · 조닝 초안', width: source.width, depth: source.depth,
+      rooms: source.rooms.map(r => ({ id: r[0], name: r[1], x: r[2], y: r[3], width: r[4], depth: r[5], category: r[6], locked: false })),
+      reference: { status: 'illustrative', project: 'LH 양주회천 A-26', type: type + 'A', image: 'assets/' + type + 'A-plan.png',
+        officialLivingWidthMm: source.livingWidth, areaDefinition: '직사각형 조닝 영역. 벽체·발코니·법정 전용면적 미산정.',
+        sourceFile: '59-74-84_실별면적_치수_대표도면.md', dimensionStatus: '공식 도면 표기값은 조닝의 유효치수와 구분' }
+    };
+  }
+
+  function checkUnit(unit) {
+    const rooms = unit.rooms || [], overlaps = [], outside = [], invalid = [];
+    let area = 0;
+    for (const r of rooms) {
+      if (![r.x, r.y, r.width, r.depth].every(Number.isFinite) || r.width <= 0 || r.depth <= 0) { invalid.push(r.id); continue; }
+      area += r.width * r.depth;
+      if (r.x < -1e-7 || r.y < -1e-7 || r.x + r.width > unit.width + 1e-7 || r.y + r.depth > unit.depth + 1e-7) outside.push(r.id);
+    }
+    const valid = rooms.filter(r => !invalid.includes(r.id));
+    valid.forEach((a, i) => valid.slice(i + 1).forEach(b => {
+      const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+      const d = Math.min(a.y + a.depth, b.y + b.depth) - Math.max(a.y, b.y);
+      if (w > 1e-7 && d > 1e-7) overlaps.push({ a: a.id, b: b.id, area: round(w * d) });
+    }));
+    // Sweep the occupied rectangles, so triple overlap is counted only once.
+    const xs = [...new Set(valid.flatMap(r => [r.x, r.x + r.width]))].sort((a, b) => a - b);
+    let unionArea = 0;
+    for (let i = 0; i < xs.length - 1; i++) {
+      const middle = (xs[i] + xs[i + 1]) / 2;
+      const intervals = valid.filter(r => r.x < middle && r.x + r.width > middle).map(r => [r.y, r.y + r.depth]).sort((a, b) => a[0] - b[0]);
+      let low = null, high = null, depth = 0;
+      for (const p of intervals) {
+        if (low === null) { low = p[0]; high = p[1]; }
+        else if (p[0] <= high) high = Math.max(high, p[1]);
+        else { depth += high - low; low = p[0]; high = p[1]; }
+      }
+      if (low !== null) depth += high - low;
+      unionArea += (xs[i + 1] - xs[i]) * depth;
+    }
+    return { area: round(area), unionArea: round(unionArea), overlaps, outside, invalid };
+  }
+
+  function editRoom(unit, roomId, patch) {
+    const room = unit.rooms.find(r => r.id === roomId);
+    if (!room || room.locked) return false;
+    for (const key of ['x', 'y', 'width', 'depth']) {
+      if (!Object.prototype.hasOwnProperty.call(patch, key)) continue;
+      const minimum = key === 'width' || key === 'depth' ? 0.1 : -500;
+      if (!Number.isFinite(patch[key]) || patch[key] < minimum || patch[key] > 500) return false;
+    }
+    for (const key of ['x', 'y', 'width', 'depth']) if (Object.prototype.hasOwnProperty.call(patch, key)) room[key] = round(patch[key]);
+    return true;
+  }
+
+  function generateCombinations(units, options) {
+    options = options || {};
+    const count = [2, 4, 6].includes(Number(options.count)) ? Number(options.count) : 4;
+    const coreCapacity = Number(options.coreCapacity) === 2 ? 2 : 4;
+    const types = [...new Set((options.types || TYPES).map(Number).filter(t => TYPES.includes(t)))];
+    if (!types.length) return [];
+    const sequence = Array.from({ length: count }, (_, i) => {
+      const type = types[i % types.length];
+      return units.find(u => Number(u.type) === type) || createUnit(type);
+    });
+    const unitMix = types.map(type => ({ type, count: sequence.filter(u => Number(u.type) === type).length })).filter(m => m.count);
+    const coreCount = Math.ceil(count / coreCapacity), unitArea = sequence.reduce((sum, u) => sum + Number(u.type), 0);
+    const slotW = Math.max(...sequence.map(u => u.width)), slotD = Math.max(...sequence.map(u => u.depth)), belt = 9.8, passage = 1.8;
+    const labels = ['일렬 배치', '마주보기 배치', '세로 연결 배치'];
+    return ['linear', 'double', 'vertical'].map((layout, index) => {
+      const placed = [], cores = [], corridors = [];
+      let width, depth;
+      const half = count / 2;
+      if (layout === 'linear') {
+        width = count * slotW; depth = slotD + passage + 6.2;
+        sequence.forEach((u, i) => placed.push({ id: 'u' + i, type: Number(u.type), name: u.type + '형', x: i * slotW, y: slotD - u.depth, width: u.width, depth: u.depth }));
+        corridors.push({ x: 0, y: slotD, width, depth: passage });
+        for (let i = 0; i < coreCount; i++) cores.push({ id: 'c' + i, name: '코어', x: (i + .5) * width / coreCount - 2.9, y: slotD + passage, width: 5.8, depth: 6.2 });
+      } else if (layout === 'double') {
+        width = half * slotW; depth = slotD * 2 + belt;
+        sequence.forEach((u, i) => placed.push({ id: 'u' + i, type: Number(u.type), name: u.type + '형', x: (i % half) * slotW, y: i < half ? slotD - u.depth : slotD + belt, width: u.width, depth: u.depth }));
+        corridors.push({ x: 0, y: slotD, width, depth: belt });
+        for (let i = 0; i < coreCount; i++) cores.push({ id: 'c' + i, name: '코어', x: (i + .5) * width / coreCount - 2.9, y: slotD + passage, width: 5.8, depth: 6.2 });
+      } else {
+        width = slotW * 2 + belt; depth = half * slotD;
+        sequence.forEach((u, i) => placed.push({ id: 'u' + i, type: Number(u.type), name: u.type + '형', x: i < half ? slotW - u.width : slotW + belt, y: (i % half) * slotD, width: u.width, depth: u.depth }));
+        corridors.push({ x: slotW, y: 0, width: belt, depth });
+        for (let i = 0; i < coreCount; i++) cores.push({ id: 'c' + i, name: '코어', x: slotW + 2, y: (i + .5) * depth / coreCount - 3.1, width: 5.8, depth: 6.2 });
+      }
+      const corridorArea = corridors.reduce((s, c) => s + c.width * c.depth, 0);
+      const coreOnlyArea = coreCount * 5.8 * 6.2;
+      // In the two-sided layouts cores occupy part of the common belt.
+      const coreArea = layout === 'linear' ? corridorArea + coreOnlyArea : corridorArea;
+      return { id: 'type-' + types.join('-') + '-' + count + '-' + coreCapacity + '-' + layout,
+        name: count + '세대 · ' + labels[index], width: round(width), depth: round(depth), unitsPerFloor: count,
+        unitArea: unitArea / count, totalUnitArea: unitArea, nominalArea: unitArea, coreArea: round(coreArea), coreOnlyArea: round(coreOnlyArea), coreCount, coreCapacity,
+        unitMix, source: 'schematic', layout, footprintArea: round(width * depth), sourceUnitIds: sequence.map(u => u.id),
+        reviewStatus: '연결·피난·구조·채광 미검토', geometry: { units: placed, cores, corridors } };
+    });
+  }
+
+  function ensureUnits(project) {
+    if (!Array.isArray(project.units)) project.units = [];
+    for (const type of TYPES) if (!project.units.some(u => Number(u.type) === type)) project.units.push(createUnit(type));
+    if (!Array.isArray(project.typologies)) project.typologies = [];
+  }
+
+  function injectStyles(doc) {
+    if (doc.getElementById('planner-units-style')) return;
+    const style = doc.createElement('style'); style.id = 'planner-units-style';
+    style.textContent = `
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}
+      @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
+    `;
+    doc.head.appendChild(style);
+  }
+
+  function mountUnits(container, project, onChange) {
+    ensureUnits(project); injectStyles(container.ownerDocument);
+    let type = TYPES.includes(Number(project.selectedUnitType)) ? Number(project.selectedUnitType) : 59;
+    let selectedId = 'living', drag = null, selectionPointer = null;
+    const active = () => project.units.find(u => Number(u.type) === type);
+    const changed = () => { project.selectedUnitType = type; if (typeof onChange === 'function') onChange(); };
+    function markChanged() {
+      for (const t of project.typologies) if (t.sourceUnitIds && t.sourceUnitIds.includes(active().id)) t.needsReview = true;
+      changed();
+    }
+    function render() {
+      const unit = active();
+      if (!unit.rooms.some(r => r.id === selectedId)) selectedId = unit.rooms[0] && unit.rooms[0].id;
+      container.innerHTML = `<div class="pu-tabs" role="tablist" aria-label="단위세대 평형">${TYPES.map(t => `<button type="button" role="tab" aria-selected="${t === type}" class="${t === type ? 'active' : ''}" data-unit-type="${t}">${t}<small>㎡</small></button>`).join('')}</div>
+        <div class="pu-layout"><div class="pu-main"><div class="pu-toolbar"><h3>${esc(unit.name)}</h3><span class="tag">직접 편집 · 개념 조닝</span></div>
+        <p class="pu-hint">공간을 드래그해 이동하세요. 선택한 공간은 방향키로 0.1m씩 이동할 수 있습니다. 치수는 오른쪽에서 조정합니다.</p>
+        <div class="pu-canvas-wrap"><svg class="pu-canvas" aria-label="${type}형 편집 가능한 조닝" role="group" viewBox="-0.8 -0.75 ${unit.width + 1.6} ${unit.depth + 1.5}"></svg></div>
+        <div class="pu-legend">${Object.entries({ living: '거실', bedroom: '침실', kitchen: '주방', wet: '욕실·다용도', service: '수납·현관' }).map(([k, v]) => `<span><i style="background:${COLORS[k]}"></i>${v}</span>`).join('')}<span>빈 영역: 미배분·동선</span></div><div class="pu-statrow" data-stats></div><div data-checks aria-live="polite"></div>
+        <p class="pu-note">이 조닝은 편집용으로 새로 구성한 직사각형 배치입니다. 참고 평면을 실측·벡터화한 도면이 아니며, 공간 합계를 법정 전용면적으로 사용하지 않습니다. 벽체·발코니·문·동선은 상세 검토가 필요합니다.</p>
+        <details class="pu-reference"><summary>공식 참고 평면과 도면 표기 치수 보기 · ${type}A</summary><img src="assets/${type}A-plan.png" alt="LH 양주회천 A-26 ${type}A 공식 참고 평면"><p>자료: LH 양주회천 A-26 ${type}A · 공식 도면 거실 폭 표기 <strong>${ROOM_DATA[type].livingWidth.toLocaleString('ko-KR')} mm</strong>.<br>현재 조닝 치수와는 별개입니다. 표기 기준과 마감 두께를 확인하지 않은 상태이며, 시공·가구 제작용 실측치가 아닙니다.</p></details>
+        </div><aside class="pu-inspector"><div class="panel"><h3>공간 편집</h3><div data-inspector></div></div><div class="panel"><h3>공간별 면적</h3><div data-roomlist></div></div></aside></div>`;
+      container.querySelectorAll('[data-unit-type]').forEach(b => b.addEventListener('click', () => { type = Number(b.dataset.unitType); selectedId = 'living'; changed(); render(); }));
+      const svg = container.querySelector('.pu-canvas');
+      svg.addEventListener('pointerdown', pointerDown);
+      svg.addEventListener('pointermove', pointerMove);
+      svg.addEventListener('pointerup', pointerEnd);
+      svg.addEventListener('pointercancel', pointerCancel);
+      svg.addEventListener('keydown', keyMove);
+      refresh();
+    }
+    function refresh() {
+      paintSvg(); paintInspector(); paintStats();
+    }
+    function focusSelectedRoom() {
+      const target = Array.from(container.querySelectorAll('[data-room]')).find(el => el.dataset.room === selectedId);
+      if (target) target.focus({ preventScroll: true });
+    }
+    function paintSvg() {
+      const unit = active(), report = checkUnit(unit), bad = new Set(report.overlaps.flatMap(p => [p.a, p.b]).concat(report.outside));
+      const svg = container.querySelector('.pu-canvas');
+      const horizontal = Array.from({ length: Math.ceil(unit.depth) }, (_, i) => `<path d="M0 ${i}H${unit.width}"/>`).join('');
+      const vertical = Array.from({ length: Math.ceil(unit.width) }, (_, i) => `<path d="M${i} 0V${unit.depth}"/>`).join('');
+      svg.innerHTML = `<rect x="0" y="0" width="${unit.width}" height="${unit.depth}" rx=".04" fill="#fff" stroke="#617a91" stroke-width=".045"/><g stroke="#e9eff4" stroke-width=".018">${horizontal}${vertical}</g>
+        <text x="${unit.width / 2}" y="-.3" text-anchor="middle" font-size=".22" fill="#7890a3">개념 외곽 ${fmt(unit.width)} × ${fmt(unit.depth)}m</text>
+        ${unit.rooms.map(r => `<g class="pu-room ${r.locked ? 'pu-locked' : ''}" data-room="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)} ${fmt(r.width * r.depth)}제곱미터 ${r.locked ? '잠김' : '선택 및 이동'}" aria-pressed="${r.id === selectedId}"><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" rx=".055" fill="${COLORS[r.category] || COLORS.service}" stroke="${bad.has(r.id) ? '#c36735' : r.id === selectedId ? '#2569ad' : '#9bb3c6'}" stroke-width="${r.id === selectedId ? '.065' : '.025'}"/><text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 - .08}" text-anchor="middle" font-size="${r.width < 1.5 ? '.19' : '.23'}" font-weight="650" fill="#294b64">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</text><text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + .25}" text-anchor="middle" font-size=".19" fill="#6a8397">${fmt(r.width * r.depth)}㎡</text></g>`).join('')}`;
+    }
+    function paintInspector() {
+      const unit = active(), room = unit.rooms.find(r => r.id === selectedId), inspector = container.querySelector('[data-inspector]');
+      if (!room) { inspector.innerHTML = '<p class="muted">공간을 선택하세요.</p>'; return; }
+      inspector.innerHTML = `<div class="pu-active-room"><i style="background:${COLORS[room.category] || COLORS.service}"></i><strong>${esc(room.name)}</strong></div><div class="pu-area">${fmt(room.width * room.depth)} <small>㎡ · 조닝 면적</small></div>
+        <div class="pu-inputs">${[['width', '가로'], ['depth', '세로'], ['x', 'X 위치'], ['y', 'Y 위치']].map(([key, label]) => `<label>${label} (m)<input aria-label="${label} (m)" data-room-field="${key}" type="number" value="${room[key]}" step="0.1" min="${key === 'width' || key === 'depth' ? '0.1' : '-500'}" max="500" ${room.locked ? 'disabled' : ''}></label>`).join('')}</div>
+        <label class="pu-check"><input type="checkbox" data-lock ${room.locked ? 'checked' : ''}>이 공간의 위치·치수 잠금</label><p class="pu-hint">외곽을 벗어나거나 다른 공간과 겹치면 검토 항목에 표시됩니다.</p>`;
+      inspector.querySelectorAll('[data-room-field]').forEach(input => input.addEventListener('change', () => {
+        const field = input.dataset.roomField;
+        if (input.value.trim() !== '' && editRoom(unit, room.id, { [field]: Number(input.value) })) {
+          // Keep the input nodes mounted so typing, stepping and tabbing retain focus.
+          input.value = String(room[field]); paintSvg(); paintStats();
+          inspector.querySelector('.pu-area').innerHTML = `${fmt(room.width * room.depth)} <small>㎡ · 조닝 면적</small>`;
+          markChanged();
+        } else input.value = String(room[field]);
+      }));
+      inspector.querySelector('[data-lock]').addEventListener('change', e => { room.locked = e.target.checked; refresh(); markChanged(); });
+    }
+    function paintStats() {
+      const unit = active(), report = checkUnit(unit);
+      container.querySelector('[data-stats]').innerHTML = `<div class="pu-stat"><span>명목 전용면적</span><b>${type}<small> ㎡</small></b></div><div class="pu-stat"><span>공간 합계 · 중복 포함</span><b>${fmt(report.area)}<small> ㎡</small></b></div><div class="pu-stat"><span>조닝 점유 · 중복 제외</span><b>${fmt(report.unionArea)}<small> ㎡</small></b></div>`;
+      const name = id => unit.rooms.find(r => r.id === id)?.name || id;
+      const issues = report.overlaps.map(p => `${name(p.a)} ↔ ${name(p.b)} 겹침 ${fmt(p.area)}㎡`).concat(report.outside.map(id => name(id) + ' 외곽 이탈')).concat(report.invalid.map(id => name(id) + ' 유효하지 않은 치수'));
+      container.querySelector('[data-checks]').innerHTML = issues.length ? `<div class="pu-warning"><strong>형상 확인 ${issues.length}건</strong><br>${issues.map(esc).join('<br>')}</div>` : '<div class="pu-pass">직사각형 형상 검사: 겹침·외곽 이탈 없음</div>';
+      const list = container.querySelector('[data-roomlist]');
+      list.innerHTML = `<table class="pu-roomlist"><thead><tr><th>공간</th><th>㎡</th></tr></thead><tbody>${unit.rooms.map(r => `<tr class="${r.id === selectedId ? 'selected' : ''}"><td><button type="button" data-select-room="${esc(r.id)}">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</button></td><td>${fmt(r.width * r.depth)}</td></tr>`).join('')}</tbody></table>`;
+      list.querySelectorAll('[data-select-room]').forEach(b => b.addEventListener('click', () => { selectedId = b.dataset.selectRoom; refresh(); focusSelectedRoom(); }));
+    }
+    function point(event) {
+      const svg = container.querySelector('.pu-canvas'), matrix = svg.getScreenCTM();
+      if (!matrix) return null;
+      const p = svg.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; return p.matrixTransform(matrix.inverse());
+    }
+    function pointerDown(event) {
+      if (selectionPointer !== null) return;
+      const g = event.target.closest('[data-room]'); if (!g) return;
+      const room = active().rooms.find(r => r.id === g.dataset.room), p = point(event);
+      selectedId = room.id; selectionPointer = event.pointerId;
+      if (!room.locked && p) drag = { id: room.id, x: room.x, y: room.y, startX: p.x, startY: p.y, pointerId: event.pointerId, moved: false };
+      event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); refresh();
+    }
+    function pointerMove(event) {
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      const p = point(event); if (!p) return;
+      const snap = n => Math.round(n * 10) / 10;
+      drag.moved = editRoom(active(), drag.id, { x: snap(drag.x + p.x - drag.startX), y: snap(drag.y + p.y - drag.startY) }) || drag.moved;
+      refresh();
+    }
+    function pointerEnd(event) {
+      if (selectionPointer !== event.pointerId) return;
+      const moved = drag && drag.moved; drag = null; selectionPointer = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      if (moved) markChanged();
+      focusSelectedRoom();
+    }
+    function pointerCancel(event) {
+      if (selectionPointer !== event.pointerId) return;
+      if (drag) editRoom(active(), drag.id, { x: drag.x, y: drag.y });
+      drag = null; selectionPointer = null; refresh();
+    }
+    function keyMove(event) {
+      const g = event.target.closest('[data-room]'); if (!g) return;
+      selectedId = g.dataset.room;
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); refresh(); focusSelectedRoom(); return; }
+      const vector = { ArrowLeft: [-.1, 0], ArrowRight: [.1, 0], ArrowUp: [0, -.1], ArrowDown: [0, .1] }[event.key];
+      if (!vector) return;
+      event.preventDefault(); const room = active().rooms.find(r => r.id === selectedId);
+      if (editRoom(active(), room.id, { x: room.x + vector[0], y: room.y + vector[1] })) { refresh(); markChanged(); }
+      focusSelectedRoom();
+    }
+    render();
+    return { render, destroy() { drag = null; selectionPointer = null; container.innerHTML = ''; } };
+  }
+
+  function schematicSvg(typology) {
+    const c = typology, geometry = c.geometry;
+    if (!geometry) return `<svg viewBox="0 0 160 100" aria-label="개념 외곽"><rect x="25" y="20" width="110" height="60" fill="#dceafa" stroke="#7596b7"/></svg>`;
+    const pad = 2, font = Math.max(.8, Math.min(c.width / 38, 1.3));
+    return `<svg viewBox="${-pad} ${-pad} ${c.width + pad * 2} ${c.depth + pad * 2}" role="img" aria-label="${esc(c.name)} 개념 조합">
+      ${geometry.corridors.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="#e5ecf3"/>`).join('')}
+      ${geometry.units.map(r => `<g><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="${r.type === 59 ? '#d2e9ee' : r.type === 74 ? '#d8e5f5' : '#e6e2f4'}" stroke="#7694ac" stroke-width=".12"/><text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + font / 3}" text-anchor="middle" font-size="${font}" fill="#3b5c77" font-weight="650">${r.type}</text></g>`).join('')}
+      ${geometry.cores.map(r => `<g><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="#507ca5" rx=".15"/><path d="M${r.x + .65} ${r.y + 1.1}h2.1m-2.1 .6h2.1m-2.1 .6h2.1m-2.1 .6h2.1" stroke="#c8dcea" stroke-width=".12"/><rect x="${r.x + 3.2}" y="${r.y + .8}" width="1.6" height="1.8" fill="none" stroke="#c8dcea" stroke-width=".12"/><text x="${r.x + r.width / 2}" y="${r.y + 4.8}" text-anchor="middle" font-size="${font * .8}" fill="white">코어</text></g>`).join('')}</svg>`;
+  }
+
+  function mountCombinations(container, project, onChange, onPlace) {
+    ensureUnits(project); injectStyles(container.ownerDocument);
+    let count = 4, coreCapacity = 4, types = [59, 74, 84], status = '';
+    function save(candidate) {
+      const existing = project.typologies.findIndex(t => t.id === candidate.id);
+      const saved = JSON.parse(JSON.stringify(candidate));
+      if (existing >= 0) project.typologies[existing] = saved; else project.typologies.push(saved);
+      status = candidate.name + ' 저장됨';
+      if (typeof onChange === 'function') onChange();
+      return saved;
+    }
+    function render() {
+      const candidates = generateCombinations(project.units, { count, coreCapacity, types });
+      container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>세대와 코어로 동평면 후보 만들기</h3><span class="tag">유한 후보 3안</span></div><p class="pu-note">선택한 평형을 순서대로 고르게 배분합니다. 현재 세대 외곽 크기를 유지하며, 연결 띠와 코어를 더한 개념 조합입니다.</p>
+        <div class="pu-combo-fields"><div><div class="section-label" style="margin-bottom:8px">포함할 평형</div><div class="pu-mix">${TYPES.map(t => `<label><input type="checkbox" data-mix="${t}" ${types.includes(t) ? 'checked' : ''}>${t}㎡</label>`).join('')}</div></div>
+        <label>층당 세대 수<select data-count>${[2, 4, 6].map(n => `<option value="${n}" ${n === count ? 'selected' : ''}>${n}세대</option>`).join('')}</select></label><label>코어당 계획 세대 수<select data-core><option value="2" ${coreCapacity === 2 ? 'selected' : ''}>최대 2세대</option><option value="4" ${coreCapacity === 4 ? 'selected' : ''}>최대 4세대</option></select></label></div>
+        <div class="pu-warning">코어 5.8 × 6.2m와 연결 띠는 임의 계획값입니다. HAUD에서 실측·추출한 코어가 아니며, 현관 접합·공용 동선·피난·구조·채광 적합성은 미검토입니다.</div></div>
+        <div class="pu-status" role="status">${esc(status)}</div><div class="pu-combo-grid">${candidates.length ? candidates.map((c, i) => `<article class="pu-combo-card">${schematicSvg(c)}<h3>${esc(c.name)}</h3><div class="pu-combo-meta">${c.unitMix.map(m => `${m.type}형 ${m.count}세대`).join(' + ')}<br>코어 ${c.coreCount}개 · ${fmt(c.width)} × ${fmt(c.depth)}m</div><div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>개념 공용부 / 층</span><b>${fmt(c.coreArea)}㎡</b></div></div><span class="tag">연결 적합성 미검토</span><div class="pu-combo-actions"><button class="btn" type="button" data-save="${i}">후보 저장</button><button class="btn primary" type="button" data-place="${i}">대지에 배치 →</button></div></article>`).join('') : '<div class="pu-empty">조합할 평형을 한 개 이상 선택하세요.</div>'}</div>
+        <p class="pu-footnote">탐색 범위: 선택 평형을 59→74→84 순서로 순환 배분 × 3가지 직교 배치. 세대 수보다 선택 평형이 많으면 뒷순서 평형은 제외됩니다. 모든 가능한 동평면을 탐색한 결과가 아닙니다. 공용부는 코어와 연결 띠의 합집합이며, 세대 조닝 면적·법정 연면적과 구분합니다.</p>
+        <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}</small></div><button class="btn" type="button" data-saved-place="${i}">배치에 추가</button></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>`;
+      container.querySelectorAll('[data-mix]').forEach(input => input.addEventListener('change', () => { types = Array.from(container.querySelectorAll('[data-mix]:checked')).map(el => Number(el.dataset.mix)); render(); }));
+      container.querySelector('[data-count]').addEventListener('change', e => { count = Number(e.target.value); render(); });
+      container.querySelector('[data-core]').addEventListener('change', e => { coreCapacity = Number(e.target.value); render(); });
+      container.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', () => { save(candidates[Number(b.dataset.save)]); render(); }));
+      container.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { const saved = save(candidates[Number(b.dataset.place)]); if (typeof onPlace === 'function') onPlace(saved); }));
+      container.querySelectorAll('[data-saved-place]').forEach(b => b.addEventListener('click', () => { if (typeof onPlace === 'function') onPlace(project.typologies[Number(b.dataset.savedPlace)]); }));
+    }
+    render(); return { render, destroy() { container.innerHTML = ''; } };
+  }
+  return { createUnit, checkUnit, editRoom, generateCombinations, mountUnits, mountCombinations, schematicSvg };
+});
+
+</script><script>
+/* presets.js */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerPresets = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  // Rule presets transcribed from official text or reference drawings, checked
+  // 2026-10-15. They configure the screening engine; they are not a legal
+  // determination. Applicability (zoning, roads, exceptions) stays unreviewed.
+  const CHECKED = '2026-10-15';
+  const REVISION_NOTE = `법령·조례는 개정될 수 있습니다. 원문 확인일(${CHECKED}) 이후의 개정 여부를 적용 시점에 원문에서 다시 확인하세요.`;
+
+  const NATIONAL_UNREVIEWED = [
+    '제86조제3항제2호 다목: 건축물과 부대시설·복리시설이 마주보는 경우 부대·복리시설 높이의 1배',
+    '라목: 채광창(0.5㎡ 이상)이 없는 벽면과 측벽이 마주보는 경우 8m (면별 창 유무 미입력)',
+    '제2호 단서: 동지 9~15시 연속 2시간 이상 일조 확보 시 거리 갈음',
+    '제3호: 단지 내 도로를 사이에 둔 경우 도로 중심선 기준 채광방향 적용',
+    '정북·인동 높이의 지반 고저차 보정, 부분 높이, 용도지역 적용 여부'
+  ];
+
+  const RULE_PRESETS = Object.freeze([
+    {
+      id: 'custom',
+      name: '사용자 정의',
+      effective: '사용자 가정 · 법규 미확정',
+      rules: null,
+      lines: ['설정 창에서 입력한 계수와 거리를 그대로 사용합니다.'],
+      unreviewed: NATIONAL_UNREVIEWED
+    },
+    {
+      id: 'national-2026',
+      name: '건축법 시행령 제86조 (조례 위임 하한)',
+      short: '시행령 제86조',
+      effective: '시행 2026-10-06 · 대통령령 제36746호',
+      url: 'https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0086&lsiSeq=290833&urlMode=lsScJoRltInfoR',
+      caution: '가목·나목은 "0.5배 이상의 범위에서 건축조례로 정하는 거리"입니다. 대상 지자체 조례로 상향될 수 있습니다.',
+      rules: {
+        profile: 'facing', distanceFactor: 0.5, minDistance: 4,
+        northEnabled: true, northLowHeight: 10, northLowSetback: 1.5, northFactor: 0.5,
+        facing: { lightFactor: 0.5, southLowTall: 0, southLowLow: 0.5, southLowMin: 10, sideToSide: 4 },
+        lightLimit: { enabled: true, factor: 2 }
+      },
+      lines: [
+        '제1항 정북: 높이 10m 이하 부분 1.5m 이상, 10m 초과 부분 해당 높이의 1/2 이상',
+        '제3항제1호 채광방향: 각 부분 높이 ≤ 채광창 벽면→인접대지경계 수평거리 × 2 (근린상업·준주거 4배)',
+        '제3항제2호 가목: 채광창 벽면 직각방향 0.5H 이상 범위에서 조례',
+        '나목: 높은 동의 주된 개구부가 남측(정동→정서) 낮은 동을 향하면 10m 이상 + 낮은 동 0.5H 이상 범위에서 조례',
+        '마목: 측벽과 측벽이 마주보는 경우 4m 이상'
+      ],
+      unreviewed: NATIONAL_UNREVIEWED
+    },
+    {
+      id: 'cheongju-2026',
+      name: '청주시 건축 조례 제35조',
+      short: '청주시 조례 제35조',
+      effective: '시행 2026-04-10 · 청주시조례 제1775호',
+      url: 'https://www.law.go.kr/자치법규/청주시건축조례',
+      caution: '정북 기준 높이는 2023-12-22 개정으로 10m입니다. AG-109(2023.08) 도면은 개정 전 9m 기준입니다.',
+      rules: {
+        profile: 'facing', distanceFactor: 1, minDistance: 4,
+        northEnabled: true, northLowHeight: 10, northLowSetback: 1.5, northFactor: 0.5,
+        facing: { lightFactor: 1, southLowTall: 0, southLowLow: 1, southLowMin: 10, sideToSide: 4 },
+        lightLimit: { enabled: true, factor: 2 }
+      },
+      lines: [
+        '① 정북: 높이 10m 이하 부분 1.5m 이상, 10m 초과 부분 해당 높이의 1/2 이상',
+        '② 영 제86조제3항 단서의 거리 1.5m (다세대주택 채광방향 특례)',
+        '③-1 채광창 벽면 직각방향 건축물 각 부분 높이의 1.0배 이상 (도시형 생활주택 0.5배)',
+        '③-2 높은 동(축 정동→정서)의 주된 개구부가 낮은 동을 향하면 10m 이상 + 낮은 동 높이의 1.0배 이상',
+        '시행령 제86조: 측벽↔측벽 4m, 채광방향 높이 ≤ 경계거리 × 2'
+      ],
+      unreviewed: NATIONAL_UNREVIEWED
+    },
+    {
+      id: 'samsong-2016',
+      name: '고양삼송 A00-008 도면 기준',
+      short: '삼송 A00-008 (2016)',
+      effective: '2016 참고도면 표기 · 현행 고양시 조례 미확인',
+      caution: '참고도면의 당시 기준입니다. 현행 법령(정북 10m, 나목 10m 하한)과 다를 수 있습니다.',
+      rules: {
+        profile: 'facing', distanceFactor: 1, minDistance: 4,
+        northEnabled: true, northLowHeight: 9, northLowSetback: 1.5, northFactor: 0.5,
+        facing: { lightFactor: 1, southLowTall: 0.8, southLowLow: 1, southLowMin: 0, sideToSide: 4 },
+        lightLimit: { enabled: true, factor: 2 }
+      },
+      lines: [
+        '정북: 높이 9m 이하 1.5m, 9m 초과 높이의 1/2 이상',
+        '채광창 벽면 직각방향 인접대지경계까지 수평거리의 2배 이하',
+        '마주보는 동 1.0H, 남측이 낮은 경우 높은 동 0.8H 이상 + 낮은 동 1.0H 이상',
+        '채광창 없는 벽면↔측벽 8m, 측벽↔측벽 4m, 대지안의 공지 아파트 3m'
+      ],
+      unreviewed: NATIONAL_UNREVIEWED
+    }
+  ]);
+
+  const HEIGHT_PRESETS = Object.freeze([
+    { id: 'simple', name: '층수 × 층고', height: {} },
+    { id: 'ag109-penthouse', name: '청주월명 AG-109 · 펜트하우스', height: { first: 3.5, top: [3, 3], parapet: 0.4 } },
+    { id: 'ag109', name: '청주월명 AG-109 · 펜트하우스 아님', height: { first: 3.5, top: [3], parapet: 0.4 } },
+    { id: 'samsong', name: '고양삼송 A00-008', height: { base: 0.6, parapet: 0.25 } }
+  ]);
+
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const find = (list, id) => list.find(p => p.id === id) || null;
+  const num = v => String(Math.round(v * 100) / 100);
+
+  function applyRulePreset(rules, id) {
+    const preset = find(RULE_PRESETS, id);
+    if (!preset) throw new RangeError(`Unknown rule preset ${id}`);
+    const next = { ...clone(rules), preset: id };
+    if (preset.rules) Object.assign(next, clone(preset.rules));
+    return next;
+  }
+
+  function applyHeightPreset(rules, id) {
+    const preset = find(HEIGHT_PRESETS, id);
+    if (!preset) throw new RangeError(`Unknown height preset ${id}`);
+    return { ...clone(rules), height: clone(preset.height), heightPreset: id };
+  }
+
+  // Human-readable formula for a height configuration, e.g.
+  // "H = 1층 3.5 + (층수 − 3) × 기준층고 + 3 + 3 + 파라펫 0.4".
+  function heightFormula(height) {
+    const h = height || {}, top = h.top || [];
+    const parts = [];
+    if (h.base) parts.push(`지반 ${num(h.base)}`);
+    if (h.first !== undefined) parts.push(`1층 ${num(h.first)}`);
+    const skip = (h.first !== undefined ? 1 : 0) + top.length;
+    parts.push(skip ? `(층수 − ${skip}) × 기준층고` : '층수 × 층고');
+    top.forEach(v => parts.push(num(v)));
+    if (h.parapet) parts.push(`파라펫 ${num(h.parapet)}`);
+    return `H = ${parts.join(' + ')}` + (h.first !== undefined ? ' · 1층 전체 필로티 동은 1층 제외' : '');
+  }
+
+  function describe(rules) {
+    return {
+      preset: find(RULE_PRESETS, rules.preset) || RULE_PRESETS[0],
+      height: find(HEIGHT_PRESETS, rules.heightPreset),
+      formula: heightFormula(rules.height),
+      checked: CHECKED
+    };
+  }
+
+  return Object.freeze({ RULE_PRESETS, HEIGHT_PRESETS, applyRulePreset, applyHeightPreset, heightFormula, describe, CHECKED, REVISION_NOTE });
+}));
+
+</script><script>
+/* drawing.js */
+/* Site map renderer: the plan (editing) view and a CAD-style review drawing that
+   follows the reference 인동거리배치도 sheets. Coordinates are metres, x right,
+   y down. Annotations restate engine results; they are not legal judgements. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerDrawing = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const mm = v => Number.isFinite(v) ? Math.round(v * 1000).toLocaleString('en-US') : '—';
+  const m1 = v => Number.isFinite(v) ? v.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
+  const pts = poly => poly.map(p => p.join(',')).join(' ');
+  const factorText = f => `${(Math.round(f * 100) / 100).toFixed(1)}H`;
+
+  const THEMES = {
+    plan: {
+      bg: '#f1f5f2', dot: '#d6e0d9', siteFill: '#ffffffa0', siteEdge: '#baccc2', site: '#6f9989', siteDash: '2 1',
+      setback: null, pass: '#578e88', fail: '#d1453b', text: '#617b7b', muted: '#92a4a0', north: '#486d63'
+    },
+    cad: {
+      bg: '#1f2428', dot: null, siteFill: 'none', siteEdge: null, site: '#ff4b4b', siteDash: '4 1.2 .8 1.2',
+      setback: '#4fd6e8', pass: '#7ee08a', fail: '#ff5c5c', text: '#e8edf0', muted: '#9fb0b8', north: '#e8edf0'
+    }
+  };
+
+  // Text width estimate for label boxes: Hangul ≈ 1 em, Latin/digits ≈ 0.58 em.
+  function textWidth(text, size) {
+    let w = 0;
+    for (const ch of String(text)) w += ch.charCodeAt(0) > 0x1100 ? size : size * 0.58;
+    return w;
+  }
+
+  // Inward offset of a simple polygon (miter joins), used for the 건축한계선 /
+  // 대지안의 공지 line. Concave corners are clamped to avoid long spikes.
+  function offsetPolygon(poly, d) {
+    if (!(d > 0)) return null;
+    let area = 0;
+    poly.forEach((a, i) => { const b = poly[(i + 1) % poly.length]; area += a[0] * b[1] - b[0] * a[1]; });
+    const sign = area > 0 ? 1 : -1; // inward normal side for this winding
+    const lines = poly.map((a, i) => {
+      const b = poly[(i + 1) % poly.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const n = [-(b[1] - a[1]) / len * sign, (b[0] - a[0]) / len * sign];
+      return { p: [a[0] + n[0] * d, a[1] + n[1] * d], t: [(b[0] - a[0]) / len, (b[1] - a[1]) / len] };
+    });
+    return lines.map((l1, i) => {
+      const l0 = lines[(i + lines.length - 1) % lines.length];
+      const den = l0.t[0] * l1.t[1] - l0.t[1] * l1.t[0];
+      if (Math.abs(den) < 1e-9) return l1.p;
+      const w = [l1.p[0] - l0.p[0], l1.p[1] - l0.p[1]];
+      const s = (w[0] * l1.t[1] - w[1] * l1.t[0]) / den;
+      const q = [l0.p[0] + l0.t[0] * s, l0.p[1] + l0.t[1] * s];
+      const corner = poly[i];
+      const far = Math.hypot(q[0] - corner[0], q[1] - corner[1]);
+      return far > d * 4 ? l1.p : q;
+    });
+  }
+
+  // "(기준 1.0H, 20F=56,850)" style annotation from an engine pair basis.
+  function basisNote(basis) {
+    const parts = [];
+    if (basis.fixed) parts.push(`${basis.fixed}m`);
+    for (const t of basis.terms || []) parts.push(`${factorText(t.factor)}, ${t.floors}F=${mm(t.value)}`);
+    if (basis.min) parts.push(`최소 ${basis.min}m`);
+    const tag = { 'side-side': '측벽 ', 'south-low': '남측저층 ', 'light-side': '채광↔측벽 ', diagonal: '대각·가정 ', uniform: '단순 ' }[basis.type] || '';
+    return `(기준 ${tag}${parts.join(' / ')})`;
+  }
+
+  // Text placed along a segment, kept upright, offset to one side of the line.
+  function alongText(a, b, text, size, color, offset, weight = 500) {
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    let ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+    if (ang > 90) ang -= 180;
+    if (ang <= -90) ang += 180;
+    return `<text transform="translate(${mx} ${my}) rotate(${ang})" y="${offset}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(text)}</text>`;
+  }
+
+  function dimension(a, b, color, k, width) {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const n = [-(b[1] - a[1]) / len * 0.9 * k, (b[0] - a[0]) / len * 0.9 * k];
+    const tick = p => `<line x1="${p[0] - n[0]}" y1="${p[1] - n[1]}" x2="${p[0] + n[0]}" y2="${p[1] + n[1]}" stroke="${color}" stroke-width="${0.25 * k}"/>`;
+    return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${color}" stroke-width="${width}"/>${tick(a)}${tick(b)}`;
+  }
+
+  function hexTag(x, y, top, bottom, k, color) {
+    const r = 3.2 * k, h = r * 0.62;
+    const path = [[-r, 0], [-r / 2, -h * 1.6], [r / 2, -h * 1.6], [r, 0], [r / 2, h * 1.6], [-r / 2, h * 1.6]].map(p => `${x + p[0]},${y + p[1]}`).join(' ');
+    return `<polygon points="${path}" fill="#1f2428" stroke="${color}" stroke-width="${0.25 * k}"/><line x1="${x - r}" y1="${y}" x2="${x + r}" y2="${y}" stroke="${color}" stroke-width="${0.2 * k}"/>` +
+      `<text x="${x}" y="${y - 0.75 * k}" text-anchor="middle" font-size="${1.9 * k}" fill="#e8edf0">${esc(top)}</text>` +
+      `<text x="${x}" y="${y + 2.1 * k}" text-anchor="middle" font-size="${1.9 * k}" fill="#e8edf0">${esc(bottom)}</text>`;
+  }
+
+  function planPairLabel(pair, k) {
+    const ok = pair.pass, color = ok ? THEMES.plan.pass : THEMES.plan.fail, a = pair.a, c = pair.b;
+    const main = `${ok ? '' : '✕ '}실제 ${m1(pair.distance)} / 요구 ${m1(pair.required)} m`;
+    const sub = pair.basis.text;
+    const fs1 = 2.3 * k, fs2 = 1.9 * k, w = Math.max(textWidth(main, fs1), textWidth(sub, fs2)) + 4 * k;
+    const mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2;
+    return `<line x1="${a[0]}" y1="${a[1]}" x2="${c[0]}" y2="${c[1]}" stroke="${color}" stroke-width="${(ok ? 0.5 : 0.7) * k}" stroke-dasharray="${ok ? `${1.1 * k} ${0.7 * k}` : 'none'}"/>` +
+      `<circle cx="${a[0]}" cy="${a[1]}" r="${0.6 * k}" fill="${color}"/><circle cx="${c[0]}" cy="${c[1]}" r="${0.6 * k}" fill="${color}"/>` +
+      `<g class="distance-label"><title>${ok ? '충족' : '미충족'} · 실제 ${m1(pair.distance)} m / 요구 ${m1(pair.required)} m · ${esc(sub)} (사용자 가정, 법정 판정 아님)</title>` +
+      `<rect x="${mx - w / 2}" y="${my - 3.4 * k}" width="${w}" height="${8.4 * k}" rx="${k}" fill="${ok ? 'white' : '#fdecea'}" stroke="${color}" stroke-width="${(ok ? 0.2 : 0.35) * k}"/>` +
+      `<text x="${mx}" y="${my}" fill="${color}" text-anchor="middle" font-size="${fs1}" font-weight="600">${esc(main)}</text>` +
+      `<text x="${mx}" y="${my + 2.9 * k}" fill="${ok ? '#6f8a86' : color}" text-anchor="middle" font-size="${fs2}">${esc(sub)}</text></g>`;
+  }
+
+  function cadPairLabel(pair, k) {
+    const ok = pair.pass, color = ok ? THEMES.cad.pass : THEMES.cad.fail;
+    return `<g class="distance-label"><title>${ok ? '충족' : '미충족'} · 실제 ${m1(pair.distance)} m / 요구 ${m1(pair.required)} m · ${esc(pair.basis.text)} (사용자 가정, 법정 판정 아님)</title>` +
+      dimension(pair.a, pair.b, color, k, (ok ? 0.22 : 0.4) * k) +
+      alongText(pair.a, pair.b, `${ok ? '' : '✕ '}${mm(pair.distance)}`, 2.1 * k, color, -0.8 * k, 600) +
+      alongText(pair.a, pair.b, basisNote(pair.basis), 1.5 * k, color, 2.0 * k) + '</g>';
+  }
+
+  function rayNote(from, to, title, distance, need, ok, k, color) {
+    return dimension(from, to, color, k, 0.2 * k) +
+      alongText(from, to, `${title} ${mm(distance)}`, 1.6 * k, color, -0.6 * k, 600) +
+      alongText(from, to, `(기준 ${need})`, 1.4 * k, color, 1.7 * k);
+  }
+
+  // Local outline around the building centre: the imported shape or the rectangle.
+  function localOutline(bl) {
+    if (bl.shape && bl.shape.outline) return bl.shape.outline;
+    const w = bl.width / 2, d = bl.depth / 2;
+    return [[-w, -d], [w, -d], [w, d], [-w, d]];
+  }
+
+  function corePlan(bl, color) {
+    if (bl.shape) {
+      return ((bl.shape.core && bl.shape.core.parts) || []).map(c =>
+        `<rect x="${Math.min(c.rect[0], c.rect[2])}" y="${Math.min(c.rect[1], c.rect[3])}" width="${Math.abs(c.rect[2] - c.rect[0])}" height="${Math.abs(c.rect[3] - c.rect[1])}" fill="${color}" stroke="#fff" stroke-width=".15"/>`).join('');
+    }
+    return `<rect x="-3" y="${-bl.depth / 2 - 2}" width="6" height="${bl.depth / 2 + 2}" fill="${color}" stroke="#fff" stroke-width=".25"/>`;
+  }
+
+  function buildingPlan(bl, q, sel, k) {
+    const color = sel ? '#78a5bd' : q.pass ? '#b4c3c6' : '#d9b3a9';
+    const w = bl.width, d = bl.depth, outline = pts(localOutline(bl)), shadow = pts(localOutline(bl).map(p => [p[0] + 0.8, p[1] + 1.3]));
+    return `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})">` +
+      `<rect x="${-w / 2 - 1}" y="${-d / 2 - 1}" width="${w + 2}" height="${d + 2}" rx=".3" fill="none" stroke="${sel ? '#367a9e' : 'transparent'}" stroke-width=".5" stroke-dasharray="1 .7"/>` +
+      `<polygon points="${shadow}" fill="#143c4320"/>` +
+      `<polygon points="${outline}" fill="${color}" stroke="${q.pass ? sel ? '#457c99' : '#7d999b' : '#bd6f60'}" stroke-width=".45"/>` +
+      `<polygon points="${outline}" fill="url(#rooms)"/>` +
+      corePlan(bl, sel ? '#5086a4' : '#819fa6') + `</g>` +
+      // Labels stay upright below the rotated footprint's lowest point.
+      `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y + halfHeight(bl)})">` +
+      `<text x="0" y="${4.2 * k}" text-anchor="middle" font-size="${3.3 * k}" font-weight="700" fill="${sel ? '#285f7d' : '#617b7b'}">${esc(bl.name)}${bl.locked ? ' ▣' : ''}</text>` +
+      `<text x="0" y="${7.5 * k}" text-anchor="middle" font-size="${2.3 * k}" fill="#92a4a0">${bl.floors}F · ${bl.floors * bl.unitsPerFloor}세대${bl.pilotiFull ? ' · 필로티' : ''}</text></g>`;
+  }
+
+  // Lowest point of the rotated outline below the centre.
+  function halfHeight(bl) {
+    const a = bl.rotation * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
+    return Math.max(...localOutline(bl).map(p => p[0] * s + p[1] * c));
+  }
+
+  // CAD view: hatched outline; imported shapes also show unit outlines, core
+  // parts and window segments (the faces that count as 채광면).
+  function buildingCad(bl, q, sel, k) {
+    const w = bl.width, d = bl.depth, edge = !q.pass ? THEMES.cad.fail : sel ? '#4fc3f7' : '#f3c5d8';
+    const outline = pts(localOutline(bl)), sh = bl.shape;
+    let detail = '';
+    if (sh) {
+      detail += (sh.units || []).map(u => `<polygon points="${pts(u.outline)}" fill="none" stroke="#f3c5d8" stroke-width="${0.15 * k}" opacity=".8"/>`).join('');
+      detail += corePlan(bl, '#5d676e');
+      detail += (sh.windows || []).map(wd => `<line x1="${wd.a[0]}" y1="${wd.a[1]}" x2="${wd.b[0]}" y2="${wd.b[1]}" stroke="#4fd6e8" stroke-width="${0.45 * k}" stroke-linecap="round"/>`).join('');
+    } else {
+      detail = `<rect x="-3" y="${-d / 2}" width="6" height="${d * 0.55}" fill="none" stroke="#f3c5d8" stroke-width="${0.2 * k}"/>`;
+    }
+    return `<g class="building-shape" data-building="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})">` +
+      `<polygon points="${outline}" fill="#e7a3bf55" stroke="${edge}" stroke-width="${(sel ? 0.5 : 0.3) * k}"/>` +
+      `<polygon points="${outline}" fill="url(#cadHatch)"/>` + detail +
+      (sel ? `<rect x="${-w / 2 - 1}" y="${-d / 2 - 1}" width="${w + 2}" height="${d + 2}" fill="none" stroke="#4fc3f7" stroke-width="${0.3 * k}" stroke-dasharray="${k} ${0.6 * k}"/>` : '') +
+      `</g>`;
+  }
+
+  // Candidate area for the selected building's centre, from a sampled grid
+  // (heat = { ok: Uint8Array, nx, ny, x0, y0, step }). Cells are merged into row
+  // runs and the region edge is traced so it reads as one area, not dots.
+  // Returns { fill, edge }: the fill sits under the buildings, the edge is drawn
+  // over them so the region stays readable where a building covers it.
+  function heatLayer(heat, cad, k) {
+    if (!heat || !heat.ok) return { fill: '', edge: '' };
+    const { ok, nx, ny, x0, y0, step } = heat, at = (i, j) => i >= 0 && j >= 0 && i < nx && j < ny && ok[j * nx + i] === 1;
+    const fill = cad ? '#7ee08a' : '#3fae7a', edge = cad ? '#9cf0a6' : '#23875a';
+    let rects = '', path = '';
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!at(i, j)) continue;
+        let run = 1;
+        while (at(i + run, j)) run++;
+        rects += `<rect x="${x0 + (i - 0.5) * step}" y="${y0 + (j - 0.5) * step}" width="${run * step}" height="${step}"/>`;
+        i += run - 1;
+      }
+    }
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!at(i, j)) continue;
+        const l = x0 + (i - 0.5) * step, t = y0 + (j - 0.5) * step, r = l + step, b = t + step;
+        if (!at(i, j - 1)) path += `M${l} ${t}H${r}`;
+        if (!at(i, j + 1)) path += `M${l} ${b}H${r}`;
+        if (!at(i - 1, j)) path += `M${l} ${t}V${b}`;
+        if (!at(i + 1, j)) path += `M${r} ${t}V${b}`;
+      }
+    }
+    return {
+      fill: `<g class="candidate-area" fill="${fill}" fill-opacity="${cad ? 0.2 : 0.26}" shape-rendering="crispEdges">${rects}</g>`,
+      edge: `<path class="candidate-edge" d="${path}" fill="none" stroke="${edge}" stroke-width="${0.4 * k}" stroke-dasharray="${1.2 * k} ${0.5 * k}" stroke-linecap="square" pointer-events="none"/>`
+    };
+  }
+
+  // Crosshair at the selected building's centre: green when the current
+  // position meets the screening rules, red when it does not.
+  function centerMark(b, pass, k, cad) {
+    const c = pass ? (cad ? '#9cf0a6' : '#23875a') : (cad ? THEMES.cad.fail : THEMES.plan.fail), r = 1.6 * k;
+    return `<g class="center-mark" pointer-events="none"><circle cx="${b.x}" cy="${b.y}" r="${r}" fill="none" stroke="${c}" stroke-width="${0.35 * k}"/>` +
+      `<path d="M${b.x - r * 1.8} ${b.y}H${b.x + r * 1.8}M${b.x} ${b.y - r * 1.8}V${b.y + r * 1.8}" stroke="${c}" stroke-width="${0.25 * k}"/></g>`;
+  }
+
+  // Rotation handle above the selected building's top face (local −y). Dragging
+  // it rotates the building about its centre; the angle shows while rotating.
+  function rotateHandle(bl, k, cad, rotating) {
+    const reach = bl.depth / 2 + 7 * k, r = 1.7 * k;
+    const color = cad ? '#4fc3f7' : '#2f6f99', fill = cad ? '#1f2428' : '#ffffff';
+    let out = `<g class="rotate-handle" data-rotate="${esc(bl.id)}" transform="translate(${bl.x} ${bl.y}) rotate(${bl.rotation})" style="cursor:grab">` +
+      `<line x1="0" y1="${-bl.depth / 2}" x2="0" y2="${-reach + r}" stroke="${color}" stroke-width="${0.25 * k}" stroke-dasharray="${0.6 * k} ${0.4 * k}"/>` +
+      `<circle cx="0" cy="${-reach}" r="${r * 1.9}" fill="transparent"/>` +
+      `<circle cx="0" cy="${-reach}" r="${r}" fill="${fill}" stroke="${color}" stroke-width="${0.35 * k}"/>` +
+      `<path d="M${-r * 0.5} ${-reach - r * 0.15} A${r * 0.55} ${r * 0.55} 0 1 1 ${r * 0.1} ${-reach + r * 0.55}" fill="none" stroke="${color}" stroke-width="${0.25 * k}"/>` +
+      `<path d="M${-r * 0.75} ${-reach - r * 0.45} L${-r * 0.5} ${-reach - r * 0.1} L${-r * 0.15} ${-reach - r * 0.35}" fill="none" stroke="${color}" stroke-width="${0.25 * k}"/>` +
+      `<title>드래그해서 회전 · 기본 5° · Shift 15° · Alt 1° 단위</title></g>`;
+    if (rotating) {
+      const deg = ((bl.rotation % 360) + 360) % 360, text = `${Math.round(deg * 10) / 10}°`;
+      const w = textWidth(text, 2.4 * k) + 2.4 * k, a = bl.rotation * Math.PI / 180;
+      const lx = bl.x + Math.sin(a) * (reach + 4 * k), ly = bl.y - Math.cos(a) * (reach + 4 * k);
+      out += `<g pointer-events="none"><rect x="${lx - w / 2}" y="${ly - 2.2 * k}" width="${w}" height="${3.4 * k}" rx="${0.6 * k}" fill="${color}"/>` +
+        `<text x="${lx}" y="${ly + 0.4 * k}" text-anchor="middle" font-size="${2.4 * k}" font-weight="700" fill="#fff">${text}</text></g>`;
+    }
+    return out;
+  }
+
+  // Site boundary editing: draggable vertices (double-click deletes), a "+"
+  // at each edge midpoint to insert a vertex, and edge lengths in metres.
+  function siteHandles(site, k, cad) {
+    const color = cad ? '#ff8a80' : '#2f6f99', fill = cad ? '#1f2428' : '#ffffff';
+    let out = '';
+    site.forEach((a, i) => {
+      const b = site[(i + 1) % site.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      out += alongText(a, b, `${m1(len)} m`, 1.9 * k, color, -1.6 * k, 600) +
+        `<g class="site-insert" data-insert="${i}" style="cursor:copy"><title>꼭짓점 추가</title>` +
+        `<circle cx="${m[0]}" cy="${m[1]}" r="${2.2 * k}" fill="transparent"/>` +
+        `<circle cx="${m[0]}" cy="${m[1]}" r="${1.1 * k}" fill="${fill}" stroke="${color}" stroke-width="${0.25 * k}" opacity=".9"/>` +
+        `<path d="M${m[0] - 0.6 * k} ${m[1]}H${m[0] + 0.6 * k}M${m[0]} ${m[1] - 0.6 * k}V${m[1] + 0.6 * k}" stroke="${color}" stroke-width="${0.25 * k}"/></g>`;
+    });
+    site.forEach((p, i) => {
+      out += `<g class="site-vertex" data-vertex="${i}" style="cursor:move"><title>P${i + 1} (${m1(p[0])}, ${m1(p[1])}) · 드래그 이동 · 더블클릭 삭제</title>` +
+        `<circle cx="${p[0]}" cy="${p[1]}" r="${2.6 * k}" fill="transparent"/>` +
+        `<rect x="${p[0] - 1.2 * k}" y="${p[1] - 1.2 * k}" width="${2.4 * k}" height="${2.4 * k}" fill="${fill}" stroke="${color}" stroke-width="${0.4 * k}"/>` +
+        `<text x="${p[0] + 2 * k}" y="${p[1] - 2 * k}" font-size="${2.2 * k}" font-weight="700" fill="${color}" pointer-events="none">P${i + 1}</text></g>`;
+    });
+    return out;
+  }
+
+  // Full SVG markup for the map. opts: project, result, selected, viewBox,
+  // heat (svg string), showDistances, mode ('plan' | 'cad').
+  function draw(opts) {
+    const { project, result: r, selected, viewBox, heat, showDistances } = opts;
+    const cad = opts.mode === 'cad', T = cad ? THEMES.cad : THEMES.plan;
+    // k keeps annotations a constant on-screen size: 1 k ≈ 5 px when the
+    // caller passes metres per pixel, else a fraction of the view width.
+    const k = opts.unitsPerPx > 0 ? opts.unitsPerPx * 5 : Math.max(0.35, viewBox[2] / 210);
+    const site = project.site.polygon, rules = project.rules, area = heatLayer(heat, cad, k);
+    let out = `<defs><pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r=".18" fill="#d6e0d9"/></pattern>` +
+      `<pattern id="rooms" width="5" height="4" patternUnits="userSpaceOnUse"><path d="M 0 0 H 5 V 4" fill="none" stroke="#fff" stroke-width=".22"/></pattern>` +
+      `<pattern id="cadHatch" width="2.2" height="2.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.2" stroke="#f3c5d8" stroke-width=".18" opacity=".7"/></pattern>` +
+      `<clipPath id="siteClip"><polygon points="${pts(site)}"/></clipPath></defs>` +
+      `<rect x="-10000" y="-10000" width="20000" height="20000" fill="${T.bg}"/>` +
+      (T.dot ? `<rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid)"/>` : '') +
+      `<polygon points="${pts(site)}" fill="${T.siteFill}" ${T.siteEdge ? `stroke="${T.siteEdge}" stroke-width=".4"` : ''}/>` +
+      `<g clip-path="url(#siteClip)">${area.fill}</g>` +
+      `<polygon points="${pts(site)}" fill="none" stroke="${T.site}" stroke-width="${(cad ? 0.6 : 0.5) * (cad ? k : 1)}" stroke-dasharray="${T.siteDash.split(' ').map(v => v * (cad ? k : 1)).join(' ')}"/>`;
+
+    if (cad) {
+      const inner = offsetPolygon(site, rules.setback);
+      if (inner) {
+        out += `<polygon points="${pts(inner)}" fill="none" stroke="${T.setback}" stroke-width="${0.25 * k}" stroke-dasharray="${1.4 * k} ${0.8 * k}"/>`;
+        const a = inner[0], b = inner[1];
+        out += alongText(a, b, `건축한계선 · 대지안의 공지 가정 ${rules.setback}m`, 1.5 * k, T.setback, -0.8 * k);
+      }
+      const a = site[0], b = site[1];
+      out += alongText(a, b, '대지경계선', 1.6 * k, T.site, -1.2 * k);
+    } else {
+      if (!opts.siteEdit) site.forEach((p, i) => out += `<circle cx="${p[0]}" cy="${p[1]}" r=".7" fill="#fff" stroke="#6f9989" stroke-width=".4"/><text x="${p[0] + 1.6}" y="${p[1] - 1.6}" font-size="${2.2 * k}" fill="#8ca297">P${i + 1}</text>`);
+    }
+
+    const byId = new Map(r.buildings.map(q => [q.id, q]));
+    for (const bl of project.buildings) {
+      out += cad ? buildingCad(bl, byId.get(bl.id), bl.id === selected, k) : buildingPlan(bl, byId.get(bl.id), bl.id === selected, k);
+    }
+    const sel = project.buildings.find(bl => bl.id === selected);
+    out += `<g clip-path="url(#siteClip)">${area.edge}</g>`;
+    if (sel && heat && heat.ok) out += centerMark(sel, byId.get(sel.id).pass, k, cad);
+
+    if (showDistances) {
+      for (const pair of r.pairs) {
+        if (!cad && pair.aId !== selected && pair.bId !== selected) continue;
+        // The CAD sheet shows every facing pair; diagonal fallbacks only for the selection.
+        if (cad && pair.basis.type === 'diagonal' && pair.aId !== selected && pair.bId !== selected) continue;
+        out += cad ? cadPairLabel(pair, k) : planPairLabel(pair, k);
+      }
+    }
+
+    if (cad) {
+      for (const bl of project.buildings) {
+        const q = byId.get(bl.id);
+        if (rules.northEnabled && q.northFrom && q.northDistance > 0) {
+          const need = q.height <= rules.northLowHeight ? `${rules.northLowSetback}m` : `${factorText(rules.northFactor)}, ${bl.floors}F=${mm(q.northRequired)}`;
+          out += rayNote(q.northFrom, q.northTo, '정북', q.northDistance, need, q.northPass, k, q.northPass ? '#c9a7ff' : THEMES.cad.fail);
+        }
+        if (q.light && bl.id === selected) {
+          out += rayNote(q.light.from, q.light.to, '채광', q.light.distance, `H/${rules.lightLimit.factor}=${mm(q.light.required)}`, q.light.pass, k, q.light.pass ? '#ffd27a' : THEMES.cad.fail);
+        }
+        out += hexTag(bl.x, bl.y + halfHeight(bl) + 6 * k, bl.name, `${bl.floors * bl.unitsPerFloor}세대`, k, '#d55fd5');
+      }
+    }
+
+    if (opts.siteEdit) out += siteHandles(site, k, cad);
+    else if (sel && !sel.locked) out += rotateHandle(sel, k, cad, !!opts.rotating);
+
+    const nx = viewBox[0] + viewBox[2] - 12 * k, ny = viewBox[1] + 15 * k;
+    out += `<g transform="translate(${nx} ${ny}) scale(${k})"><circle r="7" fill="${cad ? '#1f2428' : '#fff'}" stroke="${cad ? T.north : 'none'}" stroke-width=".3" opacity=".85"/><g transform="rotate(${rules.northAngle})"><path d="M0 -5 L-1.5 2 L0 1 L1.5 2Z" fill="${T.north}"/><text x="0" y="-7.6" text-anchor="middle" font-size="3" fill="${T.north}">N</text></g></g>`;
+    const bar = [5, 10, 20, 50, 100, 200, 500, 1000].find(v => v >= 16 * k) || 1000, barColor = cad ? T.muted : '#7c9690';
+    out += `<g transform="translate(${viewBox[0] + viewBox[2] - bar - 12 * k} ${viewBox[1] + viewBox[3] - 9 * k})"><path d="M0 ${-k} V${k} H${bar} V${-k} M${bar / 2} ${-k} V${k}" fill="none" stroke="${barColor}" stroke-width="${0.4 * k}"/><text x="${bar / 2}" y="${-2 * k}" text-anchor="middle" font-size="${2.1 * k}" fill="${barColor}">${bar} m</text></g>`;
+    return out;
+  }
+
+  // Reference-style notes beside the CAD drawing: applied criteria, per-floor
+  // height table and the height formula. Returns HTML.
+  function overlay(project, result, presets) {
+    const rules = project.rules, info = presets.describe(rules), p = info.preset;
+    const rows = new Map();
+    for (const bl of project.buildings) {
+      const q = result.buildings.find(x => x.id === bl.id);
+      const key = `${bl.floors}|${bl.floorHeight}|${bl.pilotiFull ? 1 : 0}`;
+      if (!rows.has(key)) rows.set(key, { floors: bl.floors, floorHeight: bl.floorHeight, piloti: !!bl.pilotiFull, height: q.height, names: [] });
+      rows.get(key).names.push(bl.name);
+    }
+    const table = [...rows.values()].sort((a, b) => a.floors - b.floors || a.floorHeight - b.floorHeight).map(row =>
+      `<tr><td>${row.floors}층</td><td>${row.floorHeight}</td><td>${row.piloti ? '1층 전체' : '—'}</td><td>${mm(row.height)}</td><td>${mm(row.height / 2)}</td><td>${esc(row.names.join(', '))}</td></tr>`).join('');
+    const link = p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">원문</a>` : '';
+    return `<details class="cad-box" open><summary>■ 적용 기준 · ${esc(p.short || p.name)}</summary>` +
+        `<p class="cad-meta">${esc(p.effective)}${link} · 확인 ${esc(info.checked)}</p>` +
+        `<ol>${p.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ol>` +
+        (p.caution ? `<p class="cad-caution">${esc(p.caution)}</p>` : '') +
+        `<p class="cad-caution">⚠ ${esc(presets.REVISION_NOTE)}</p>` +
+        `<details class="cad-sub"><summary>미검토 항목 ${p.unreviewed.length}</summary><ul>${p.unreviewed.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>` +
+        `<p class="cad-meta">화면 판정은 입력 가정에 따른 기하 검토이며 법정 적합 판정이 아닙니다.</p></details>` +
+      `<details class="cad-box" open><summary>■ 층별 높이 기준</summary><table><thead><tr><th>층수</th><th>층고</th><th>필로티</th><th>H</th><th>H/2</th><th>동</th></tr></thead><tbody>${table}</tbody></table></details>` +
+      `<details class="cad-box" open><summary>■ 건축물 높이 산정 기준</summary><p>${esc(info.formula)}</p>${info.height ? `<p class="cad-meta">${esc(info.height.name)}</p>` : ''}</details>`;
+  }
+
+  return Object.freeze({ draw, overlay, offsetPolygon, basisNote, textWidth });
+}));
+
+</script><script>
+/* massing.js */
+/* Simple 3D massing view: an axonometric SVG of the site and each building
+   outline extruded to its screening height H (engine buildingHeight), with the
+   정북 sky plane and 인동거리 lines from the engine result. No WebGL or external
+   library; painter's ordering is enough for separate prisms.
+   World: metres, x right (east), y down (south), z up. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerMassing = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rad = d => d * Math.PI / 180;
+  const m1 = v => Number.isFinite(v) ? v.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
+
+  // Camera: azimuth rotates the plan (degrees, clockwise on screen), elevation
+  // tilts it (0 = side view, 90 = plan). project → [screenX, screenY, depth].
+  function camera(center, azimuth, elevation) {
+    const a = rad(azimuth), e = rad(elevation), ca = Math.cos(a), sa = Math.sin(a), se = Math.sin(e), ce = Math.cos(e);
+    const rotate = (x, y) => { const dx = x - center[0], dy = y - center[1]; return [dx * ca - dy * sa, dx * sa + dy * ca]; };
+    return {
+      center, azimuth, elevation, rotate,
+      project: (x, y, z) => { const [rx, ry] = rotate(x, y); return [rx, ry * se - z * ce, ry]; },
+      // Screen point (viewBox units) → world point on the ground (z = 0).
+      ground: (sx, sy) => { const rx = sx, ry = sy / se; return [center[0] + rx * ca + ry * sa, center[1] - rx * sa + ry * ca]; },
+      zScale: ce
+    };
+  }
+
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * f))));
+    return `rgb(${c.join(',')})`;
+  }
+
+  function rayToBoundary(o, dir, site) {
+    let best = Infinity;
+    for (let i = 0; i < site.length; i++) {
+      const a = site[i], b = site[(i + 1) % site.length], e = [b[0] - a[0], b[1] - a[1]];
+      const den = dir[0] * e[1] - dir[1] * e[0];
+      if (Math.abs(den) < 1e-12) continue;
+      const w = [a[0] - o[0], a[1] - o[1]];
+      const t = (w[0] * e[1] - w[1] * e[0]) / den, u = (w[0] * dir[1] - w[1] * dir[0]) / den;
+      if (t > 1e-9 && u >= -1e-9 && u <= 1 + 1e-9) best = Math.min(best, t);
+    }
+    return Number.isFinite(best) ? best : 0;
+  }
+
+  // 정북 sky plane over one building's east–west span: no building within the
+  // low setback, the low height up to Lh·f, then height = distance / factor.
+  function northSheet(poly, rules, P, pts, fail) {
+    const a = rad(rules.northAngle || 0), N = [Math.sin(a), -Math.cos(a)], E = [Math.cos(a), Math.sin(a)], S = [-N[0], -N[1]];
+    const proj = p => p[0] * E[0] + p[1] * E[1];
+    const ends = [poly.reduce((m, p) => proj(p) < proj(m) ? p : m), poly.reduce((m, p) => proj(p) > proj(m) ? p : m)];
+    const deep = Math.max(...poly.map(p => rayToBoundary(p, N, poly.site))) + 4;
+    const s = rules.northLowSetback, Lh = rules.northLowHeight, f = rules.northFactor || 0.5;
+    const profile = [[s, 0], [s, Lh]];
+    if (Lh * f > s) profile.push([Lh * f, Lh]);
+    profile.push([Math.max(deep, Lh * f + 1), Math.max(deep, Lh * f + 1) / f]);
+    const lines = ends.map(p => {
+      const t = rayToBoundary(p, N, poly.site), h = [p[0] + N[0] * t, p[1] + N[1] * t];
+      return profile.map(([d, z]) => P(h[0] + S[0] * d, h[1] + S[1] * d, z));
+    });
+    const color = fail ? '#e0584a' : '#8e6cff';
+    let out = '';
+    for (let i = 0; i < profile.length - 1; i++) {
+      out += `<polygon points="${pts([lines[0][i], lines[1][i], lines[1][i + 1], lines[0][i + 1]])}" fill="${color}" fill-opacity=".14" stroke="${color}" stroke-opacity=".7" stroke-width=".25"/>`;
+    }
+    return out;
+  }
+
+  // Selected building's candidate area (same grid as the drawing view) laid on
+  // the ground: merged row runs plus the region edge.
+  function candidateArea(heat, P, pts) {
+    if (!heat || !heat.ok) return '';
+    const { ok, nx, ny, x0, y0, step } = heat, at = (i, j) => i >= 0 && j >= 0 && i < nx && j < ny && ok[j * nx + i] === 1;
+    const z = 0.05;
+    let cells = '', edge = '';
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!at(i, j)) continue;
+        let run = 1;
+        while (at(i + run, j)) run++;
+        const l = x0 + (i - 0.5) * step, t = y0 + (j - 0.5) * step, r = l + run * step, b = t + step;
+        cells += `<polygon points="${pts([P(l, t, z), P(r, t, z), P(r, b, z), P(l, b, z)])}"/>`;
+        i += run - 1;
+      }
+    }
+    const seg = (a, b) => { const p = P(a[0], a[1], z), q = P(b[0], b[1], z); edge += `M${p[0].toFixed(2)} ${p[1].toFixed(2)}L${q[0].toFixed(2)} ${q[1].toFixed(2)}`; };
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!at(i, j)) continue;
+        const l = x0 + (i - 0.5) * step, t = y0 + (j - 0.5) * step, r = l + step, b = t + step;
+        if (!at(i, j - 1)) seg([l, t], [r, t]);
+        if (!at(i, j + 1)) seg([l, b], [r, b]);
+        if (!at(i - 1, j)) seg([l, t], [l, b]);
+        if (!at(i + 1, j)) seg([r, t], [r, b]);
+      }
+    }
+    return `<g class="candidate-area" pointer-events="none"><g fill="#3fae7a" fill-opacity=".32">${cells}</g><path d="${edge}" fill="none" stroke="#23875a" stroke-width=".35"/></g>`;
+  }
+
+  // opts: project, result, footprint(b) → world outline, selected, azimuth,
+  // elevation, zoom, viewBox (keeps the frame fixed while dragging),
+  // showNorth, showDistances. Returns { svg, viewBox, camera }.
+  function render(opts) {
+    const { project, result, footprint, selected } = opts;
+    const azimuth = opts.azimuth ?? -25, elevation = opts.elevation ?? 35, zoom = opts.zoom ?? 1;
+    const site = project.site.polygon, rules = project.rules;
+    const center = [site.reduce((s, p) => s + p[0], 0) / site.length, site.reduce((s, p) => s + p[1], 0) / site.length];
+    const cam = camera(center, azimuth, elevation);
+    const light = [-0.45, 0.75]; // from the viewer's lower left, in rotated plan
+    const byId = new Map(result.buildings.map(q => [q.id, q]));
+    const P = (x, y, z) => cam.project(x, y, z);
+    const pts = list => list.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+
+    const ground = site.map(p => P(p[0], p[1], 0));
+    let body = `<polygon points="${pts(ground)}" fill="#eef3ee" stroke="#d1453b" stroke-width="0.5" stroke-dasharray="2 1"/>`;
+
+    const items = project.buildings.map(b => {
+      const q = byId.get(b.id), corners = footprint(b);
+      return { b, q, H: q.height, corners, depth: cam.rotate(b.x, b.y)[1] };
+    }).sort((u, v) => u.depth - v.depth);
+
+    body += candidateArea(opts.heat, P, pts);
+    for (const it of items) body += `<polygon points="${pts(it.corners.map(c => P(c[0], c[1], 0)))}" fill="#00000018"/>`;
+
+    // 인동거리 on the ground: pairs touching the selection, and every failure.
+    const pairs = opts.showDistances === false ? [] : result.pairs.filter(p => p.a && p.b && p.distance > 0 && (!p.pass || p.aId === selected || p.bId === selected));
+    const pairLabels = [];
+    for (const pr of pairs) {
+      const a = P(pr.a[0], pr.a[1], 0.3), b = P(pr.b[0], pr.b[1], 0.3), c = pr.pass ? '#2f8f6b' : '#d1453b';
+      body += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${c}" stroke-width="0.45" stroke-dasharray="${pr.pass ? '1.4 .8' : 'none'}"/>`;
+      pairLabels.push({ x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, c, text: `${pr.pass ? '' : '✕ '}${m1(pr.distance)} / 요구 ${m1(pr.required)} m` });
+    }
+
+    const labels = [];
+    for (const { b, q, H, corners } of items) {
+      const sel = b.id === selected;
+      const base = !q.pass ? '#e9a99f' : sel ? '#8fbad6' : '#cfd9dc';
+      const stroke = !q.pass ? '#b5574b' : sel ? '#2f6f99' : '#6f8790';
+      const rc = corners.map(c => cam.rotate(c[0], c[1]));
+      let area = 0;
+      rc.forEach((p, i) => { const r = rc[(i + 1) % rc.length]; area += p[0] * r[1] - r[0] * p[1]; });
+      const faces = [];
+      for (let i = 0; i < rc.length; i++) {
+        const j = (i + 1) % rc.length, e = [rc[j][0] - rc[i][0], rc[j][1] - rc[i][1]], len = Math.hypot(e[0], e[1]) || 1;
+        const n = area >= 0 ? [e[1] / len, -e[0] / len] : [-e[1] / len, e[0] / len];
+        if (n[1] <= 0) continue; // faces away from the viewer
+        faces.push({ i, j, n, depth: (rc[i][1] + rc[j][1]) / 2 });
+      }
+      faces.sort((u, v) => u.depth - v.depth);
+      let svg = '';
+      for (const { i, j, n } of faces) {
+        const f = 0.72 + 0.22 * Math.max(0, n[0] * light[0] + n[1] * light[1]);
+        const quad = [P(corners[i][0], corners[i][1], 0), P(corners[j][0], corners[j][1], 0), P(corners[j][0], corners[j][1], H), P(corners[i][0], corners[i][1], H)];
+        svg += `<polygon points="${pts(quad)}" fill="${shade(base, f)}" stroke="${stroke}" stroke-width="0.25"/>`;
+        // Floor lines at equal spacing: a visual cue, not the exact section.
+        let lines = '';
+        for (let k = 1; k < b.floors; k++) {
+          const z = H * k / b.floors, a = cam.project(corners[i][0], corners[i][1], z), c = cam.project(corners[j][0], corners[j][1], z);
+          lines += `M${a[0].toFixed(2)} ${a[1].toFixed(2)}L${c[0].toFixed(2)} ${c[1].toFixed(2)}`;
+        }
+        if (lines) svg += `<path d="${lines}" stroke="#00000022" stroke-width="0.15"/>`;
+      }
+      svg += `<polygon points="${pts(corners.map(c => P(c[0], c[1], H)))}" fill="${shade(base, 1.06)}" stroke="${stroke}" stroke-width="${sel ? 0.6 : 0.35}"/>`;
+      body += `<g class="mass-building" data-mass="${esc(b.id)}">${svg}</g>`;
+      const tc = cam.project(b.x, b.y, H);
+      labels.push({ x: tc[0], y: tc[1], b, H, sel, pass: q.pass, q, corners });
+    }
+
+    // 정북 sky planes (rules.northEnabled), drawn over the masses like glass.
+    if (rules.northEnabled && opts.showNorth !== false) {
+      for (const l of labels) {
+        const poly = l.corners.slice(); poly.site = site;
+        if (!l.sel && l.q.northPass) continue;
+        body += `<g class="north-sheet" pointer-events="none">${northSheet(poly, rules, P, pts, !l.q.northPass)}</g>`;
+      }
+    }
+
+    // Frame from rotation-invariant sizes (site radius, tallest H), so orbiting
+    // never changes the apparent zoom; pan shifts the frame centre.
+    const radius = Math.max(...site.map(p => Math.hypot(p[0] - center[0], p[1] - center[1])));
+    const tallest = Math.max(0, ...items.map(it => it.H));
+    const span = 2.3 * Math.max(radius, tallest * 0.75) + 20, aspect = opts.aspect > 0 ? opts.aspect : 0.75;
+    const pan = opts.pan || [0, 0], w = span / zoom, h = w * aspect;
+    const cy = -tallest * cam.zScale * 0.35;
+    const vb = opts.viewBox || [pan[0] - w / 2, cy + pan[1] - h / 2, w, h];
+    const fs = vb[2] / 70;
+    for (const pl of pairLabels) {
+      const w = pl.text.length * fs * 0.5 + fs;
+      body += `<g pointer-events="none"><rect x="${pl.x - w / 2}" y="${pl.y - fs * 0.85}" width="${w}" height="${fs * 1.2}" rx="${fs * 0.2}" fill="#ffffffe6" stroke="${pl.c}" stroke-width="${fs * 0.04}"/>` +
+        `<text x="${pl.x}" y="${pl.y}" text-anchor="middle" font-size="${fs * 0.72}" font-weight="600" fill="${pl.c}">${esc(pl.text)}</text></g>`;
+    }
+    for (const l of labels) {
+      const north = rules.northEnabled ? ` · 정북 ${m1(l.q.northDistance)}/${m1(l.q.northRequired)} m` : '';
+      body += `<g pointer-events="none"><line x1="${l.x}" y1="${l.y}" x2="${l.x}" y2="${l.y - fs * 2.2}" stroke="#55707a" stroke-width="${fs * 0.06}"/>` +
+        `<text x="${l.x}" y="${l.y - fs * 3.4}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${l.pass ? (l.sel ? '#1f5f86' : '#2f4d58') : '#b5574b'}">${esc(l.b.name)}</text>` +
+        `<text x="${l.x}" y="${l.y - fs * 2.4}" text-anchor="middle" font-size="${fs * 0.72}" fill="${l.q.northPass ? '#55707a' : '#b5574b'}">${l.b.floors}F · H ${m1(l.H)} m${north}</text></g>`;
+      if (l.sel && !l.b.locked) {
+        // Roof handle: drag up or down to change the number of floors.
+        body += `<g class="roof-handle" data-roof="${esc(l.b.id)}" style="cursor:ns-resize"><title>위아래로 드래그해 층수 변경</title>` +
+          `<circle cx="${l.x}" cy="${l.y}" r="${fs * 1.4}" fill="transparent"/>` +
+          `<circle cx="${l.x}" cy="${l.y}" r="${fs * 0.75}" fill="#2f6f99" stroke="#fff" stroke-width="${fs * 0.12}"/>` +
+          `<path d="M${l.x} ${l.y - fs * 0.45}l${-fs * 0.3} ${fs * 0.3}M${l.x} ${l.y - fs * 0.45}l${fs * 0.3} ${fs * 0.3}M${l.x} ${l.y + fs * 0.45}l${-fs * 0.3} ${-fs * 0.3}M${l.x} ${l.y + fs * 0.45}l${fs * 0.3} ${-fs * 0.3}" stroke="#fff" stroke-width="${fs * 0.1}"/></g>`;
+      }
+    }
+    // North arrow, turned with the camera.
+    const north = rad((rules.northAngle || 0) + azimuth), nx = vb[0] + vb[2] - fs * 3, ny = vb[1] + fs * 3;
+    const tip = [nx + Math.sin(north) * fs * 1.6, ny - Math.cos(north) * fs * 1.6 * Math.sin(rad(elevation))];
+    body += `<g pointer-events="none"><circle cx="${nx}" cy="${ny}" r="${fs * 1.9}" fill="#ffffffcc" stroke="#9fb3ab" stroke-width="${fs * 0.05}"/>` +
+      `<line x1="${nx}" y1="${ny}" x2="${tip[0]}" y2="${tip[1]}" stroke="#486d63" stroke-width="${fs * 0.18}"/>` +
+      `<text x="${tip[0]}" y="${tip[1] - fs * 0.3}" text-anchor="middle" font-size="${fs * 0.8}" fill="#486d63">N</text></g>`;
+    return { svg: `<rect class="mass-bg" x="-100000" y="-100000" width="200000" height="200000" fill="#f4f7f6"/>${body}`, viewBox: vb, camera: cam };
+  }
+
+  return Object.freeze({ render, camera });
+}));
+
+</script><script>
+/* building-import.js */
+/* Import of Stage 2 building plans (schema apartment-planner-building/1) into
+   site-plan buildings. Each candidate becomes a building whose `shape` holds
+   the footprint outline, unit outlines, core parts and window segments in local
+   metres centred on the outline's bounding box (x east, y south). */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.PlannerImport = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const SCHEMA = 'apartment-planner-building/1';
+  const r3 = v => Math.round(v * 1000) / 1000;
+  const finite = v => typeof v === 'number' && Number.isFinite(v);
+
+  function areaOf(poly) {
+    let a = 0;
+    poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; });
+    return a / 2;
+  }
+
+  // Outline of the union of axis-aligned rectangles [x1, y1, x2, y2]. Cells of
+  // the compressed grid are filled when covered; boundary edges are linked into
+  // loops and the largest loop is the footprint (courtyards are not kept).
+  function unionOutline(rects) {
+    const xs = [...new Set(rects.flatMap(r => [r3(r[0]), r3(r[2])]))].sort((a, b) => a - b);
+    const ys = [...new Set(rects.flatMap(r => [r3(r[1]), r3(r[3])]))].sort((a, b) => a - b);
+    const nx = xs.length - 1, ny = ys.length - 1;
+    const filled = (i, j) => {
+      if (i < 0 || j < 0 || i >= nx || j >= ny) return false;
+      const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+      return rects.some(r => cx > Math.min(r[0], r[2]) && cx < Math.max(r[0], r[2]) && cy > Math.min(r[1], r[3]) && cy < Math.max(r[1], r[3]));
+    };
+    const grid = [];
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) grid[j * nx + i] = filled(i, j);
+    const at = (i, j) => i >= 0 && j >= 0 && i < nx && j < ny && grid[j * nx + i];
+    // Directed edges keep the filled side on the right (clockwise on screen).
+    const edges = new Map(), key = (i, j) => `${i},${j}`;
+    const add = (a, b) => { const k = key(...a); if (!edges.has(k)) edges.set(k, []); edges.get(k).push(b); };
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!at(i, j)) continue;
+        if (!at(i, j - 1)) add([i, j], [i + 1, j]);
+        if (!at(i + 1, j)) add([i + 1, j], [i + 1, j + 1]);
+        if (!at(i, j + 1)) add([i + 1, j + 1], [i, j + 1]);
+        if (!at(i - 1, j)) add([i, j + 1], [i, j]);
+      }
+    }
+    const loops = [];
+    while (edges.size) {
+      const startKey = edges.keys().next().value;
+      const loop = [];
+      let cur = startKey.split(',').map(Number);
+      for (let guard = 0; guard < 100000; guard++) {
+        const k = key(...cur), out = edges.get(k);
+        if (!out || !out.length) break;
+        const next = out.shift();
+        if (!out.length) edges.delete(k);
+        loop.push([xs[cur[0]], ys[cur[1]]]);
+        cur = next;
+        if (key(...cur) === startKey) break;
+      }
+      if (loop.length >= 3) loops.push(simplify(loop));
+    }
+    loops.sort((a, b) => Math.abs(areaOf(b)) - Math.abs(areaOf(a)));
+    return { outline: loops[0] || [], loops: loops.length };
+  }
+
+  // Drops collinear vertices.
+  function simplify(poly) {
+    const out = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[(i + poly.length - 1) % poly.length], b = poly[i], c = poly[(i + 1) % poly.length];
+      if (Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) > 1e-9) out.push(b);
+    }
+    return out;
+  }
+
+  function rectsOf(candidate) {
+    const g = candidate.geometry || {};
+    const units = Array.isArray(g.units) ? g.units : [];
+    const rects = units.flatMap(u => Array.isArray(u.rects) ? u.rects : []);
+    // The core's overall rectangle closes the gaps between its parts.
+    const c = g.core || {};
+    const core = (Array.isArray(c.rects) ? c.rects : []).concat([c.x, c.y, c.width, c.depth].every(finite) ? [[c.x, c.y, c.x + c.width, c.y + c.depth]] : []);
+    return rects.concat(core).filter(r => Array.isArray(r) && r.length === 4 && r.every(finite));
+  }
+
+  // One candidate → building fields (without id, name, position).
+  function toBuilding(candidate, floors) {
+    const rects = rectsOf(candidate);
+    if (rects.length < 1) throw new Error(`${candidate.name || '후보'}: 세대·코어 형상이 없습니다.`);
+    const { outline, loops } = unionOutline(rects);
+    if (outline.length < 3) throw new Error(`${candidate.name || '후보'}: 동 외곽을 만들 수 없습니다.`);
+    const minX = Math.min(...outline.map(p => p[0])), maxX = Math.max(...outline.map(p => p[0]));
+    const minY = Math.min(...outline.map(p => p[1])), maxY = Math.max(...outline.map(p => p[1]));
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, L = p => [r3(p[0] - cx), r3(p[1] - cy)];
+    const g = candidate.geometry;
+    const units = (g.units || []).map(u => ({
+      id: String(u.id ?? ''), type: u.type, name: String(u.name ?? `${u.type}형`), facing: String(u.facing ?? ''),
+      outline: (u.outline || []).map(L)
+    }));
+    const windows = (g.units || []).flatMap(u => (u.windows || []).map(w => ({
+      a: L(w.a), b: L(w.b), dir: w.dir, room: String(w.room ?? ''), category: String(w.category ?? ''), unit: String(u.id ?? '')
+    })));
+    const core = g.core ? { parts: (g.core.parts || []).map(p => ({ kind: String(p.kind ?? ''), name: String(p.name ?? ''),
+      rect: [r3(p.rect[0] - cx), r3(p.rect[1] - cy), r3(p.rect[2] - cx), r3(p.rect[3] - cy)] })) } : null;
+    const footprintArea = Math.abs(areaOf(outline));
+    return {
+      width: r3(maxX - minX), depth: r3(maxY - minY), rotation: 0,
+      floors: Math.max(1, Math.min(100, Math.round(floors || candidate.core?.floors || 15))),
+      unitsPerFloor: Math.max(1, Math.round(candidate.unitsPerFloor || units.length || 1)),
+      unitArea: Math.max(10, Math.min(400, candidate.unitArea || 59)),
+      coreArea: Math.max(0, Math.min(2000, candidate.coreArea || 0)),
+      shape: {
+        outline: outline.map(L), units, core, windows,
+        source: { schema: SCHEMA, id: String(candidate.id ?? ''), name: String(candidate.name ?? ''),
+          unitMix: (candidate.unitMix || []).map(m => `${m.type}×${m.count}`).join(' + '),
+          footprintArea: r3(footprintArea), loops }
+      }
+    };
+  }
+
+  // Parsed file → { floors, candidates: [{ name, building, warnings }] }.
+  function parseBuildingFile(raw) {
+    if (!raw || raw.schema !== SCHEMA) throw new Error('동평면 파일 형식(apartment-planner-building/1)이 아닙니다.');
+    if (raw.coordinateUnit !== 'm') throw new Error('좌표 단위가 m가 아닙니다.');
+    const list = Array.isArray(raw.candidates) ? raw.candidates : [];
+    if (!list.length) throw new Error('후보 동평면이 없습니다.');
+    if (list.length > 60) throw new Error('후보가 너무 많습니다 (최대 60).');
+    const floors = raw.settings && finite(raw.settings.floors) ? raw.settings.floors : undefined;
+    return {
+      floors,
+      note: String(raw.note ?? ''),
+      candidates: list.map(c => {
+        const building = toBuilding(c, c.core?.floors || floors);
+        const warnings = [];
+        if (building.shape.source.loops > 1) warnings.push('떨어진 부분이 있어 가장 큰 외곽만 사용했습니다.');
+        if (!building.shape.windows.length) warnings.push('창 정보가 없어 모든 면을 측벽으로 봅니다.');
+        return { name: String(c.name ?? c.id ?? '후보'), building, warnings };
+      })
+    };
+  }
+
+  return Object.freeze({ SCHEMA, unionOutline, parseBuildingFile, toBuilding });
+}));
+
+</script><script>
+/* app.js */
+/* Local, API-free early feasibility workspace. Coordinates: metres. */
+(()=>{'use strict';
+const $=id=>document.getElementById(id),E=PlannerEngine,S=PlannerState,U=PlannerUnits,P=PlannerPresets,D=PlannerDrawing,M=PlannerMassing,I=PlannerImport,VIEWS=['cad','3d'],HELP={plan:'드래그 이동 <b>·</b> ↻ 핸들 드래그 회전 <b>·</b> 방향키 1 m <b>·</b> Shift + 방향키 5 m <b>·</b> R / Shift+R 15° 회전',cad:'드래그 이동 <b>·</b> ↻ 핸들 회전 <b>·</b> 휠 확대 <b>·</b> 오른쪽 드래그 화면 이동 <b>·</b> 방향키 1 m (Shift 5 m) <b>·</b> R / Shift+R 15°',['3d']:'왼쪽 클릭 선택·드래그 이동 <b>·</b> 지붕 ⇕ 층수 <b>·</b> 오른쪽 드래그 회전 <b>·</b> Shift+오른쪽 화면 이동 <b>·</b> 휠 확대 <b>·</b> 보라 면 = 정북 일조사선'},VIEW_KEY='planby-view-mode',STAGES=['units','combinations','site'],STAGE=STAGES.includes(window.PLANBY_STAGE)?window.PLANBY_STAGE:null,LEGACY_KEY='planby-apartment-v1',KEY=STAGE?LEGACY_KEY+'-'+STAGE:LEGACY_KEY;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+let lastMass=null,massDrag=null,siteMode=false,view3d={azimuth:-25,elevation:35,zoom:1,pan:[0,0]},orbit=null,viewMode='cad',overlayHtml='',project=S.createProject(),selected='b101',tab='site',history=[],future=[],snapshot,drag=null,viewBox=[0,0,210,185],heat='',heatTimer,heatEpoch=0,unitMount=null,comboMount=null,toastTimer;
+try{const v=localStorage.getItem(VIEW_KEY);if(VIEWS.includes(v))viewMode=v}catch{}
+// A packaged build may embed a starting project; a browser-saved one still wins.
+try{if(window.PLANBY_INITIAL_PROJECT)project=S.validateProject(S.clone(window.PLANBY_INITIAL_PROJECT))}catch{setTimeout(()=>toast('포함된 프로젝트가 올바르지 않아 예시 프로젝트를 열었습니다.'),200)}
+try{const saved=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);if(saved)project=S.validateProject(JSON.parse(saved));}catch{setTimeout(()=>toast('저장된 데이터가 호환되지 않아 예시 프로젝트를 열었습니다.'),200)}
+selected=project.buildings[0]?.id; snapshot=S.clone(project);
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4200)}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(project));$('saveStatus').textContent='이 브라우저에 저장됨';}catch{$('saveStatus').textContent='자동 저장 불가 · 파일로 저장하세요';}}
+function commit(before=snapshot){if(JSON.stringify(project)===JSON.stringify(before)){header();return;}history.push(S.clone(before));if(history.length>50)history.shift();future=[];project.revision++;snapshot=S.clone(project);persist();header();}
+function header(){$('projectName').value=project.name;$('revisionLabel').textContent='REV '+String(project.revision).padStart(3,'0');$('undoBtn').disabled=!history.length;$('redoBtn').disabled=!future.length;}
+function fit(){const p=project.site.polygon,x=p.map(p=>p[0]),y=p.map(p=>p[1]),minX=Math.min(...x),minY=Math.min(...y);viewBox=[minX-14,minY-18,Math.max(...x)-minX+28,Math.max(...y)-minY+36];}
+function selectedBuilding(){return project.buildings.find(b=>b.id===selected)}
+function result(){return E.evaluateSite(project.site.polygon,project.buildings,project.rules)}
+function download(name,data,mime='application/json'){const blob=new Blob([typeof data==='string'?data:JSON.stringify(data,null,2)],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function modal(title,body,action,label='적용'){$('modalBody').innerHTML=`<div class="modal-head"><h2>${esc(title)}</h2><button id="closeModal" aria-label="닫기">×</button></div><div class="modal-content">${body}</div><div class="modal-actions"><button class="btn" id="cancelModal">닫기</button>${action?`<button class="btn primary" id="applyModal">${esc(label)}</button>`:''}</div>`;$('closeModal').onclick=$('cancelModal').onclick=()=>$('modal').close();if(action)$('applyModal').onclick=()=>{try{if(action()!==false)$('modal').close()}catch(e){toast(e.message)}};$('modal').showModal();}
+function nested(group,key,label,value,min,max,step){return `<label class="field">${esc(label)}<input type="number" data-group="${group}" data-key="${key}" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;}
+function labelWidth(text,size){let w=0;for(const ch of text)w+=ch.charCodeAt(0)>0x1100?size:size*.58;return w;}
+function input(name,label,value,min,max,step=1){return `<label class="field">${esc(label)}<input type="number" data-rule="${name}" id="rule-${name}" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;}
+function openRules(){
+  const r=project.rules,h=r.height||{},fc=r.facing||{},ll=r.lightLimit||{enabled:false,factor:2};
+  const option=(list,current)=>list.map(p=>`<option value="${esc(p.id)}" ${p.id===current?'selected':''}>${esc(p.name)}</option>`).join('');
+  const presetNote=id=>{const p=P.RULE_PRESETS.find(x=>x.id===id)||P.RULE_PRESETS[0];return `${esc(p.effective)}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">원문</a>`:''}${p.caution?`<br>${esc(p.caution)}`:''}`;};
+  modal('검토 조건 설정',`<div class="notice">기준 프리셋은 공식 원문(확인 ${P.CHECKED})과 참고도면의 수치를 입력값으로 채웁니다. 화면 판정은 이 가정에 따른 기하 검토이며, 용도지역·도로·예외 적용과 법정 적합 여부는 별도로 확인해야 합니다.<br><strong>${esc(P.REVISION_NOTE)}</strong></div>
+  <div class="fields"><label class="field wide">기준 프리셋<select id="rulePreset">${option(P.RULE_PRESETS,r.preset||'custom')}</select></label><p class="muted wide" id="presetNote">${presetNote(r.preset||'custom')}</p>
+  <label class="field wide">적용 지역 / 검토 메모<input id="jurisdiction" value="${esc(r.jurisdiction)}" maxlength="120"></label>${input('setback','대지안의 공지 · 경계 이격 가정 (m)',r.setback,0,100,.5)}${input('minDistance','동간 최소 거리 (m)',r.minDistance,0,100,.5)}${input('northAngle','정북 방향 (화면 위 0°, 시계방향)',r.northAngle,-360,360,5)}${input('coverageLimit','목표 건폐율 상한 (%)',r.coverageLimit,1,100,1)}${input('farLimit','목표 용적률 상한 (%)',r.farLimit,1,2000,10)}${input('parkingPerUnit','세대당 주차대수 가정',r.parkingPerUnit,0,10,.1)}</div>
+  <h3>인동거리 · 마주보는 동</h3><div class="fields"><label class="field wide">규칙 방식<select id="ruleProfile"><option value="uniform">단순 · 모든 외벽 높은 동 H × 계수</option><option value="facing" ${r.profile==='facing'?'selected':''}>면 구분 · 채광면/측벽 (긴 변/짧은 변 가정)</option></select></label>${input('distanceFactor','단순·대각 배치 · 높은 동 H ×',r.distanceFactor,0,5,.1)}${nested('facing','lightFactor','채광면 직각방향 · H ×',fc.lightFactor??1,0,5,.1)}${nested('facing','southLowMin','남측 저층 · 최소 거리 (m)',fc.southLowMin??0,0,100,.5)}${nested('facing','southLowLow','남측 저층 · 낮은 동 H ×',fc.southLowLow??1,0,5,.05)}${nested('facing','southLowTall','남측 저층 · 높은 동 H × (현행 0)',fc.southLowTall??.8,0,5,.05)}${nested('facing','sideToSide','측벽↔측벽 (m)',fc.sideToSide??4,0,100,.5)}</div>
+  <p class="muted">남측 저층: 낮은 동이 높은 동 기준 정동→정서(남쪽) 반원에 있고 높은 동의 채광면이 낮은 동을 향할 때 적용합니다. 서로 마주보지 않는 대각 배치는 단순 계수로 계산합니다.</p>
+  <h3>건축물 높이 산정</h3><div class="fields"><label class="field wide">높이 산정 프리셋<select id="heightPreset"><option value="">직접 입력</option>${option(P.HEIGHT_PRESETS,r.heightPreset||'')}</select></label>${nested('height','base','지반 가산 (m)',h.base??0,0,100,.05)}<label class="field">1층 높이 (m · 비우면 층고)<input type="number" id="heightFirst" value="${h.first??''}" min="0" max="100" step=".1"></label><label class="field">최상부 층고 목록 (m, 쉼표)<input id="heightTop" value="${(h.top||[]).join(', ')}" placeholder="예: 3, 3"></label>${nested('height','parapet','파라펫 (m)',h.parapet??0,0,100,.05)}</div><p class="muted" id="heightFormula">${esc(P.heightFormula(h))}</p>
+  <h3>정북 방향 일조 · 채광방향 높이제한</h3><label class="toggle-row"><input id="northEnabled" type="checkbox" ${r.northEnabled?'checked':''}> 정북 이격 검토 (동 꼭짓점 → 정북 대지경계)</label><div class="fields">${input('northLowHeight','기준 높이 (m)',r.northLowHeight,0,100,.5)}${input('northLowSetback','기준 높이 이하 이격 (m)',r.northLowSetback,0,100,.5)}${input('northFactor','기준 높이 초과 · H ×',r.northFactor,0,5,.1)}</div>
+  <label class="toggle-row"><input id="lightEnabled" type="checkbox" ${ll.enabled?'checked':''}> 채광방향 높이제한 (채광면 → 인접대지경계)</label><div class="fields"><label class="field">높이 ≤ 경계거리 × (일반 2, 근린상업·준주거 4)<input type="number" id="lightFactor" value="${ll.factor}" min=".5" max="10" step=".5"></label></div>
+  <p class="muted">정북·채광방향 거리는 대지 다각형 경계까지 측정합니다. 도로 중심선 특례, 지반 고저차, 부분 높이, 실제 일조시간은 반영하지 않습니다.</p>`,()=>{
+    const p=S.clone(project),rr=p.rules;
+    document.querySelectorAll('[data-rule]').forEach(el=>rr[el.dataset.rule]=Number(el.value));
+    rr.northEnabled=$('northEnabled').checked;rr.jurisdiction=$('jurisdiction').value;rr.profile=$('ruleProfile').value;
+    rr.height={};rr.facing={};document.querySelectorAll('[data-group]').forEach(el=>rr[el.dataset.group][el.dataset.key]=Number(el.value));
+    if($('heightFirst').value.trim()!=='')rr.height.first=Number($('heightFirst').value);
+    const top=$('heightTop').value.split(/[ ,]+/).filter(Boolean).map(Number);if(top.length)rr.height.top=top;
+    rr.lightLimit={enabled:$('lightEnabled').checked,factor:Number($('lightFactor').value)};
+    rr.preset=$('rulePreset').value;rr.heightPreset=$('heightPreset').value||undefined;
+    // A preset stays named only while its values are untouched.
+    const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const rp=P.RULE_PRESETS.find(x=>x.id===rr.preset);let note='';
+    if(rp&&rp.rules&&Object.keys(rp.rules).some(k=>!same(typeof rp.rules[k]==='object'?{...rp.rules[k],...rr[k]}:rr[k],rp.rules[k]))){rr.preset='custom';note=' 프리셋 값을 수정해 사용자 정의로 저장했습니다.';}
+    const hp=P.HEIGHT_PRESETS.find(x=>x.id===rr.heightPreset);
+    if(hp&&!same({base:0,parapet:0,...hp.height},{base:0,parapet:0,...rr.height}))delete rr.heightPreset;
+    if(rr.heightPreset===undefined)delete rr.heightPreset;
+    rr.basis=rr.preset==='custom'?'사용자 설정 · 법규 적용 여부 별도 확인':`${(rp||{}).short||rr.preset} 프리셋 · 적용 여부 별도 확인`;
+    project=S.validateProject(p);commit();render();scheduleHeat();toast('검토 조건을 적용했습니다.'+note);});
+  // Presets fill the form; values can still be edited before applying.
+  const fill=rules=>{document.querySelectorAll('[data-rule]').forEach(el=>{if(rules[el.dataset.rule]!==undefined)el.value=rules[el.dataset.rule]});document.querySelectorAll('[data-group="facing"]').forEach(el=>{const v=(rules.facing||{})[el.dataset.key];if(v!==undefined)el.value=v});$('ruleProfile').value=rules.profile||'uniform';$('northEnabled').checked=rules.northEnabled;if(rules.lightLimit){$('lightEnabled').checked=rules.lightLimit.enabled;$('lightFactor').value=rules.lightLimit.factor;}};
+  const fillHeight=height=>{document.querySelectorAll('[data-group="height"]').forEach(el=>el.value=height[el.dataset.key]??0);$('heightFirst').value=height.first??'';$('heightTop').value=(height.top||[]).join(', ');$('heightFormula').textContent=P.heightFormula(height);};
+  $('rulePreset').onchange=e=>{$('presetNote').innerHTML=presetNote(e.target.value);if(e.target.value!=='custom')fill(P.applyRulePreset(project.rules,e.target.value));};
+  $('heightPreset').onchange=e=>{if(e.target.value)fillHeight(P.HEIGHT_PRESETS.find(x=>x.id===e.target.value).height);};
+}
+function siteEdit(){modal('대지 경계 편집',`<p class="muted">좌표 단위 m · X는 오른쪽, Y는 아래쪽입니다. 순서대로 이어지는 꼭짓점을 한 줄에 하나씩 입력하세요. 정북 방향은 검토 조건에서 설정합니다.</p><label class="field">대지 이름<input id="editSiteName" value="${esc(project.site.name)}" maxlength="80"></label><label class="field" style="margin-top:14px">X, Y 좌표<textarea id="sitePoints" rows="10">${project.site.polygon.map(p=>p.join(', ')).join('\n')}</textarea></label>`,()=>{const p=S.clone(project);p.site.name=$('editSiteName').value;p.site.polygon=$('sitePoints').value.trim().split(/\n+/).map(l=>l.split(/[ ,\t]+/).filter(Boolean).map(Number));project=S.validateProject(p);commit();fit();render();scheduleHeat();});}
+function renderList(r){$('buildingCount').textContent=project.buildings.length+'개 동';$('siteName').textContent=project.site.name;$('siteArea').textContent=fmt(r.area)+' ㎡ · '+project.site.polygon.length+'개 꼭짓점';$('buildingList').innerHTML=project.buildings.map(b=>`<button class="building-item ${b.id===selected?'selected':''}" data-select="${esc(b.id)}"><span class="mini-block"></span><span><strong>${esc(b.name)} ${b.locked?'⌑':''}</strong><small>${b.floors}F · ${b.unitsPerFloor*b.floors}세대 · ${fmt(b.unitArea,0)}㎡형</small></span><span class="state-dot ${r.buildings.find(x=>x.id===b.id)?.pass?'':'fail'}"></span></button>`).join('');document.querySelectorAll('[data-select]').forEach(el=>el.onclick=()=>select(el.dataset.select));}
+function select(id){selected=id;render();scheduleHeat();}
+function propertyField(k,label,unit,min,max,step=1){const b=selectedBuilding();return `<label class="field">${label}<span class="input-unit"><input data-prop="${k}" aria-label="${label}" type="number" value="${b[k]}" min="${min}" max="${max}" step="${step}" ${b.locked?'disabled':''}><span>${unit}</span></span></label>`;}
+// Stage 2 building plans (apartment-planner-building/1): pick candidates and floors,
+// then place each at the free spot nearest the site centre (or the centre).
+function nextName(p){const used=new Set(p.buildings.map(b=>b.name));for(let n=101;n<1000;n++)if(!used.has(n+'동'))return n+'동';return '새 동';}
+function findSpot(p,b){const pts=p.site.polygon,xs=pts.map(q=>q[0]),ys=pts.map(q=>q[1]),cx=xs.reduce((a,v)=>a+v,0)/xs.length,cy=ys.reduce((a,v)=>a+v,0)/ys.length;let best=null;for(let y=Math.min(...ys);y<=Math.max(...ys);y+=5)for(let x=Math.min(...xs);x<=Math.max(...xs);x+=5){if(!E.insidePolygon([x,y],pts))continue;try{if(E.canPlace(pts,{...b,x,y},p.buildings,p.rules)){const d=Math.hypot(x-cx,y-cy);if(!best||d<best[2])best=[x,y,d];}}catch{}}return best?{x:best[0],y:best[1],free:true}:{x:Math.round(cx),y:Math.round(cy),free:false};}
+function importBuildings(raw){
+  const parsed=I.parseBuildingFile(raw);
+  modal('동평면 불러오기',`<p class="muted">Stage 2 동평면 후보 ${parsed.candidates.length}개입니다. 선택한 후보를 대지에 배치합니다. 동 외곽, 세대, 코어, 창 위치는 파일 값을 그대로 쓰고, 창이 있는 외곽면을 채광면으로 판정합니다.</p><div class="import-list">${parsed.candidates.map((c,i)=>{const s=c.building.shape.source;return `<label class="import-row"><input type="checkbox" data-import="${i}" ${i<10?'checked':''}><span><strong>${esc(c.name)}</strong><small>${esc(s.unitMix)} · ${fmt(c.building.width)} × ${fmt(c.building.depth)} m · 외곽 ${fmt(s.footprintArea,0)}㎡ · 창 ${c.building.shape.windows.length}개</small>${c.warnings.map(w=>`<small class="import-warn">${esc(w)}</small>`).join('')}</span><span class="input-unit"><input type="number" data-import-floors="${i}" value="${c.building.floors}" min="1" max="100" aria-label="층수"><span>F</span></span></label>`}).join('')}</div>${parsed.note?`<div class="notice">${esc(parsed.note)}</div>`:''}`,()=>{
+    const picks=[...document.querySelectorAll('[data-import]')].filter(x=>x.checked).map(x=>Number(x.dataset.import));
+    if(!picks.length)throw Error('배치할 후보를 선택하세요.');
+    if(project.buildings.length+picks.length>60)throw Error('최대 60개 동까지 지원합니다.');
+    const before=S.clone(project),p=S.clone(project);let last,blocked=0;
+    picks.forEach((i,k)=>{const c=parsed.candidates[i],floors=Math.round(Number(document.querySelector(`[data-import-floors="${i}"]`).value));
+      const b={...S.clone(c.building),id:'b'+Date.now().toString(36)+k,name:nextName(p),x:0,y:0,floorHeight:2.9,baseElevation:0,locked:false};
+      if(floors>=1&&floors<=100)b.floors=floors;const spot=findSpot(p,b);b.x=spot.x;b.y=spot.y;if(!spot.free)blocked++;p.buildings.push(b);last=b.id;});
+    project=S.validateProject(p);selected=last;commit(before);render();scheduleHeat();
+    toast(`${picks.length}개 동을 배치했습니다.${blocked?` ${blocked}개 동은 조건을 충족하는 빈 위치가 없어 대지 중앙에 두었습니다.`:''}`);
+  },'대지에 배치');
+}
+// Imported shapes fix the outline: lock size fields and show the source.
+function shapeProperties(){const b=selectedBuilding();if(!b||!b.shape)return;['width','depth','unitsPerFloor','unitArea'].forEach(k=>{const el=document.querySelector(`[data-prop="${k}"]`);if(el){el.disabled=true;el.title='동평면 파일에서 가져온 값';}});const s=b.shape.source||{},head=document.querySelector('#properties .inspector-head');if(head)head.insertAdjacentHTML('afterend',`<div class="shape-note"><strong>동평면 ${esc(s.name||'')}</strong><br>${esc(s.unitMix||'')} · 외곽 ${fmt(s.footprintArea,0)}㎡ · 창 ${(b.shape.windows||[]).length}개<br>채광면은 창 위치 기준 · 외곽·세대수 고정</div>`);}
+function renderProperties(){renderPropertiesBase();shapeProperties();}
+function renderPropertiesBase(){const b=selectedBuilding();if(!b){$('properties').innerHTML='<div class="empty-note">동을 추가하거나 선택하세요.</div>';return;}$('properties').innerHTML=`<div class="inspector-head"><div><h2>${esc(b.name)}</h2><small>개념 매스 · ${fmt(b.width,1)} × ${fmt(b.depth,1)} m</small></div><span class="inspector-icon">▥</span></div><div class="fields">${propertyField('floors','지상 층수','F',1,100)}${propertyField('floorHeight','층고','m',2,8,.1)}${propertyField('width','동 길이','m',1,500,.5)}${propertyField('depth','동 깊이','m',1,500,.5)}${propertyField('unitsPerFloor','층당 세대 수','호',1,30)}${propertyField('unitArea','평균 전용면적','㎡',10,400,1)}<label class="field wide">동 회전 <div class="range-row"><input id="rotationRange" aria-label="동 회전 슬라이더" type="range" min="0" max="355" step="5" value="${((b.rotation%360)+360)%360}" ${b.locked?'disabled':''}><input data-prop="rotation" aria-label="동 회전 각도" type="number" min="-3600" max="3600" step="5" value="${b.rotation}" ${b.locked?'disabled':''}></div></label></div><label class="toggle-row"><input type="checkbox" id="pilotiFull" ${b.pilotiFull?'checked':''} ${b.locked?'disabled':''}> 1층 전체 필로티 · 높이 산정에서 1층 제외</label><p class="muted">동 높이 ${fmt(result().buildings.find(x=>x.id===b.id)?.height)} m · ${esc(P.heightFormula(project.rules.height))}</p><div class="button-row"><button id="lockBuilding" class="btn">${b.locked?'잠금 해제':'위치·형상 잠금'}</button><button id="duplicateBuilding" class="btn">복제</button><button id="deleteBuilding" class="btn" ${b.locked?'disabled':''}>삭제</button></div>`;
+document.querySelectorAll('[data-prop]').forEach(el=>{el.oninput=()=>{const p=S.clone(project);p.buildings.find(x=>x.id===selected)[el.dataset.prop]=Number(el.value);try{project=S.validateProject(p);commit();render(false);scheduleHeat();}catch{}};el.onchange=()=>{const p=S.clone(project);p.buildings.find(x=>x.id===selected)[el.dataset.prop]=Number(el.value);try{project=S.validateProject(p);commit();render(false);scheduleHeat()}catch(e){toast(e.message);renderProperties()}}});$('rotationRange').oninput=e=>{const current=selectedBuilding();current.rotation=Number(e.target.value);render(false);document.querySelector('[data-prop="rotation"]').value=current.rotation;};$('rotationRange').onchange=()=>{commit();render();scheduleHeat()};$('pilotiFull').onchange=e=>{const p=S.clone(project),t=p.buildings.find(x=>x.id===selected);if(e.target.checked)t.pilotiFull=true;else delete t.pilotiFull;project=S.validateProject(p);commit();render();scheduleHeat();};$('lockBuilding').onclick=()=>{const current=selectedBuilding();current.locked=!current.locked;commit();render();scheduleHeat()};$('duplicateBuilding').onclick=()=>{if(project.buildings.length>=60)return toast('최대 60개 동까지 지원합니다.');const copy=S.clone(selectedBuilding());copy.id='b'+Date.now();copy.name=b.name+' 복사';copy.x+=10;copy.y+=10;copy.locked=false;project.buildings.push(copy);selected=copy.id;commit();render();scheduleHeat()};$('deleteBuilding').onclick=()=>{if(b.locked)return;project.buildings=project.buildings.filter(x=>x.id!==b.id);selected=project.buildings[0]?.id;commit();render();scheduleHeat()};}
+function checkItem(title,detail,status){return `<div class="check-item ${status}"><span class="check-icon">${status==='fail'?'!':status==='pending'?'–':'✓'}</span><span><strong>${title}</strong><small>${detail}</small></span></div>`;}
+function renderChecks(r){const b=selectedBuilding(),q=r.buildings.find(v=>v.id===selected),pairs=r.pairs.filter(v=>v.aId===selected||v.bId===selected),worst=pairs.slice().sort((a,b)=>(a.distance-a.required)-(b.distance-b.required))[0];let s='';if(q){s+=checkItem('대지 경계와 이격',q.inside?`최단 ${fmt(q.setback)} m / 가정 ${fmt(project.rules.setback)} m`:'동 외곽이 대지 경계를 벗어납니다.',q.inside&&q.setbackPass?'pass':'fail');const presetName=(P.describe(project.rules).preset.short||'사용자 가정');s+=checkItem('인동거리 · '+presetName,worst?`실제 ${fmt(worst.distance)} m / 요구 ${fmt(worst.required)} m<br>${esc(worst.basis.text)}`:'비교할 다른 동이 없습니다.',pairs.every(p=>p.pass)?'pass':'fail');s+=checkItem('정북 방향 경계 이격',project.rules.northEnabled?`정북 ${fmt(q.northDistance)} m / 요구 ${fmt(q.northRequired)} m<br>용도지역·경계 적용 여부 별도 확인`:'적용 조건 미확정 · 설정에서 활성화',project.rules.northEnabled?(q.northPass?'pass':'fail'):'pending');}s+=checkItem('채광방향 높이제한',q&&q.light?`채광 ${fmt(q.light.distance)} m / 요구 ${fmt(q.light.required)} m<br>높이 ≤ 경계거리 × ${project.rules.lightLimit.factor} · 도로 특례 미반영`:'설정에서 활성화',q&&q.light?(q.light.pass?'pass':'fail'):'pending');s+=checkItem('실제 일조시간 · 주변 영향','태양 위치·주변 건물·수광점 분석 미구현','pending');s+=checkItem('주차 공급 · 소방 · 피난','요구 주차 가정만 산출 · 배치와 법규 미검토','pending');$('checkList').innerHTML=s;$('selectionHint').textContent=b?`${b.name} 선택됨${b.locked?' · 잠김':''}`:'동을 선택해 이동하세요';}
+function renderMetrics(r){const rls=project.rules,parking=Math.ceil(r.households*rls.parkingPerUnit),nominal=project.buildings.reduce((a,b)=>a+b.unitArea*b.unitsPerFloor*b.floors,0);const metric=(label,value,unit,note,ratio,over)=>`<div class="metric ${over?'over':''}"><div class="metric-label">${label}<span>${over?'목표 초과':'↗'}</span></div><div class="metric-value">${value}<small>${unit}</small></div>${ratio!==undefined?`<div class="metric-bar"><span style="width:${Math.min(100,ratio*100)}%"></span></div>`:''}<div class="metric-note">${note}</div></div>`;$('metrics').innerHTML=metric('계획 세대 수',fmt(r.households,0),'세대',`${project.buildings.length}개 동 · 전용 합계 ${fmt(nominal,0)}㎡`)+metric('개략 건폐율',fmt(r.coverage),'%',`가정 상한 ${rls.coverageLimit}% · 건축 ${fmt(r.footprintArea,0)}㎡`,r.coverage/rls.coverageLimit,r.coverage>rls.coverageLimit)+metric('개략 용적률',fmt(r.far),'%',`가정 상한 ${rls.farLimit}% · 산입 제외 미반영`,r.far/rls.farLimit,r.far>rls.farLimit)+metric('지상 매스 연면적',fmt(r.grossFloorArea,0),'㎡','동 외곽 면적 × 지상층수')+metric('요구 주차 가정',fmt(parking,0),'대',`세대당 ${rls.parkingPerUnit}대 · 공급 미검토`);}
+function poly(points){return points.map(p=>p.join(',')).join(' ')}
+function drawMap(r){const svg=$('siteSvg'),b=selectedBuilding(),cad=viewMode==='cad',mass=viewMode==='3d';svg.toggleAttribute('hidden',mass);$('massSvg').toggleAttribute('hidden',!mass);$('mapBody').classList.toggle('mass',mass);document.querySelectorAll('[data-view]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.view===viewMode)));document.querySelector('.map-help').innerHTML=siteMode&&!mass?'꼭짓점 드래그 이동 <b>·</b> 변 가운데 ＋ 클릭·드래그로 추가 <b>·</b> 꼭짓점 더블클릭 삭제 <b>·</b> Esc 종료':HELP[viewMode];$('siteModeBtn').disabled=mass;if(mass){const mb=$('massSvg').getBoundingClientRect(),m=M.render({project,result:r,footprint:E.footprint,selected,...view3d,aspect:mb.width>0?mb.height/mb.width:0,heat:$('showHeat').checked?heat:'',viewBox:massDrag?lastMass?.viewBox:undefined,showDistances:$('showDistances').checked});lastMass=m;$('massSvg').setAttribute('viewBox',m.viewBox.join(' '));$('massSvg').innerHTML=m.svg;}svg.setAttribute('viewBox',viewBox.join(' '));const box=svg.getBoundingClientRect(),unitsPerPx=box.width>0&&box.height>0?Math.max(viewBox[2]/box.width,viewBox[3]/box.height):0;svg.innerHTML=D.draw({unitsPerPx,project,result:r,selected,viewBox,heat:$('showHeat').checked&&!siteMode?heat:'',siteEdit:siteMode,showDistances:$('showDistances').checked,mode:viewMode,rotating:drag?.mode==='rotate'});
+$('mapBody').classList.toggle('cad',cad);const ov=$('cadOverlay');ov.hidden=!cad;if(cad){const html=D.overlay(project,r,P);if(html!==overlayHtml){const open=[...ov.querySelectorAll('details')].map(d=>d.open);ov.innerHTML=html;const narrow=$('mapBody').clientWidth<1000;ov.querySelectorAll('details').forEach((d,i)=>{if(open[i]!==undefined)d.open=open[i];else if(narrow)d.open=false;});overlayHtml=html;}}else overlayHtml='';
+const failures=r.buildings.filter(x=>!x.pass).length;$('mapStatus').textContent=`${failures?failures+'개 동 조건 미충족':'현재 배치 기하 조건 충족'} · ${project.rules.northEnabled?'정북 가정 ON':'정북 적용 미확정'}${b?' · X '+fmt(b.x)+' / Y '+fmt(b.y):''}`;$('liveLabel').textContent=massDrag?(massDrag.mode==='floors'?`층수 조정 · ${b?.floors}F · 재계산됨`:'이동 중 · 재계산됨'):drag?(drag.mode==='rotate'?`회전 중 · ${fmt(b?.rotation??0,0)}° · 재계산됨`:'이동 중 · 재계산됨'):'실시간 검토';}
+// Layout versions: named snapshots of the building list kept in project.layouts
+// (max 30). Loading replaces the buildings and is undoable; rules and site stay.
+function layoutSummary(buildings){const r=E.evaluateSite(project.site.polygon,buildings,project.rules);return{buildings:buildings.length,households:r.households,far:Math.round(r.far*10)/10,coverage:Math.round(r.coverage*10)/10,pass:r.buildings.every(q=>q.pass),failures:r.buildings.filter(q=>!q.pass).length};}
+function sameLayout(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function saveLayout(name,note){const before=S.clone(project),list=project.layouts||[];if(list.length>=30)throw Error('배치안 버전은 30개까지 저장할 수 있습니다. 오래된 버전을 지워 주세요.');const L={id:'L'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:String(name).trim().slice(0,80)||`배치안 ${list.length+1}`,createdAt:new Date().toISOString(),revision:project.revision,preset:project.rules.preset||'custom',summary:layoutSummary(project.buildings),buildings:S.clone(project.buildings)};if(note&&note.trim())L.note=note.trim().slice(0,500);project.layouts=[...list,L];project=S.validateProject(project);commit(before);render();return L;}
+function openSaveLayout(){const n=(project.layouts||[]).length+1;modal('배치안 버전 저장',`<p class="muted">현재 동 배치(위치·회전·층수·형상)를 버전으로 저장합니다. 검토 조건과 대지는 저장하지 않으며, 저장 시점의 세대수·용적률·충족 여부를 함께 기록합니다.</p><label class="field">이름<input id="layoutName" maxlength="80" value="배치안 ${n}"></label><label class="field" style="margin-top:12px">메모<textarea id="layoutNote" rows="3" maxlength="500" placeholder="예: 101동 남측 이동, 정남향"></textarea></label>`,()=>{const L=saveLayout($('layoutName').value,$('layoutNote').value);toast(`'${L.name}' 버전을 저장했습니다.`);},'저장');}
+function loadLayout(id){const L=(project.layouts||[]).find(x=>x.id===id);if(!L)return;const before=S.clone(project);project.buildings=S.clone(L.buildings);project=S.validateProject(project);selected=project.buildings.some(b=>b.id===selected)?selected:project.buildings[0]?.id;commit(before);render();scheduleHeat();toast(`'${L.name}'을(를) 불러왔습니다. Ctrl+Z로 되돌릴 수 있습니다.`);}
+function renameLayout(id){const L=(project.layouts||[]).find(x=>x.id===id);if(!L)return;modal('버전 이름·메모 변경',`<label class="field">이름<input id="layoutName" maxlength="80" value="${esc(L.name)}"></label><label class="field" style="margin-top:12px">메모<textarea id="layoutNote" rows="3" maxlength="500">${esc(L.note||'')}</textarea></label>`,()=>{const before=S.clone(project),t=project.layouts.find(x=>x.id===id);t.name=$('layoutName').value.trim().slice(0,80)||t.name;const note=$('layoutNote').value.trim().slice(0,500);if(note)t.note=note;else delete t.note;project=S.validateProject(project);commit(before);render();});}
+function deleteLayout(id){const L=(project.layouts||[]).find(x=>x.id===id);if(!L)return;modal('버전 삭제',`<p class="muted">'${esc(L.name)}' 버전을 삭제합니다. 현재 배치는 바뀌지 않으며 Ctrl+Z로 되돌릴 수 있습니다.</p>`,()=>{const before=S.clone(project);project.layouts=project.layouts.filter(x=>x.id!==id);if(!project.layouts.length)delete project.layouts;commit(before);render();},'삭제');}
+function renderLayouts(){const list=(project.layouts||[]).slice().reverse();$('layoutCount').textContent=list.length?list.length+'개':'';
+  $('layoutList').innerHTML=list.length?list.map(L=>{const s=L.summary||{},current=sameLayout(L.buildings,project.buildings),date=new Date(L.createdAt),when=isNaN(date)?'':`${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+    return `<div class="layout-item ${current?'current':''}"><button class="layout-load" data-layout-load="${esc(L.id)}" title="${esc(L.note||'불러오기')}"><strong>${esc(L.name)}${current?' <em>현재</em>':''}</strong><small>${when} · ${s.buildings??L.buildings.length}개 동 · ${fmt(s.households??0,0)}세대 · 용적률 ${fmt(s.far??0)}% · <span class="${s.pass?'ok':'bad'}">${s.pass?'조건 충족':`${s.failures}개 동 미충족`}</span></small>${L.note?`<small class="layout-note">${esc(L.note)}</small>`:''}</button><span class="layout-actions"><button data-layout-rename="${esc(L.id)}" title="이름·메모 변경">✎</button><button data-layout-delete="${esc(L.id)}" title="삭제">×</button></span></div>`}).join(''):'<div class="layout-empty">저장한 버전이 없습니다.</div>';
+  document.querySelectorAll('[data-layout-load]').forEach(el=>el.onclick=()=>loadLayout(el.dataset.layoutLoad));document.querySelectorAll('[data-layout-rename]').forEach(el=>el.onclick=()=>renameLayout(el.dataset.layoutRename));document.querySelectorAll('[data-layout-delete]').forEach(el=>el.onclick=()=>deleteLayout(el.dataset.layoutDelete));}
+function render(properties=true){header();if(tab!=='site')return;const r=result();renderList(r);renderLayouts();if(properties)renderProperties();renderChecks(r);renderMetrics(r);drawMap(r);}
+// Candidate area: every grid point where the selected building's centre would
+// pass the current screening rules (same canPlace as the live check). The step
+// adapts so the grid stays near 4,500 samples; work yields every ~12 ms.
+function scheduleHeat(){
+  heat='';const epoch=++heatEpoch;clearTimeout(heatTimer);
+  if(tab!=='site'||!$('showHeat').checked){if(tab==='site')drawMap(result());return;}
+  const b=selectedBuilding();if(!b||b.locked){drawMap(result());return;}
+  heatTimer=setTimeout(async()=>{
+    const points=S.clone(project.site.polygon),rules=S.clone(project.rules),base={...b},others=S.clone(project.buildings.filter(x=>x.id!==b.id));
+    const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),w=Math.max(...xs)-x0,h=Math.max(...ys)-y0;
+    const step=[1,2,2.5,5,10,20,50].find(s=>(w/s+1)*(h/s+1)<=4500)||50,nx=Math.floor(w/step)+1,ny=Math.floor(h/step)+1,ok=new Uint8Array(nx*ny);
+    let count=0,started=performance.now();
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+      if(epoch!==heatEpoch||tab!=='site')return;
+      const x=x0+i*step,y=y0+j*step;
+      if(E.insidePolygon([x,y],points)&&E.canPlace(points,{...base,x,y},others,rules)){ok[j*nx+i]=1;count++;}
+      if(performance.now()-started>12){await new Promise(r=>setTimeout(r,0));started=performance.now();}
+    }
+    if(epoch!==heatEpoch)return;
+    heat={ok,nx,ny,x0,y0,step};
+    document.querySelector('.layer-note').textContent=count?`초록 영역은 ${b.name}의 중심을 옮겼을 때 현재 검토 조건을 충족하는 위치입니다. ${step} m 간격으로 ${count}곳을 확인했고, 십자 표시는 현재 중심입니다. 이동 후 정확한 위치에서 재계산합니다.`:`${b.name}을(를) 옮겨서 현재 검토 조건을 충족하는 위치가 없습니다. 층수·회전·다른 동 배치를 조정해 보세요.`;
+    drawMap(result());
+  },25);
+}
+
+function point(event){const svg=$('siteSvg'),p=svg.createSVGPoint();p.x=event.clientX;p.y=event.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());return [q.x,q.y]}
+// Pointer editing on the 2D map: drag a building to move it, or drag the
+// rotation handle to turn it about its centre (5° steps, Shift 15°, Alt 1°).
+// In site edit mode: drag a boundary vertex, click an edge "+" to insert one,
+// double-click a vertex to delete it. A change that would make the boundary
+// self-intersecting (or otherwise unevaluable) is not applied.
+function siteValid(polygon){try{E.evaluateSite(polygon,project.buildings,project.rules);return E.polygonArea(polygon)>=2;}catch{return false}}
+let pan2d=null;
+$('siteSvg').addEventListener('contextmenu',e=>e.preventDefault());
+$('siteSvg').addEventListener('pointerdown',e=>{if(e.button!==1&&e.button!==2)return;e.stopImmediatePropagation();e.preventDefault();pan2d={x:e.clientX,y:e.clientY,vb:viewBox.slice()};try{$('siteSvg').setPointerCapture(e.pointerId)}catch{}},true);
+$('siteSvg').addEventListener('pointermove',e=>{if(!pan2d)return;e.stopImmediatePropagation();const rect=$('siteSvg').getBoundingClientRect(),u=Math.max(pan2d.vb[2]/rect.width,pan2d.vb[3]/rect.height);viewBox=[pan2d.vb[0]-(e.clientX-pan2d.x)*u,pan2d.vb[1]-(e.clientY-pan2d.y)*u,pan2d.vb[2],pan2d.vb[3]];drawMap(result());},true);
+$('siteSvg').addEventListener('pointerup',e=>{if(!pan2d)return;e.stopImmediatePropagation();pan2d=null;},true);
+$('siteSvg').addEventListener('wheel',e=>{e.preventDefault();const p=point(e),[x,y,w,h]=viewBox,k=e.deltaY<0?.85:1/.85;if(w*k<30||w*k>30000)return;viewBox=[p[0]-(p[0]-x)*k,p[1]-(p[1]-y)*k,w*k,h*k];drawMap(result());},{passive:false});
+$('siteSvg').addEventListener('pointerdown',e=>{
+  if(siteMode){
+    const v=e.target.closest('[data-vertex]'),ins=e.target.closest('[data-insert]');if(!v&&!ins)return;
+    const before=S.clone(project);let i;
+    if(ins){i=Number(ins.dataset.insert)+1;const site=project.site.polygon,a=site[i-1],b=site[i%site.length];site.splice(i,0,[(a[0]+b[0])/2,(a[1]+b[1])/2]);}
+    else i=Number(v.dataset.vertex);
+    drag={mode:'vertex',i,start:point(e),origin:project.site.polygon[i].slice(),before};
+    try{$('siteSvg').setPointerCapture(e.pointerId)}catch{}e.preventDefault();render(false);return;
+  }
+  const handle=e.target.closest('[data-rotate]'),g=handle||e.target.closest('[data-building]');if(!g)return;
+  const id=handle?handle.dataset.rotate:g.dataset.building;if(selected!==id)select(id);
+  const b=selectedBuilding();if(b.locked)return toast('잠긴 동입니다. 속성 패널에서 잠금을 해제하세요.');
+  const p=point(e);
+  drag=handle?{mode:'rotate',id,start:Math.atan2(p[1]-b.y,p[0]-b.x),rotation:b.rotation,before:S.clone(project)}:{mode:'move',id,start:p,x:b.x,y:b.y,before:S.clone(project)};
+  if(handle){heat='';heatEpoch++;}
+  try{$('siteSvg').setPointerCapture(e.pointerId)}catch{}e.preventDefault();
+});
+$('siteSvg').addEventListener('pointermove',e=>{
+  if(!drag)return;const p=point(e);
+  if(drag.mode==='vertex'){
+    let x=drag.origin[0]+p[0]-drag.start[0],y=drag.origin[1]+p[1]-drag.start[1];
+    if($('snap').checked){x=Math.round(x);y=Math.round(y);}
+    const next=project.site.polygon.map((q,j)=>j===drag.i?[x,y]:q);
+    if(siteValid(next)){project.site.polygon=next;render(false);}
+    return;
+  }
+  const b=project.buildings.find(b=>b.id===drag.id);
+  if(drag.mode==='rotate'){
+    const delta=(Math.atan2(p[1]-b.y,p[0]-b.x)-drag.start)*180/Math.PI,step=e.altKey?1:e.shiftKey?15:5;
+    b.rotation=((Math.round((drag.rotation+delta)/step)*step)%360+360)%360;
+  }else{
+    const snap=$('snap').checked;b.x=drag.x+p[0]-drag.start[0];b.y=drag.y+p[1]-drag.start[1];
+    if(snap){b.x=Math.round(b.x);b.y=Math.round(b.y);}
+    b.x=Math.max(-10000,Math.min(10000,b.x));b.y=Math.max(-10000,Math.min(10000,b.y));
+  }
+  render(false);
+});
+$('siteSvg').addEventListener('pointerup',()=>{
+  if(!drag)return;const before=drag.before,mode=drag.mode;drag=null;
+  if(mode==='vertex'){try{project=S.validateProject(project)}catch(err){project=before;toast(err.message)}}
+  commit(before);render();if(mode!=='move')scheduleHeat();
+});
+$('siteSvg').addEventListener('pointercancel',()=>{if(!drag)return;project=drag.before;drag=null;render();scheduleHeat();});
+$('siteSvg').addEventListener('dblclick',e=>{
+  const v=siteMode&&e.target.closest('[data-vertex]');if(!v)return;
+  const site=project.site.polygon;if(site.length<=3)return toast('대지는 꼭짓점이 3개 이상이어야 합니다.');
+  const next=site.filter((_,j)=>j!==Number(v.dataset.vertex));
+  if(!siteValid(next))return toast('이 꼭짓점을 지우면 경계가 교차하거나 동이 평가되지 않습니다.');
+  const before=S.clone(project);project.site.polygon=next;commit(before);render();scheduleHeat();
+});
+function setSiteEdit(on){siteMode=on&&viewMode!=='3d';$('siteModeBtn').setAttribute('aria-pressed',String(siteMode));scheduleHeat();toast(siteMode?'대지 경계 편집: 꼭짓점 드래그 · 변의 ＋로 추가 · 더블클릭 삭제 · Esc 종료':'대지 경계 편집을 마쳤습니다.');}
+$('siteModeBtn').onclick=()=>setSiteEdit(!siteMode);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&siteMode&&!$('modal').open)setSiteEdit(false);});
+
+function switchTab(next){unitMount?.destroy?.();comboMount?.destroy?.();unitMount=comboMount=null;tab=next;document.querySelectorAll('[data-tab]').forEach(el=>el.classList.toggle('active',el.dataset.tab===next));for(const t of ['site','units','combinations'])$(t+'View').hidden=t!==next;if(next==='site'){render();scheduleHeat()}else if(next==='units'){unitMount=U.mountUnits($('unitsView'),project,()=>{commit();});snapshot=S.clone(project);persist();}else{comboMount=U.mountCombinations($('combinationsView'),project,()=>{commit()},placeTypology);snapshot=S.clone(project);persist();}}
+function placeTypology(t){if(project.buildings.length>=60)return toast('최대 60개 동까지 지원합니다.');const points=project.site.polygon,x=points.reduce((n,p)=>n+p[0],0)/points.length,y=points.reduce((n,p)=>n+p[1],0)/points.length;const b={id:'b'+Date.now(),name:(101+project.buildings.length)+'동',x,y,width:t.width,depth:t.depth,rotation:0,floors:20,floorHeight:2.9,baseElevation:0,unitsPerFloor:t.unitsPerFloor,unitArea:t.unitArea,coreArea:t.coreArea,locked:false,typologyId:t.id};project.buildings.push(b);selected=b.id;commit();switchTab('site');toast('동을 대지에 추가했습니다. 위치를 조정해 주세요.');}
+document.querySelectorAll('[data-tab]').forEach(el=>el.onclick=()=>switchTab(el.dataset.tab));$('addBuilding').onclick=()=>placeTypology({id:'generic',width:43,depth:13,unitsPerFloor:4,unitArea:74,coreArea:50});$('rulesBtn').onclick=openRules;$('saveLayout').onclick=openSaveLayout;$('siteEdit').onclick=siteEdit;
+document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{viewMode=el.dataset.view;if(viewMode==='3d')siteMode=false,$('siteModeBtn').setAttribute('aria-pressed','false');try{localStorage.setItem(VIEW_KEY,viewMode)}catch{}scheduleHeat();});function massPoint(e){const svg=$('massSvg'),p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());return [q.x,q.y]}$('massSvg').addEventListener('contextmenu',e=>e.preventDefault());$('massSvg').addEventListener('pointerdown',e=>{if(e.button===1||e.button===2){orbit={mode:e.shiftKey?'pan':'orbit',x:e.clientX,y:e.clientY,azimuth:view3d.azimuth,elevation:view3d.elevation,pan:view3d.pan.slice()};try{$('massSvg').setPointerCapture(e.pointerId)}catch{}e.preventDefault();return;}if(e.button!==0)return;const roof=e.target.closest('[data-roof]'),g=roof||e.target.closest('[data-mass]');if(g){const id=roof?roof.dataset.roof:g.dataset.mass;if(selected!==id)select(id);const b=selectedBuilding();if(!b)return;if(b.locked)return toast('잠긴 동입니다. 속성 패널에서 잠금을 해제하세요.');const p=massPoint(e);massDrag=roof?{mode:'floors',id,y:p[1],floors:b.floors,before:S.clone(project)}:{mode:'move',id,start:lastMass.camera.ground(p[0],p[1]),x:b.x,y:b.y,before:S.clone(project)};}else return;try{$('massSvg').setPointerCapture(e.pointerId)}catch{}e.preventDefault();});$('massSvg').addEventListener('pointermove',e=>{if(massDrag){const b=project.buildings.find(x=>x.id===massDrag.id),p=massPoint(e);if(massDrag.mode==='floors'){const dz=(massDrag.y-p[1])/lastMass.camera.zScale,est=E.buildingHeight({...b,floors:massDrag.floors},project.rules)/massDrag.floors;b.floors=Math.max(1,Math.min(100,massDrag.floors+Math.round(dz/est)));}else{const gp=lastMass.camera.ground(p[0],p[1]);b.x=massDrag.x+gp[0]-massDrag.start[0];b.y=massDrag.y+gp[1]-massDrag.start[1];if($('snap').checked){b.x=Math.round(b.x);b.y=Math.round(b.y);}}render(false);return;}if(!orbit)return;if(orbit.mode==='pan'){const rect=$('massSvg').getBoundingClientRect(),u=lastMass?Math.max(lastMass.viewBox[2]/rect.width,lastMass.viewBox[3]/rect.height):1;view3d.pan=[orbit.pan[0]-(e.clientX-orbit.x)*u,orbit.pan[1]-(e.clientY-orbit.y)*u];}else{view3d.azimuth=orbit.azimuth-(e.clientX-orbit.x)*.4;view3d.elevation=Math.max(12,Math.min(85,orbit.elevation+(e.clientY-orbit.y)*.3));}drawMap(result());});$('massSvg').addEventListener('pointerup',()=>{orbit=null;if(!massDrag)return;const before=massDrag.before;massDrag=null;commit(before);render();});$('massSvg').addEventListener('pointercancel',()=>{orbit=null;if(!massDrag)return;project=massDrag.before;massDrag=null;render();});$('massSvg').addEventListener('wheel',e=>{e.preventDefault();view3d.zoom=Math.max(.4,Math.min(6,view3d.zoom*(e.deltaY<0?1.15:1/1.15)));drawMap(result());},{passive:false});$('showHeat').onchange=scheduleHeat;$('showDistances').onchange=()=>drawMap(result());$('fitBtn').onclick=()=>{if(viewMode==='3d')view3d={azimuth:-25,elevation:35,zoom:1,pan:[0,0]};else fit();drawMap(result())};function zoom(scale){if(viewMode==='3d'){view3d.zoom=Math.max(.4,Math.min(6,view3d.zoom/scale));drawMap(result());return;}const [x,y,w,h]=viewBox;if(w*scale<30||w*scale>30000)return;viewBox=[x+w*(1-scale)/2,y+h*(1-scale)/2,w*scale,h*scale];drawMap(result())}$('zoomIn').onclick=()=>zoom(.8);$('zoomOut').onclick=()=>zoom(1.25);
+function undo(redo=false){const from=redo?future:history,to=redo?history:future;if(!from.length)return;to.push(S.clone(project));const rev=project.revision;project=from.pop();project.revision=rev+1;snapshot=S.clone(project);selected=project.buildings.some(b=>b.id===selected)?selected:project.buildings[0]?.id;persist();switchTab(tab);header();}
+$('undoBtn').onclick=()=>undo();$('redoBtn').onclick=()=>undo(true);document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||$('modal').open)return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo(e.shiftKey);return;}if(tab!=='site')return;const b=selectedBuilding();if(!b||b.locked)return;const d=e.shiftKey?5:1;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')b.x-=d;if(e.key==='ArrowRight')b.x+=d;if(e.key==='ArrowUp')b.y-=d;if(e.key==='ArrowDown')b.y+=d;commit();render();}else if(e.key.toLowerCase()==='r'){b.rotation=((b.rotation+(e.shiftKey?-15:15))%360+360)%360;commit();render();scheduleHeat();}});
+$('projectName').onchange=e=>{project.name=e.target.value.slice(0,180)||'새 프로젝트';commit();};$('saveBtn').onclick=()=>{download('planby-project-r'+project.revision+'.json',project);toast('프로젝트 파일을 저장했습니다.');};$('importBtn').onclick=()=>$('fileInput').click();$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>5e6)throw Error('5 MB 이하 JSON 파일을 선택하세요.');const raw=JSON.parse(await f.text());if(raw.schema===I.SCHEMA){importBuildings(raw);return;}const p=raw.schema==='apartment-planner-patch/1'?S.applyPatch(project,raw):S.validateProject(raw);modal(raw.schema==='apartment-planner-patch/1'?'자동 변경 결과 적용':'프로젝트 불러오기',`<p class="muted">${raw.schema==='apartment-planner-patch/1'?raw.changes.length+'개 동 변경':'프로젝트: '+esc(p.name)}<br>현재 작업은 실행 취소로 복원할 수 있습니다.</p>`,()=>{const before=S.clone(project);p.revision=Math.max(project.revision,p.revision);project=p;commit(before);selected=project.buildings[0]?.id;fit();switchTab(tab);toast('데이터를 적용했습니다.');});}catch(err){toast(err.message)}finally{e.target.value=''}};
+$('reportBtn').onclick=()=>{download('planby-review-r'+project.revision+'.json',{schema:'apartment-planner-review/1',projectName:project.name,revision:project.revision,generatedAt:new Date().toISOString(),rules:project.rules,results:result(),scope:'사용자 가정에 따른 개략 기하 검토. 법적 적합 판정 아님.',unreviewed:['지자체 조례와 규정 적용 여부','일조시간','주차 공급','소방차 접근','피난 동선','지반차 높이 보정','산입 제외 면적','사업 수지']});toast('검토 결과와 미검토 항목을 저장했습니다.');};
+$('dxfBtn').onclick=()=>{const a=['0','SECTION','2','HEADER','9','$INSUNITS','70','4','0','ENDSEC','0','SECTION','2','ENTITIES'];function line(points,layer){a.push('0','LWPOLYLINE','100','AcDbEntity','8',layer,'100','AcDbPolyline','90',String(points.length),'70','1');points.forEach(p=>a.push('10',String(p[0]*1000),'20',String(-p[1]*1000)));}line(project.site.polygon,'SITE');project.buildings.forEach(b=>line(E.footprint(b),'BUILDING'));a.push('0','ENDSEC','0','EOF');download('planby-site-r'+project.revision+'.dxf',a.join('\r\n'),'application/dxf');toast('대지와 동 외곽을 mm 단위 DXF로 저장했습니다.');};
+$('referenceBtn').onclick=()=>modal('검토 범위 · 참고자료',`<div class="notice">이 버전은 설계 초기의 배치 대안 탐색용입니다. 초록색은 입력한 기하 조건의 충족을 의미하며, 법적 적합을 의미하지 않습니다.</div><h3>구현된 검토</h3><p class="muted">회전된 직사각형 동 외곽의 겹침·대지 포함·최단 이격, 높은 동 높이에 비례하는 모든 외벽 거리 가정(단순) 또는 긴 변 채광면·짧은 변 측벽 구분 가정(면 구분, 대각 배치는 단순 규칙), 정북 방향 꼭짓점 경계 이격, 매스 면적과 세대 수, 사용자 주차대수 가정.</p><h3>별도 검토</h3><p class="muted">벽면 종류별 인동거리, 조례·용도지역·예외 적용, 지반차·필로티·부분 높이, 창면 수광점의 일조시간, 소방·피난, 주차 공급, 구조·설비, 사업 수지. 실제 HAUD DWG 형상 추출과 상세 도면화는 후속 단계입니다.</p><h3>참고자료</h3><ul class="source-list"><li>단위세대: 제공된 LH 양주회천 A-26 59A·74A·84A 이미지와 계획용 면적 제안. 화면 조닝은 별도 개념 모델입니다.</li><li>동·배치: HAUD 수색4, 인천계양, 청주월명, 고양삼송 사례의 연결 방식과 검토 표현 참고. 예시 대지는 가상입니다.</li><li><a href="https://www.law.go.kr/법령/건축법/제61조" target="_blank" rel="noopener">건축법 제61조</a> · <a href="https://www.law.go.kr/법령/건축법시행령/제86조" target="_blank" rel="noopener">시행령 제86조</a> — 공식 원문과 대상 지역 조례를 함께 확인하세요.</li></ul>`);
+fit();render();scheduleHeat();persist();if(STAGE){document.body.dataset.stage=STAGE;document.querySelectorAll('.workflow nav [data-tab]').forEach(el=>el.hidden=el.dataset.tab!==STAGE);document.querySelectorAll('.workflow nav i').forEach(el=>el.hidden=true);if(STAGE!=='site')switchTab(STAGE);}window.PlanbyApp={getProject:()=>S.clone(project),getResult:result};
+})();
+
+</script></body></html>

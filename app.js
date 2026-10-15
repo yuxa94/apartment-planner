@@ -5,6 +5,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 let lastMass=null,massDrag=null,siteMode=false,view3d={azimuth:-25,elevation:35,zoom:1,pan:[0,0]},orbit=null,viewMode='cad',overlayHtml='',project=S.createProject(),selected='b101',tab='site',history=[],future=[],snapshot,drag=null,viewBox=[0,0,210,185],heat='',heatTimer,heatEpoch=0,unitMount=null,comboMount=null,toastTimer;
 try{const v=localStorage.getItem(VIEW_KEY);if(VIEWS.includes(v))viewMode=v}catch{}
+// A packaged build may embed a starting project; a browser-saved one still wins.
+try{if(window.PLANBY_INITIAL_PROJECT)project=S.validateProject(S.clone(window.PLANBY_INITIAL_PROJECT))}catch{setTimeout(()=>toast('포함된 프로젝트가 올바르지 않아 예시 프로젝트를 열었습니다.'),200)}
 try{const saved=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);if(saved)project=S.validateProject(JSON.parse(saved));}catch{setTimeout(()=>toast('저장된 데이터가 호환되지 않아 예시 프로젝트를 열었습니다.'),200)}
 selected=project.buildings[0]?.id; snapshot=S.clone(project);
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4200)}
