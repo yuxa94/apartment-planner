@@ -137,3 +137,61 @@ test('saved reproduction is a valid project typology', () => {
   p.typologies.push(JSON.parse(JSON.stringify(U.reproduceReference('susaek4-101'))));
   assert.equal(S.validateProject(p).typologies[0].id, 'ref-susaek4-101');
 });
+
+const boxesOverlap = (a, b) => a[0] < b[2] - 1e-6 && b[0] < a[2] - 1e-6 && a[1] < b[3] - 1e-6 && b[1] < a[3] - 1e-6;
+const plans = U.UNIT_PLAN_FILES.map(f => JSON.parse(fs.readFileSync(__dirname + '/' + f, 'utf8')));
+
+test('unit plans from Stage 1: outline rectangles reproduce the outline area and the entrance sits on the outline', () => {
+  for (const plan of plans) {
+    const p = U.profileFromPlan(plan);
+    const area = p.rects.reduce((s, r) => s + (r[2] - r[0]) * (r[3] - r[1]), 0);
+    assert.ok(Math.abs(area - plan.checks.outlineArea) < 1e-3, p.type + ' area ' + area);
+    assert.ok(p.door.y > 0 && p.door.y < p.depth, p.type + ' door depth');
+  }
+  assert.throws(() => U.profileFromPlan({ ...plans[0], unit: { ...plans[0].unit, rooms: plans[0].unit.rooms.filter(r => r.id !== 'entry') } }), /현관/);
+  assert.throws(() => U.profileFromPlan({ ...plans[0], coordinateUnit: 'mm' }), /단위/);
+});
+
+test('every single core placement puts the entrance on a core face and keeps the unit off the core', () => {
+  const core = { width: 8.6, depth: 8 };
+  const { placements } = U.corePlacements(plans.map(U.profileFromPlan), core);
+  assert.ok(placements.length > 20);
+  for (const p of placements) {
+    assert.ok(!p.rects.some(r => boxesOverlap(r, [0, 0, core.width, core.depth])), p.type + p.face);
+    const onFace = p.door.every(([x, y]) => (Math.abs(y - core.depth) < 1e-6 || Math.abs(y) < 1e-6) ? x >= -1e-6 && x <= core.width + 1e-6 : (Math.abs(x) < 1e-6 || Math.abs(x - core.width) < 1e-6) && y >= -1e-6 && y <= core.depth + 1e-6);
+    assert.ok(onFace, 'door off core face: ' + p.type + p.face + p.t);
+  }
+});
+
+test('core combos: two south-facing units share one core like a stair-hall pair', () => {
+  const r = U.generateCoreCombos(plans, { types: [59], counts: [2], coreWidth: 8.6, coreDepth: 5 });
+  const pair = r.combos.find(c => c.facings.join() === '남향,남향');
+  assert.ok(pair);
+  const [a, b] = pair.geometry.units;
+  assert.notEqual(a.mirrored, b.mirrored);
+  assert.equal(r.combos.some(c => c.facings.includes('북향')), false);
+  assert.deepEqual(pair.sourceUnitIds, ['unit-59']);
+});
+
+test('core combos: no overlapping units, deeper core admits 3–4 units, results are deterministic', () => {
+  const opts = { types: [59, 74, 84], counts: [2, 3, 4], coreWidth: 8.6, coreDepth: 8 };
+  const r = U.generateCoreCombos(plans, opts);
+  for (const n of [2, 3, 4]) assert.ok(r.combos.some(c => c.unitsPerFloor === n), n + ' units');
+  const ids = r.combos.map(c => c.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(ids, U.generateCoreCombos(plans, opts).combos.map(c => c.id));
+  for (const c of r.combos) {
+    const units = c.geometry.units, core = c.geometry.core, coreRect = [core.x, core.y, core.x + core.width, core.y + core.depth];
+    for (let i = 0; i < units.length; i++) {
+      assert.ok(!units[i].rects.some(q => boxesOverlap(q, coreRect)), c.id + ' unit ' + i + ' overlaps core');
+      for (let j = i + 1; j < units.length; j++) assert.ok(!units[i].rects.some(q => units[j].rects.some(w => boxesOverlap(q, w))), c.id + ` units ${i},${j} overlap`);
+    }
+  }
+  assert.ok(U.generateCoreCombos(plans, { ...opts, allowNorth: true }).combos.length >= r.combos.length);
+});
+
+test('saved core combo is a valid project typology', () => {
+  const S = require('./state.js'), p = S.createProject();
+  p.typologies.push(JSON.parse(JSON.stringify(U.generateCoreCombos(plans, { coreDepth: 8 }).combos[0])));
+  assert.equal(S.validateProject(p).typologies.length, 1);
+});
