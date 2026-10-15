@@ -453,3 +453,65 @@ test('rotated parts resize in their own frame, and parts can be drawn and delete
   assert.ok(U.polysOverlap([[0, 0], [2, 0], [2, 2], [0, 2]], [[1, 1], [3, 1], [3, 3], [1, 3]]));
   assert.ok(!U.polysOverlap([[0, 0], [2, 0], [2, 2], [0, 2]], [[2, 0], [4, 0], [4, 2], [2, 2]]), 'touching is not overlapping');
 });
+
+test('editor snapping: a moved edge lands on another shape\'s line and reports a guide; Ctrl-style zero tolerance does not', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  const i = c.geometry.core.parts.findIndex(p => p.kind === 'shaft'), r = c.geometry.core.parts[i].rect;
+  const lines = [...c.geometry.units.flatMap(u => u.rects.flatMap(q => [q[0], q[2]])), ...c.geometry.core.parts.filter((_, j) => j !== i).flatMap(p => [p.rect[0], p.rect[2]])];
+  const target = lines.map(l => l - r[0]).filter(d => Math.abs(d) > .5).sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+  const s = U.snapMove(c, { kind: 'part', i }, target + .13, 0, .3);
+  assert.equal(round2(r[0] + s.dx), round2(r[0] + target));
+  assert.ok(s.guides.some(g => g.axis === 'x'));
+  const free = U.snapMove(c, { kind: 'part', i }, target + .13, 0, 0);
+  assert.equal(free.guides.length, 0);
+  assert.ok(Math.abs(free.dx - (target + .15)) < 1e-6 || Math.abs(free.dx - (target + .1)) < 1e-6, 'grid only');
+});
+const round2 = v => Math.round(v * 1000) / 1000;
+
+test('doors and windows slide along walls, jump to another wall, and can be deleted or added', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0], u = c.geometry.units[0];
+  // Door: dragged towards a far point it lands on the nearest wall, 1 m wide and on the outline.
+  const b = u.outline.reduce((m, p) => [Math.min(m[0], p[0]), Math.min(m[1], p[1]), Math.max(m[2], p[0]), Math.max(m[3], p[1])], [Infinity, Infinity, -Infinity, -Infinity]);
+  const moved = U.editMoveDoor(c, 0, [(b[0] + b[2]) / 2, b[3] + .4], 0).t.geometry.units[0].door;
+  assert.ok(Math.abs(Math.hypot(moved[1][0] - moved[0][0], moved[1][1] - moved[0][1]) - 1) < 1e-6);
+  assert.ok(Math.abs(moved[0][1] - b[3]) < 1e-6 && Math.abs(moved[1][1] - b[3]) < 1e-6, 'door on the south wall');
+  const noDoor = U.editDeleteDoor(c, 0);
+  assert.equal(noDoor.geometry.units[0].door, null);
+  assert.ok(U.checkEdited(noDoor).some(x => x.includes('현관 없음')));
+  // Windows: first edit switches the unit to hand-placed windows; delete and add change the count and totals.
+  const n = u.windows.length;
+  const del = U.editDeleteWindow(c, 0, 0);
+  assert.equal(del.geometry.units[0].windowsManual, true);
+  assert.equal(del.geometry.units[0].windows.length, n - 1);
+  const add = U.editAddWindow(del, 0, [b[0] + 3, b[3]]);
+  assert.equal(add.geometry.units[0].windows.length, n);
+  assert.equal(add.geometry.units[0].windows.at(-1).dir, 'S');
+  const slid = U.editMoveWindow(add, 0, n - 1, [b[0] + 5, b[3] + .3], 0).t.geometry.units[0].windows.at(-1);
+  assert.ok(Math.abs((slid.a[0] + slid.b[0]) / 2 - (b[0] + 5)) < .06);
+  // Hand-placed windows follow the unit when it turns and are kept by moves; going back to automatic restores them.
+  const turned = U.editRotate(add, { kind: 'unit', i: 0 }).geometry.units[0];
+  assert.equal(turned.windows.at(-1).dir, 'W');
+  assert.equal(U.editAutoWindows(add, 0).geometry.units[0].windows.length, n);
+});
+
+test('outline walls push and pull, carrying the rooms, door and windows on them', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0], u = c.geometry.units[0];
+  const area = rs => rs.reduce((s, r) => s + (r[2] - r[0]) * (r[3] - r[1]), 0);
+  // The south wall: the longest horizontal edge at the largest y.
+  const maxY = Math.max(...u.outline.map(p => p[1]));
+  const e = u.outline.findIndex((p, k) => { const q = u.outline[(k + 1) % u.outline.length]; return Math.abs(p[1] - maxY) < 1e-6 && Math.abs(q[1] - maxY) < 1e-6; });
+  assert.ok(e >= 0);
+  const out = U.moveOutlineEdge(c, 0, e, .6);
+  assert.ok(out.ok, out.message);
+  const v = out.t.geometry.units[0];
+  assert.ok(area(v.rects) > area(u.rects));
+  // Rooms whose side sat on that wall moved with it, so nothing new sticks out.
+  assert.ok(!U.checkEdited(U.editMove(out.t, { kind: 'unit', i: 0 }, 0, 0)).some(x => x.includes('외곽선 밖')));
+  assert.ok(v.rooms.some(r => Math.abs(r.rect[3] - (maxY + .6)) < 1e-6));
+  // Pulled back, the outline area returns.
+  const back = U.moveOutlineEdge(out.t, 0, out.t.geometry.units[0].outline.findIndex((p, k, o) => Math.abs(p[1] - (maxY + .6)) < 1e-6 && Math.abs(o[(k + 1) % o.length][1] - (maxY + .6)) < 1e-6), -.6);
+  assert.ok(back.ok);
+  assert.ok(Math.abs(area(back.t.geometry.units[0].rects) - area(u.rects)) < 1e-6);
+  // Pushing a wall through the opposite side is refused.
+  assert.equal(U.moveOutlineEdge(c, 0, e, -50).ok, false);
+});

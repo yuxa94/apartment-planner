@@ -902,7 +902,7 @@
     if (doc.getElementById('planner-units-style')) return;
     const style = doc.createElement('style'); style.id = 'planner-units-style';
     style.textContent = `
-      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-ed{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:16px;align-items:start}.pu-ed-list h3,.pu-ed-side h3{font-size:15px;margin:0 0 12px}.pu-ed-row{display:block;width:100%;text-align:left;border:1px solid #dce5ed;background:#fff;border-radius:9px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit;color:#2c4964}.pu-ed-row small{display:block;color:#7b8da0;margin-top:4px;font-size:11px}.pu-ed-row.active{border-color:#1f62b4;background:#eef5fd}.pu-ed-row:disabled{opacity:.5;cursor:default}.pu-ed-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#fbfdfe;outline:none}.pu-ed-wrap:focus{border-color:#1f62b4}.pu-ed-canvas{display:block;width:100%;height:560px;touch-action:none;user-select:none}.pu-ed-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px}.pu-ed-tools .section-label{margin:0 4px 0 0}.pu-ed-wrap.drawing .pu-ed-canvas,.pu-ed-wrap.drawing .pu-ed-item{cursor:crosshair}[data-handle=del]{cursor:pointer}.pu-ed-item{cursor:grab}[data-handle=nw],[data-handle=se]{cursor:nwse-resize}[data-handle=ne],[data-handle=sw]{cursor:nesw-resize}[data-handle=n],[data-handle=s]{cursor:ns-resize}[data-handle=e],[data-handle=w]{cursor:ew-resize}[data-handle=rot]{cursor:grab}.pu-ed-item.selected{cursor:grabbing}@media(max-width:1100px){.pu-ed{grid-template-columns:1fr}.pu-ed-canvas{height:420px}}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-ed{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:16px;align-items:start}.pu-ed-list h3,.pu-ed-side h3{font-size:15px;margin:0 0 12px}.pu-ed-row{display:block;width:100%;text-align:left;border:1px solid #dce5ed;background:#fff;border-radius:9px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit;color:#2c4964}.pu-ed-row small{display:block;color:#7b8da0;margin-top:4px;font-size:11px}.pu-ed-row.active{border-color:#1f62b4;background:#eef5fd}.pu-ed-row:disabled{opacity:.5;cursor:default}.pu-ed-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#fbfdfe;outline:none}.pu-ed-wrap:focus{border-color:#1f62b4}.pu-ed-canvas{display:block;width:100%;height:560px;touch-action:none;user-select:none}.pu-ed-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px}.pu-ed-tools .section-label{margin:0 4px 0 0}.pu-ed-wrap.drawing .pu-ed-canvas,.pu-ed-wrap.drawing .pu-ed-item{cursor:crosshair}[data-handle=del]{cursor:pointer}.pu-ed-item{cursor:grab}.pu-ed-wall{stroke:transparent;stroke-linecap:butt}.pu-ed-wall.h{cursor:ns-resize}.pu-ed-wall.v{cursor:ew-resize}.pu-ed-wall:hover,.pu-ed-wall.active{stroke:rgba(18,98,203,.28)}.pu-ed-open{stroke:transparent;cursor:move}.pu-ed-open:hover{stroke:rgba(224,138,46,.25)}.pu-ed-guide{stroke:#d6337a;stroke-width:1.2px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}.pu-ed-snap{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;color:#5a6f83}[data-handle=nw],[data-handle=se]{cursor:nwse-resize}[data-handle=ne],[data-handle=sw]{cursor:nesw-resize}[data-handle=n],[data-handle=s]{cursor:ns-resize}[data-handle=e],[data-handle=w]{cursor:ew-resize}[data-handle=rot]{cursor:grab}.pu-ed-item.selected{cursor:grabbing}@media(max-width:1100px){.pu-ed{grid-template-columns:1fr}.pu-ed-canvas{height:420px}}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
       @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector,.pu-ref-body{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
     `;
     doc.head.appendChild(style);
@@ -1075,11 +1075,13 @@
 
   // ── Manual editing of saved building candidates. Pure geometry helpers first (testable), then the editor view.
   // Units and core parts keep their drawn shape axis-aligned and carry a free rotation `angle` (degrees, clockwise on screen)
-  // about the centre of their box. Checks and windows use the rotated shapes.
-  const FACE_CW = { S: 'W', W: 'N', N: 'E', E: 'S' }, FACE_NAME = { S: '남향', E: '동향', W: '서향', N: '북향' };
+  // about the centre of their box. Checks and windows use the rotated shapes. A unit's door, windows and outline are edited
+  // in the unit's own (unrotated) frame.
+  const FACE_CW = { S: 'W', W: 'N', N: 'E', E: 'S' }, FACE_NAME = { S: '남향', E: '동향', W: '서향', N: '북향' }, FLIP_EW = { S: 'S', N: 'N', E: 'W', W: 'E' };
   const PART_SIZES = { stair: [2.7, 5.4, '계단실'], lift: [2.25, 2.35, '승강기'], shaft: [.9, 2.4, 'EPS·TPS·PS'], hall: [1.8, 3.6, '홀·복도'] };
   const FRONT = { S: [0, 1], E: [1, 0], N: [0, -1], W: [-1, 0] };
   const COMPASS = ['동', '남동', '남', '남서', '서', '북서', '북', '북동'];
+  const WINDOW_NEW = 1.5;
 
   const isEditable = t => Boolean(t && t.geometry && Array.isArray(t.geometry.units) && t.geometry.units.length && t.geometry.units.every(u => Array.isArray(u.outline) && Array.isArray(u.rects)) && t.geometry.core && Array.isArray(t.geometry.core.parts));
   const normAngle = a => { const v = ((Number(a) || 0) % 360 + 360) % 360; return round(v > 359.9995 ? 0 : v); };
@@ -1090,6 +1092,7 @@
   const unitPolys = u => u.rects.map(r => corners(r).map(q => rotPt(q, unitCentre(u), u.angle || 0)));
   const partPoly = p => corners(p.rect).map(q => rotPt(q, partCentre(p), p.angle || 0));
   const isRotated = t => t.geometry.units.some(u => normAngle(u.angle)) || t.geometry.core.parts.some(p => normAngle(p.angle));
+  const toUnitFrame = (u, p) => rotPt(p, unitCentre(u), -(u.angle || 0));
 
   // Convex polygons overlap when no edge normal separates them; touching edges do not count.
   function polysOverlap(A, B) {
@@ -1103,15 +1106,52 @@
   const segDist = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
   const polyDist = (A, B) => polysOverlap(A, B) ? 0 : Math.min(...A.map(p => Math.min(...B.map((q, i) => segDist(p, q, B[(i + 1) % B.length])))), ...B.map(p => Math.min(...A.map((q, i) => segDist(p, q, A[(i + 1) % A.length])))));
   const pointNearPoly = (p, P, tol) => { let inside = true; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) < 0) inside = false; } if (inside) return true; return Math.min(...P.map((a, i) => segDist(p, a, P[(i + 1) % P.length]))) <= tol; };
+  // Ray casting for any simple polygon (unit outlines are not convex).
+  function insidePolygon([x, y], P) {
+    let inside = false;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xi, yi] = P[i], [xj, yj] = P[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
   // Shared boundary between two parts: exact when both are unrotated, else "touching" when the shapes come within 2 cm.
   const partContact = (p, q) => !normAngle(p.angle) && !normAngle(q.angle) ? contactLength(p.rect, q.rect) : polyDist(partPoly(p), partPoly(q)) <= .02 ? DOOR : 0;
 
-  function mapUnit(u, fp, fr) {
-    return { ...u, outline: u.outline.map(fp), rects: u.rects.map(fr), rooms: (u.rooms || []).map(r => ({ ...r, rect: fr(r.rect) })), door: u.door.map(fp), centre: fp(u.centre), windows: [] };
+  // Moves a unit's whole drawing; sides of hand-placed windows follow quarter turns and mirroring.
+  function mapUnit(u, fp, fr, sideMap) {
+    const mapW = w => ({ ...w, a: fp(w.a), b: fp(w.b), side: sideMap ? sideMap[w.side] || w.side : w.side });
+    return { ...u, outline: u.outline.map(fp), rects: u.rects.map(fr), rooms: (u.rooms || []).map(r => ({ ...r, rect: fr(r.rect) })),
+      door: u.door ? u.door.map(fp) : null, centre: fp(u.centre), windows: [], manualWindows: u.windowsManual ? (u.manualWindows || []).map(mapW) : u.manualWindows };
   }
   const shiftPoint = (dx, dy) => ([x, y]) => [round(x + dx), round(y + dy)];
   const shiftRect = (dx, dy) => r => [round(r[0] + dx), round(r[1] + dy), round(r[2] + dx), round(r[3] + dy)];
   const clone = t => JSON.parse(JSON.stringify(t));
+
+  /* ---------- snapping (as in Stage 1): edges of other shapes as infinite lines, plus outline corners ---------- */
+  // Lines on each axis from unrotated units and parts; `skip(kind, index)` leaves out the element being moved.
+  function snapLines(t, skip) {
+    const g = t.geometry, xs = new Set(), ys = new Set(), add = r => { xs.add(r[0]); xs.add(r[2]); ys.add(r[1]); ys.add(r[3]); };
+    g.units.forEach((u, i) => { if ((skip && skip('unit', i)) || normAngle(u.angle)) return; u.rects.forEach(add); u.outline.forEach(([x, y]) => { xs.add(x); ys.add(y); }); });
+    g.core.parts.forEach((p, i) => { if ((skip && skip('part', i)) || normAngle(p.angle)) return; add(p.rect); });
+    return { x: [...xs], y: [...ys] };
+  }
+  // Nearest line to any of `values` (+ d) within tol: returns the corrected offset and the line hit.
+  function snapAxis(values, lines, d, tol) {
+    let best = null;
+    for (const v of values) for (const l of lines) { const off = l - (v + d); if (Math.abs(off) <= tol && (!best || Math.abs(off) < Math.abs(best.off))) best = { off, line: l }; }
+    return best ? { d: round(d + best.off), line: best.line } : { d: round(Math.round(d / .05) * .05), line: null };
+  }
+  const guidesFrom = (gx, gy) => [...(gx !== null ? [{ axis: 'x', value: gx }] : []), ...(gy !== null ? [{ axis: 'y', value: gy }] : []), ...(gx !== null && gy !== null ? [{ axis: 'point', x: gx, y: gy }] : [])];
+
+  // Snaps a moved element so its nearest edge lands on another shape's line (per axis); rotated elements move on a 5 cm grid.
+  function snapMove(t, sel, dx, dy, tol) {
+    const g = t.geometry, el = sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i], T = tol == null ? .3 : tol;
+    if (!T || normAngle(el.angle)) { const grid = v => round(Math.round(v / .05) * .05); return { dx: grid(dx), dy: grid(dy), guides: [] }; }
+    const b = boxOf(sel.kind === 'unit' ? el.rects : [el.rect]), lines = snapLines(t, (k, i) => k === sel.kind && i === sel.i);
+    const sx = snapAxis([b[0], b[2]], lines.x, dx, T), sy = snapAxis([b[1], b[3]], lines.y, dy, T);
+    return { dx: sx.d, dy: sy.d, guides: guidesFrom(sx.line, sy.line) };
+  }
 
   function editMove(t, sel, dx, dy) {
     const c = clone(t), g = c.geometry;
@@ -1133,7 +1173,7 @@
       const u = g.units[sel.i], [cx, cy] = unitCentre(u);
       const fp = ([x, y]) => [round(cx - (y - cy)), round(cy + (x - cx))], fr = r => rectOf([fp([r[0], r[1]]), fp([r[2], r[3]])]);
       const face = FACE_CW[u.face] || u.face;
-      g.units[sel.i] = { ...mapUnit(u, fp, fr), face, facing: FACE_NAME[face] || u.facing };
+      g.units[sel.i] = { ...mapUnit(u, fp, fr, FACE_CW), face, facing: FACE_NAME[face] || u.facing };
     } else {
       const p = g.core.parts[sel.i], [cx, cy] = partCentre(p), w = p.rect[2] - p.rect[0], h = p.rect[3] - p.rect[1];
       p.rect = [cx - h / 2, cy - w / 2, cx + h / 2, cy + w / 2].map(round);
@@ -1147,32 +1187,37 @@
     if (sel.kind !== 'unit') return c;
     const u = g.units[sel.i], b = boxOf(u.rects), sx = b[0] + b[2];
     const fp = ([x, y]) => [round(sx - x), y], fr = r => [round(sx - r[2]), r[1], round(sx - r[0]), r[3]];
-    const face = u.face === 'E' ? 'W' : u.face === 'W' ? 'E' : u.face;
-    g.units[sel.i] = { ...mapUnit(u, fp, fr), outline: u.outline.map(fp).reverse(), face, facing: FACE_NAME[face] || u.facing, mirrored: !u.mirrored, angle: normAngle(-(u.angle || 0)) };
+    const face = FLIP_EW[u.face] || u.face;
+    g.units[sel.i] = { ...mapUnit(u, fp, fr, FLIP_EW), outline: u.outline.map(fp).reverse(), face, facing: FACE_NAME[face] || u.facing, mirrored: !u.mirrored, angle: normAngle(-(u.angle || 0)) };
     return refreshEdited(c);
   }
 
   const PART_MIN = .3, HANDLES = { nw: [-1, -1], n: [0, -1], ne: [1, -1], e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0] };
 
-  // Drags one bounding-box handle of a core part. The pointer offset is taken in the part's own (rotated) frame so the
-  // opposite side stays put; unrotated parts snap the moving edges to walls within 0.3 m, otherwise sizes move in 5 cm steps.
-  function resizeRect(t, i, handle, dx, dy) {
-    const g = t.geometry, p = g.core.parts[i], r = p.rect, a = normAngle(p.angle), [hx, hy] = HANDLES[handle] || [0, 0];
+  // Drags one bounding-box handle of a core part. Unrotated parts snap the moving edges to other shapes' lines; rotated parts
+  // take the pointer offset in their own frame so the opposite side stays put, in 5 cm steps. The result carries `guides`.
+  function resizeRect(t, i, handle, dx, dy, tol) {
+    const g = t.geometry, p = g.core.parts[i], r = p.rect, a = normAngle(p.angle), [hx, hy] = HANDLES[handle] || [0, 0], T = tol == null ? .3 : tol;
     if (!a) {
-      const others = [...g.units.flatMap(u => normAngle(u.angle) ? [] : u.rects), ...g.core.parts.filter((q, j) => j !== i && !normAngle(q.angle)).map(q => q.rect)];
-      const snap = (v, edges) => { let pick = null; for (const o of edges) if (Math.abs(o - v) < .3 && (pick === null || Math.abs(o - v) < Math.abs(pick - v))) pick = o; return round(pick === null ? Math.round(v / .05) * .05 : pick); };
-      const xs = others.flatMap(q => [q[0], q[2]]), ys = others.flatMap(q => [q[1], q[3]]);
-      let [x0, y0, x1, y1] = r;
-      if (hx < 0) x0 = Math.min(snap(r[0] + dx, xs), x1 - PART_MIN); if (hx > 0) x1 = Math.max(snap(r[2] + dx, xs), x0 + PART_MIN);
-      if (hy < 0) y0 = Math.min(snap(r[1] + dy, ys), y1 - PART_MIN); if (hy > 0) y1 = Math.max(snap(r[3] + dy, ys), y0 + PART_MIN);
-      return [x0, y0, x1, y1].map(round);
+      const lines = T ? snapLines(t, (k, j) => k === 'part' && j === i) : { x: [], y: [] };
+      const pick = (v, ls) => { const s = snapAxis([v], ls, 0, T); return { v: round(v + s.d), line: s.line }; };
+      let [x0, y0, x1, y1] = r, gx = null, gy = null;
+      if (hx < 0) { const s = pick(r[0] + dx, lines.x); x0 = Math.min(s.v, x1 - PART_MIN); gx = s.line; }
+      if (hx > 0) { const s = pick(r[2] + dx, lines.x); x1 = Math.max(s.v, x0 + PART_MIN); gx = s.line; }
+      if (hy < 0) { const s = pick(r[1] + dy, lines.y); y0 = Math.min(s.v, y1 - PART_MIN); gy = s.line; }
+      if (hy > 0) { const s = pick(r[3] + dy, lines.y); y1 = Math.max(s.v, y0 + PART_MIN); gy = s.line; }
+      const out = [x0, y0, x1, y1].map(round);
+      out.guides = guidesFrom(gx, gy);
+      return out;
     }
     const [lx, ly] = rotPt([dx, dy], [0, 0], -a), w = r[2] - r[0], h = r[3] - r[1];
     const step = v => Math.round(v / .05) * .05;
     const nw = Math.max(PART_MIN, w + (hx ? hx * step(lx) : 0)), nh = Math.max(PART_MIN, h + (hy ? hy * step(ly) : 0));
     // Shift of the centre in the part frame keeps the fixed side in place, then back to the drawing frame.
     const [ox, oy] = rotPt([hx * (nw - w) / 2, hy * (nh - h) / 2], [0, 0], a), [cx, cy] = partCentre(p);
-    return [cx + ox - nw / 2, cy + oy - nh / 2, cx + ox + nw / 2, cy + oy + nh / 2].map(round);
+    const out = [cx + ox - nw / 2, cy + oy - nh / 2, cx + ox + nw / 2, cy + oy + nh / 2].map(round);
+    out.guides = [];
+    return out;
   }
 
   function editResize(t, i, rect) {
@@ -1198,6 +1243,128 @@
     return refreshEdited(c);
   }
 
+  /* ---------- unit outline, door and windows (unit frame) ---------- */
+  function outlineEdge(u, e) {
+    const n = u.outline.length, a = u.outline[e], b = u.outline[(e + 1) % n], horizontal = Math.abs(a[1] - b[1]) < EPS, vertical = Math.abs(a[0] - b[0]) < EPS;
+    // Outward side: the side of the wall that is outside the unit.
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], side = horizontal ? (insidePolygon([m[0], m[1] + .05], u.outline) ? 'N' : 'S') : vertical ? (insidePolygon([m[0] + .05, m[1]], u.outline) ? 'W' : 'E') : null;
+    return { a, b, horizontal, vertical, side, length: Math.hypot(b[0] - a[0], b[1] - a[1]) };
+  }
+
+  // Nearest straight wall of the outline to a point (unit frame), long enough for an opening of `len`.
+  function nearestWall(u, p, len) {
+    let best = null;
+    u.outline.forEach((_, e) => {
+      const w = outlineEdge(u, e);
+      if (!(w.horizontal || w.vertical) || w.length < len - EPS) return;
+      const d = segDist(p, w.a, w.b);
+      if (!best || d < best.d) best = { ...w, e, d };
+    });
+    return best;
+  }
+
+  // Places an opening of length `len` on that wall, centred as near `p` as the wall allows; `lines` snap the centre.
+  function openingOnWall(w, p, len, lines, tol) {
+    const along = w.horizontal ? 0 : 1, lo = Math.min(w.a[along], w.b[along]) + len / 2, hi = Math.max(w.a[along], w.b[along]) - len / 2;
+    let c = Math.min(Math.max(p[along], lo), hi), guide = null;
+    if (tol) {
+      // Either end of the opening, or its centre, lands on a nearby line (room walls of the unit).
+      let best = null;
+      for (const l of lines) for (const off of [-len / 2, 0, len / 2]) { const d = l - (c + off); if (Math.abs(d) <= tol && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, l }; }
+      if (best && c + best.d >= lo - EPS && c + best.d <= hi + EPS) { c += best.d; guide = best.l; }
+    }
+    c = round(Math.round(c / .05) * .05 === c ? c : (guide !== null ? c : Math.round(c / .05) * .05));
+    const fixed = w.horizontal ? w.a[1] : w.a[0], ends = [c - len / 2, c + len / 2].map(round);
+    const pts = w.horizontal ? [[ends[0], fixed], [ends[1], fixed]] : [[fixed, ends[0]], [fixed, ends[1]]];
+    return { a: pts[0], b: pts[1], guide: guide === null ? null : { axis: w.horizontal ? 'x' : 'y', value: guide } };
+  }
+  const roomLines = u => ({ x: (u.rooms || []).flatMap(r => [r.rect[0], r.rect[2]]), y: (u.rooms || []).flatMap(r => [r.rect[1], r.rect[3]]) });
+  const linesAlong = (u, w) => w.horizontal ? roomLines(u).x : roomLines(u).y;
+  // The room whose wall carries a window (for its label and category).
+  function roomAt(u, a, b, side) {
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], o = FRONT[side] || [0, 0], q = [m[0] - o[0] * .05, m[1] - o[1] * .05];
+    return (u.rooms || []).find(r => q[0] >= r.rect[0] - EPS && q[0] <= r.rect[2] + EPS && q[1] >= r.rect[1] - EPS && q[1] <= r.rect[3] + EPS) || null;
+  }
+
+  function editMoveDoor(t, ui, p, tol) {
+    const c = clone(t), u = c.geometry.units[ui], w = nearestWall(u, p, DOOR);
+    if (!w) return { t, guides: [] };
+    const o = openingOnWall(w, p, DOOR, linesAlong(u, w), tol);
+    u.door = [o.a, o.b];
+    return { t: refreshEdited(c), guides: o.guide ? [o.guide] : [] };
+  }
+  function editDeleteDoor(t, ui) { const c = clone(t); c.geometry.units[ui].door = null; return refreshEdited(c); }
+
+  // Windows become hand-placed for a unit on its first window edit (the current automatic ones are kept as the start).
+  function manualWindowsOf(u) {
+    if (u.windowsManual) return u.manualWindows || [];
+    return (u.windows || []).map(w => ({ a: w.a, b: w.b, length: w.length, side: w.side || w.dir, room: w.room, category: w.category }));
+  }
+  function setManual(u, list) { u.windowsManual = true; u.manualWindows = list.map(w => ({ ...w, length: round(Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])) })); }
+
+  function editMoveWindow(t, ui, k, p, tol) {
+    const c = clone(t), u = c.geometry.units[ui], list = manualWindowsOf(u), cur = list[k];
+    if (!cur) return { t, guides: [] };
+    const len = Math.max(WINDOW_MIN, cur.length || Math.hypot(cur.b[0] - cur.a[0], cur.b[1] - cur.a[1])), w = nearestWall(u, p, Math.min(len, WINDOW_MIN));
+    if (!w) return { t, guides: [] };
+    const fit = Math.min(len, w.length), o = openingOnWall(w, p, fit, linesAlong(u, w), tol), room = roomAt(u, o.a, o.b, w.side);
+    list[k] = { ...cur, a: o.a, b: o.b, side: w.side, room: room ? room.name : '창', category: room ? room.category : 'window' };
+    setManual(u, list);
+    return { t: refreshEdited(c), guides: o.guide ? [o.guide] : [] };
+  }
+  function editAddWindow(t, ui, p, len) {
+    const c = clone(t), u = c.geometry.units[ui], w = nearestWall(u, p, WINDOW_MIN);
+    if (!w) return t;
+    const o = openingOnWall(w, p, Math.min(len || WINDOW_NEW, w.length - .1), [], 0), room = roomAt(u, o.a, o.b, w.side);
+    setManual(u, [...manualWindowsOf(u), { a: o.a, b: o.b, side: w.side, room: room ? room.name : '창', category: room ? room.category : 'window' }]);
+    return refreshEdited(c);
+  }
+  function editDeleteWindow(t, ui, k) { const c = clone(t), u = c.geometry.units[ui], list = manualWindowsOf(u); list.splice(k, 1); setManual(u, list); return refreshEdited(c); }
+  function editAutoWindows(t, ui) { const c = clone(t), u = c.geometry.units[ui]; u.windowsManual = false; delete u.manualWindows; return refreshEdited(c); }
+
+  // Push/pull one straight wall of a unit outline by `delta` (unit frame, + = towards +x/+y), as in Stage 1: rooms lying along
+  // that wall follow it, a wall that is part of a longer straight run is extruded, and the door/hand-placed windows on it move too.
+  function moveOutlineEdge(t, ui, e, delta) {
+    const c = clone(t), u = c.geometry.units[ui], n = u.outline.length;
+    if (!Number.isFinite(delta)) return { ok: false, t, message: '이동 거리가 올바르지 않습니다.' };
+    if (Math.abs(delta) < 1e-4) return { ok: true, t };
+    const w = outlineEdge(u, e);
+    if (!w.horizontal && !w.vertical) return { ok: false, t, message: '사선 벽은 밀고 당길 수 없습니다.' };
+    const ax = w.horizontal ? 1 : 0, along = 1 - ax, line = w.a[ax], lo = Math.min(w.a[along], w.b[along]), hi = Math.max(w.a[along], w.b[along]);
+    const onWall = q => Math.abs(q[ax] - line) < 1e-3 && q[along] >= lo - 1e-3 && q[along] <= hi + 1e-3;
+    for (const r of u.rooms || []) {
+      const s = r.rect[along], f = r.rect[along + 2];
+      if (s < lo - 1e-3 || f > hi + 1e-3 || f - s <= 1e-3) continue;
+      const nearIdx = ax, farIdx = ax + 2;
+      const k = Math.abs(r.rect[nearIdx] - line) < 1e-3 ? nearIdx : Math.abs(r.rect[farIdx] - line) < 1e-3 ? farIdx : -1;
+      if (k < 0) continue;
+      r.rect[k] = round(r.rect[k] + delta);
+      if (r.rect[farIdx] - r.rect[nearIdx] < PART_MIN) return { ok: false, t, message: `${r.name}이(가) 너무 작아집니다.` };
+    }
+    // A segment of a longer straight wall is extruded: keep the original corners so the connectors stay square.
+    const poly = u.outline.map(q => q.slice()), parallel = i => { const v = outlineEdge(u, (i + n) % n); return w.horizontal ? v.horizontal : v.vertical; };
+    const keepA = parallel(e - 1), keepB = parallel(e + 1), A = poly[e], B = poly[(e + 1) % n], oldA = A.slice(), oldB = B.slice();
+    A[ax] = round(A[ax] + delta); B[ax] = round(B[ax] + delta);
+    let next = [];
+    poly.forEach((q, i) => { if (i === e && keepA) next.push(oldA); next.push(q); if (i === (e + 1) % n && keepB) next.push(oldB); });
+    // Drop repeated corners and straight-through points left when a notch is pushed flat.
+    for (let changed = true; changed;) {
+      changed = false;
+      for (let i = 0; i < next.length && next.length > 3; i++) {
+        const p0 = next[(i - 1 + next.length) % next.length], p1 = next[i], p2 = next[(i + 1) % next.length];
+        const same = Math.abs(p0[0] - p1[0]) < EPS && Math.abs(p0[1] - p1[1]) < EPS, straight = (Math.abs(p0[0] - p1[0]) < EPS && Math.abs(p1[0] - p2[0]) < EPS) || (Math.abs(p0[1] - p1[1]) < EPS && Math.abs(p1[1] - p2[1]) < EPS);
+        if (same || straight) { next.splice(i, 1); changed = true; break; }
+      }
+    }
+    const rects = polygonRects(next), shoelace = Math.abs(next.reduce((s, p, i) => { const q = next[(i + 1) % next.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+    if (next.length < 4 || !rects.length || Math.abs(unionArea(rects) - shoelace) > 1e-3) return { ok: false, t, message: '외곽선이 꼬여서 적용할 수 없습니다.' };
+    if (u.door && onWall(u.door[0]) && onWall(u.door[1])) u.door = u.door.map(q => { const v = q.slice(); v[ax] = round(v[ax] + delta); return v; });
+    if (u.windowsManual) u.manualWindows = (u.manualWindows || []).map(win => onWall(win.a) && onWall(win.b) ? { ...win, a: win.a.map((v, i) => i === ax ? round(v + delta) : v), b: win.b.map((v, i) => i === ax ? round(v + delta) : v) } : win);
+    u.outline = next.map(q => q.map(round)); u.rects = rects;
+    const nb = boxOf(rects); u.width = round(nb[2] - nb[0]); u.depth = round(nb[3] - nb[1]);
+    return { ok: true, t: refreshEdited(c) };
+  }
+
   function compassOf(vx, vy) { const a = (Math.atan2(vy, vx) * 180 / Math.PI + 360) % 360; return COMPASS[Math.round(a / 45) % 8]; }
   function face4Of(vx, vy) { return Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'E' : 'W') : (vy > 0 ? 'S' : 'N'); }
 
@@ -1209,7 +1376,7 @@
       const others = [...units.filter((_, j) => j !== ui).flatMap(unitPolys), ...parts.map(partPoly)].map(P => P.map(q => rotPt(q, c, -a)));
       const out = [];
       for (const w of own) {
-        const [nx, ny] = FRONT[w.dir === 'S' ? 'S' : w.dir === 'N' ? 'N' : w.dir], len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]), n = Math.max(1, Math.round(len / .1));
+        const [nx, ny] = FRONT[w.dir], len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]), n = Math.max(1, Math.round(len / .1));
         let run = null;
         const flush = k => { if (run !== null && (k - run) / n * len >= WINDOW_MIN - EPS) { const f = s => [round(w.a[0] + (w.b[0] - w.a[0]) * s), round(w.a[1] + (w.b[1] - w.a[1]) * s)]; out.push({ ...w, a: f(run / n), b: f(k / n), length: round((k - run) / n * len) }); } run = null; };
         for (let k = 0; k < n; k++) {
@@ -1218,8 +1385,8 @@
         }
         flush(n);
       }
-      // Direction in the drawing: the local side turned by the unit's angle.
-      return out.map(w => { const [vx, vy] = rotPt(FRONT[w.dir], [0, 0], a); return { ...w, dir: face4Of(vx, vy), compass: compassOf(vx, vy) }; });
+      // `side` stays in the unit frame (for editing); `dir` is the side turned by the unit's angle.
+      return out.map(w => { const [vx, vy] = rotPt(FRONT[w.dir], [0, 0], a); return { ...w, side: w.dir, dir: face4Of(vx, vy), compass: compassOf(vx, vy) }; });
     });
   }
 
@@ -1230,8 +1397,9 @@
     const box = [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))].map(round);
     const cpts = parts.map(partPoly).flat(), cbox = cpts.length ? [Math.min(...cpts.map(p => p[0])), Math.min(...cpts.map(p => p[1])), Math.max(...cpts.map(p => p[0])), Math.max(...cpts.map(p => p[1]))].map(round) : [0, 0, 0, 0];
     g.core = { ...g.core, rects: parts.map(p => p.rect), x: cbox[0], y: cbox[1], width: round(cbox[2] - cbox[0]), depth: round(cbox[3] - cbox[1]) };
-    // Units' fronts: the face turned by the free angle.
+    // Units' fronts: the face turned by the free angle. Rooms remember how far they already stuck out when editing began.
     g.units.forEach(u => {
+      (u.rooms || []).forEach(r => { if (r.outsideBase == null) r.outsideBase = roomOutside(r, u.rects); });
       const a = normAngle(u.angle), [vx, vy] = rotPt(FRONT[u.face] || [0, 1], [0, 0], a);
       u.angle = a; u.facingDir = face4Of(vx, vy);
       u.facing = a % 90 ? compassOf(vx, vy) + '향 (' + Math.round(a) + '°)' : FACE_NAME[face4Of(vx, vy)];
@@ -1244,10 +1412,14 @@
       commonArea: common, coreArea: common, coreOnlyArea: common, unitsPerFloor: n, totalUnitArea: total, nominalArea: total, unitArea: round(total / n),
       southCount: g.units.filter(u => u.facingDir === 'S').length, facings: [...g.units].sort((a, b) => (order[a.facingDir] || 0) - (order[b.facingDir] || 0)).map(u => u.facing) });
     if (t.core) t.core = { ...t.core, width: g.core.width, depth: g.core.depth };
-    if (!rotated) return attachWindows(t);
-    const windows = computeWindowsRotated(g.units, parts);
-    g.units.forEach((u, i) => { u.windows = windows[i]; });
-    t.windows = windowSummary(windows, g.units);
+    if (!rotated) attachWindows(t);
+    else { const windows = computeWindowsRotated(g.units, parts); g.units.forEach((u, i) => { u.windows = windows[i]; }); }
+    // Hand-placed windows replace the automatic ones for that unit; their direction follows the unit's turn.
+    g.units.forEach(u => {
+      if (!u.windowsManual) { u.windows = (u.windows || []).map(w => ({ ...w, side: w.side || w.dir })); return; }
+      u.windows = (u.manualWindows || []).map(w => { const [vx, vy] = rotPt(FRONT[w.side] || [0, 1], [0, 0], u.angle || 0); return { ...w, dir: face4Of(vx, vy), length: round(Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])) }; });
+    });
+    t.windows = windowSummary(g.units.map(u => u.windows), g.units);
     return t;
   }
 
@@ -1260,14 +1432,25 @@
     return refreshEdited(c);
   }
 
+  const roomOutside = (r, rects) => round((r.rect[2] - r.rect[0]) * (r.rect[3] - r.rect[1]) - rects.reduce((s, q) => s + Math.max(0, Math.min(q[2], r.rect[2]) - Math.max(q[0], r.rect[0])) * Math.max(0, Math.min(q[3], r.rect[3]) - Math.max(q[1], r.rect[1])), 0));
+
   function checkEdited(t) {
     const g = t.geometry, units = g.units, parts = g.core.parts, halls = parts.filter(p => p.kind === 'hall'), solid = parts.filter(p => p.kind !== 'hall');
     const issues = [], up = units.map(unitPolys), pp = parts.map(partPoly), label = p => p.name || p.kind;
     for (let i = 0; i < units.length; i++) {
       for (let j = i + 1; j < units.length; j++) if (up[i].some(A => up[j].some(B => polysOverlap(A, B)))) issues.push(`세대 ${i + 1}·${j + 1} 겹침`);
       parts.forEach((p, k) => { if (up[i].some(A => polysOverlap(A, pp[k]))) issues.push(`세대 ${i + 1}과 ${label(p)} 겹침`); });
-      const u = units[i], mid = rotPt([(u.door[0][0] + u.door[1][0]) / 2, (u.door[0][1] + u.door[1][1]) / 2], unitCentre(u), u.angle || 0);
-      if (!halls.some(h => pointNearPoly(mid, partPoly(h), .02))) issues.push(`세대 ${i + 1} 현관이 홀에 닿지 않음`);
+      const u = units[i];
+      if (!u.door) issues.push(`세대 ${i + 1} 현관 없음`);
+      else {
+        const mid = rotPt([(u.door[0][0] + u.door[1][0]) / 2, (u.door[0][1] + u.door[1][1]) / 2], unitCentre(u), u.angle || 0);
+        if (!halls.some(h => pointNearPoly(mid, partPoly(h), .02))) issues.push(`세대 ${i + 1} 현관이 홀에 닿지 않음`);
+      }
+      // Rooms pushed outside the outline by an edit (a room already sticking out in the unit plan is not reported again).
+      for (const r of u.rooms || []) {
+        const out = roomOutside(r, u.rects);
+        if (out - (r.outsideBase == null ? out : r.outsideBase) > .01) { issues.push(`세대 ${i + 1} ${r.name}이(가) 외곽선 밖으로 나감`); break; }
+      }
     }
     for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) if (polysOverlap(partPoly(solid[i]), partPoly(solid[j]))) issues.push(`${label(solid[i])}·${label(solid[j])} 겹침`);
     for (const p of solid) if (halls.some(h => polysOverlap(partPoly(h), partPoly(p)))) issues.push(`${label(p)}이 홀과 겹침`);
@@ -1283,26 +1466,40 @@
 
   const rotAttr = (a, c) => normAngle(a) ? ` transform="rotate(${normAngle(a)} ${round(c[0])} ${round(c[1])})"` : '';
 
-  function editorSvg(t, sel, preview) {
-    const g = t.geometry, pts = [...g.units.flatMap(unitPolys), ...g.core.parts.map(partPoly)].flat();
+  // view: { sel, preview, guides, hit } — hit is the grab width for walls and openings in drawing units.
+  function editorSvg(t, view) {
+    const { sel, preview, guides } = view || {}, g = t.geometry, pts = [...g.units.flatMap(unitPolys), ...g.core.parts.map(partPoly)].flat();
     const b = [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))], pad = 4;
-    const stroke = { 59: '#3f7f8f', 74: '#4f6fa5', 84: '#6d5ca0' }, vw = b[2] - b[0] + pad * 2;
-    const isSel = (k, i) => sel && sel.kind === k && sel.i === i;
+    const stroke = { 59: '#3f7f8f', 74: '#4f6fa5', 84: '#6d5ca0' }, vw = b[2] - b[0] + pad * 2, hit = round(Math.max(.5, vw / 70));
+    const isSel = (k, i) => sel && sel.kind === k && sel.i === i, unitActive = i => sel && (sel.kind === 'unit' || sel.kind === 'door' || sel.kind === 'window' || sel.kind === 'edge') && sel.i === i;
+    const guideSvg = (guides || []).map(gd => gd.axis === 'x' ? `<line x1="${gd.value}" y1="${round(b[1] - pad)}" x2="${gd.value}" y2="${round(b[3] + pad)}" class="pu-ed-guide"/>`
+      : gd.axis === 'y' ? `<line x1="${round(b[0] - pad)}" y1="${gd.value}" x2="${round(b[2] + pad)}" y2="${gd.value}" class="pu-ed-guide"/>`
+      : `<circle cx="${gd.x}" cy="${gd.y}" r="${round(hit * .35)}" fill="none" stroke="#d6337a" stroke-width="${round(hit / 8)}" pointer-events="none"/>`).join('');
     return `<svg class="pu-ed-canvas" viewBox="${round(b[0] - pad)} ${round(b[1] - pad)} ${round(vw)} ${round(b[3] - b[1] + pad * 2)}" data-ed-svg>
       <defs><pattern id="pu-ed-grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M1 0H0V1" fill="none" stroke="#e6edf3" stroke-width=".03"/></pattern></defs>
       <rect x="${round(b[0] - pad * 4)}" y="${round(b[1] - pad * 4)}" width="${round(vw + pad * 6)}" height="${round(b[3] - b[1] + pad * 8)}" fill="url(#pu-ed-grid)" data-ed-bg/>
-      ${g.units.map((u, i) => `<g class="pu-ed-item${isSel('unit', i) ? ' selected' : ''}" data-sel="unit:${i}"${rotAttr(u.angle, unitCentre(u))}>
+      ${g.units.map((u, i) => `<g class="pu-ed-item${unitActive(i) ? ' selected' : ''}" data-sel="unit:${i}"${rotAttr(u.angle, unitCentre(u))}>
         ${(u.rooms || []).map(r => `<rect x="${r.rect[0]}" y="${r.rect[1]}" width="${round(r.rect[2] - r.rect[0])}" height="${round(r.rect[3] - r.rect[1])}" fill="${ROOM_FILL[r.category] || '#eef2f6'}" stroke="#b8c6d3" stroke-width=".05"/>`).join('')}
-        <polygon points="${u.outline.map(p => p.join(',')).join(' ')}" fill="${(u.rooms || []).length ? 'none' : '#e6edf4'}" stroke="${isSel('unit', i) ? '#1262cb' : stroke[u.type] || '#58768f'}" stroke-width="${isSel('unit', i) ? .32 : .18}"/>
-        <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.6" font-weight="750" fill="${stroke[u.type] || '#2f5270'}" paint-order="stroke" stroke="#fff" stroke-width=".35">${u.type}</text>
-        <text x="${u.centre[0]}" y="${u.centre[1] + 1.2}" text-anchor="middle" font-size=".85" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25">${esc(u.facing || '')}</text>
-        <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/>
-        ${(u.windows || []).map(w => `<line x1="${w.a[0]}" y1="${w.a[1]}" x2="${w.b[0]}" y2="${w.b[1]}" stroke="#2aa6d8" stroke-width=".38"/>`).join('')}
+        <polygon points="${u.outline.map(p => p.join(',')).join(' ')}" fill="${(u.rooms || []).length ? 'none' : '#e6edf4'}" stroke="${unitActive(i) ? '#1262cb' : stroke[u.type] || '#58768f'}" stroke-width="${unitActive(i) ? .32 : .18}"/>
+        <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.6" font-weight="750" fill="${stroke[u.type] || '#2f5270'}" paint-order="stroke" stroke="#fff" stroke-width=".35" pointer-events="none">${u.type}</text>
+        <text x="${u.centre[0]}" y="${u.centre[1] + 1.2}" text-anchor="middle" font-size=".85" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25" pointer-events="none">${esc(u.facing || '')}</text>
+        ${unitActive(i) ? u.outline.map((p, e) => { const q = u.outline[(e + 1) % u.outline.length], w = outlineEdge(u, e); return w.horizontal || w.vertical ? `<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" class="pu-ed-wall ${w.horizontal ? 'h' : 'v'}${sel.kind === 'edge' && sel.e === e ? ' active' : ''}" stroke-width="${hit}" data-edge="${i}:${e}"><title>끌어서 벽 밀고 당기기 · 두 번 눌러 창 추가</title></line>` : ''; }).join('') : ''}
+        ${(u.windows || []).map((w, k) => { const on = isSel('window', i) && sel.k === k; return `<line x1="${w.a[0]}" y1="${w.a[1]}" x2="${w.b[0]}" y2="${w.b[1]}" stroke="${on ? '#0b6fa4' : '#2aa6d8'}" stroke-width="${on ? .55 : .38}"/><line x1="${w.a[0]}" y1="${w.a[1]}" x2="${w.b[0]}" y2="${w.b[1]}" class="pu-ed-open" stroke-width="${hit}" data-win="${i}:${k}"><title>${esc(w.room || '창')} 창 · 끌어서 옮기기</title></line>${on ? delMark([(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2], w.side, hit, 'del-win') : ''}`; }).join('')}
+        ${u.door ? `<line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="${isSel('door', i) ? '#b4580f' : '#e08a2e'}" stroke-width="${isSel('door', i) ? .7 : .5}"/><line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" class="pu-ed-open" stroke-width="${hit}" data-door="${i}"><title>현관 · 끌어서 옮기기</title></line>${isSel('door', i) ? delMark([(u.door[0][0] + u.door[1][0]) / 2, (u.door[0][1] + u.door[1][1]) / 2], doorSide(u), hit, 'del-door') : ''}` : ''}
         ${isSel('unit', i) ? handlesSvg(boxOf(u.rects), vw, false) : ''}</g>`).join('')}
       ${g.core.parts.map((p, i) => `<g class="pu-ed-item${isSel('part', i) ? ' selected' : ''}" data-sel="part:${i}"${rotAttr(p.angle, partCentre(p))}>${coreParts([p])}</g>`).join('')}
       ${sel && sel.kind === 'part' && g.core.parts[sel.i] ? `<g${rotAttr(g.core.parts[sel.i].angle, partCentre(g.core.parts[sel.i]))}>${handlesSvg(g.core.parts[sel.i].rect, vw, true)}</g>` : ''}
       ${preview ? `<rect x="${preview[0]}" y="${preview[1]}" width="${round(preview[2] - preview[0])}" height="${round(preview[3] - preview[1])}" fill="rgba(31,98,180,.15)" stroke="#1262cb" stroke-width=".1" stroke-dasharray=".3 .2" pointer-events="none"/>` : ''}
+      ${guideSvg}
     </svg>`;
+  }
+  // The straight wall an opening ([a,b] pair or {a,b}) sits on.
+  const openingWall = (u, o) => { if (!o) return null; const a = o.a || o[0], b = o.b || o[1], w = nearestWall(u, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], 0); return w && w.d < .05 ? w : null; };
+  const doorSide = u => { const w = nearestWall(u, [(u.door[0][0] + u.door[1][0]) / 2, (u.door[0][1] + u.door[1][1]) / 2], 0); return w ? w.side : 'N'; };
+  // A small × just outside the wall, to delete the selected door or window.
+  function delMark(m, side, hit, handle) {
+    const o = FRONT[side] || [0, -1], r = round(hit * .55), cx = round(m[0] + o[0] * hit * 1.3), cy = round(m[1] + o[1] * hit * 1.3);
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#c0392b" stroke-width="${round(r / 4)}" data-handle="${handle}"><title>삭제</title></circle><text x="${cx}" y="${round(cy + r * .45)}" text-anchor="middle" font-size="${round(r * 1.5)}" fill="#c0392b" pointer-events="none">×</text>`;
   }
 
   // Selection box: eight resize handles (parts only), a rotate handle above and a delete handle at the top right (parts only).
@@ -1318,48 +1515,28 @@
       ${isPart ? Object.entries(at).map(([k, [x, y]]) => `<rect x="${round(x - hs / 2)}" y="${round(y - hs / 2)}" width="${hs}" height="${hs}" fill="#fff" stroke="#1262cb" stroke-width="${round(sw * 1.4)}" data-handle="${k}"/>`).join('') : ''}</g>`;
   }
 
-  // Snaps a moved element's edges to nearby edges of the others (within 0.3 m) when nothing involved is rotated, else 5 cm grid.
-  function snapMove(t, sel, dx, dy) {
-    const g = t.geometry, el = sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i];
-    const grid = v => round(Math.round(v / .05) * .05);
-    if (normAngle(el.angle)) return [grid(dx), grid(dy)];
-    const mine = sel.kind === 'unit' ? el.rects : [el.rect];
-    const others = [...g.units.flatMap((u, i) => (sel.kind === 'unit' && i === sel.i) || normAngle(u.angle) ? [] : u.rects), ...g.core.parts.flatMap((p, i) => (sel.kind === 'part' && i === sel.i) || normAngle(p.angle) ? [] : [p.rect])];
-    const b = boxOf(mine), best = (mineEdges, otherEdges, d) => {
-      let pick = null;
-      for (const m of mineEdges) for (const o of otherEdges) { const off = o - (m + d); if (Math.abs(off) < .3 && (pick === null || Math.abs(off) < Math.abs(pick))) pick = off; }
-      return pick === null ? Math.round(d / .05) * .05 : d + pick;
-    };
-    return [round(best([b[0], b[2]], others.flatMap(r => [r[0], r[2]]), dx)), round(best([b[1], b[3]], others.flatMap(r => [r[1], r[3]]), dy))];
-  }
-
   function mountEditor(container, project, onChange, startIndex) {
-    let index = Number.isInteger(startIndex) ? startIndex : project.typologies.findIndex(isEditable), draft = null, original = null, sel = null, undo = [], drag = null, status = '', tool = null;
+    let index = Number.isInteger(startIndex) ? startIndex : project.typologies.findIndex(isEditable), draft = null, original = null, sel = null, undo = [], drag = null, status = '', tool = null, snapOn = true, guides = [], lastWallTap = null;
     const load = i => { index = i; original = project.typologies[i] ? clone(project.typologies[i]) : null; draft = isEditable(original) ? refreshEdited(clone(original)) : null; sel = null; undo = []; tool = null; };
     load(index);
     const change = next => { undo.push(draft); if (undo.length > 80) undo.shift(); draft = next; render(); focusCanvas(); };
     const focusCanvas = () => { const w = container.querySelector('[data-ed-wrap]'); if (w) w.focus({ preventScroll: true }); };
     const fmt3 = v => round(v).toFixed(2);
+    const TOOLS = { ...Object.fromEntries(Object.entries(PART_SIZES).map(([k, v]) => [k, v[2]])), door: '현관 놓기', window: '창 추가' };
     function render() {
       const list = project.typologies.map((t, i) => `<button type="button" class="pu-ed-row${i === index ? ' active' : ''}" data-ed-pick="${i}" ${isEditable(t) ? '' : 'disabled'}><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.edited ? ' · 수정됨' : ''}${isEditable(t) ? '' : ' · 편집 불가(형상 없음)'}</small></button>`).join('');
       if (!draft) { container.innerHTML = `<div class="pu-ed"><aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list || '<p class="pu-note">후보 탐색에서 "후보 저장"한 안이 여기에 나옵니다.</p>'}</aside><div class="panel pu-empty">편집할 안을 고르세요. 세대 외곽과 코어 부품이 있는 안만 편집할 수 있습니다.</div></div>`; bindList(); return; }
-      const issues = checkEdited(draft), g = draft.geometry, s = sel && (sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i]);
-      const box = s ? (sel.kind === 'unit' ? boxOf(s.rects) : s.rect) : null;
+      const issues = checkEdited(draft), g = draft.geometry;
       container.innerHTML = `<div class="pu-ed">
         <aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list}</aside>
         <section class="panel pu-ed-main"><div class="pu-toolbar"><h3>${esc(draft.name)} 편집</h3><span class="tag ${issues.length ? 'amber' : 'green'}">${issues.length ? '검토 필요 ' + issues.length : '겹침·연결 문제 없음'}</span></div>
-          <div class="pu-ed-tools"><span class="section-label">부품 그리기</span>${Object.entries(PART_SIZES).map(([k, v]) => `<button class="btn${tool === k ? ' primary' : ''}" type="button" data-ed-tool="${k}">${v[2]}</button>`).join('')}${tool ? '<button class="btn" type="button" data-ed-tool="">그리기 끝내기 (Esc)</button>' : ''}</div>
-          <p class="pu-note">${tool ? `<b>${esc(PART_SIZES[tool][2])} 그리기</b>: 빈 곳을 끌어 크기를 정하거나, 눌러서 기본 크기(${PART_SIZES[tool][0]} × ${PART_SIZES[tool][1]} m)로 놓습니다.` : '세대나 부품을 눌러 고르고 끌어서 옮깁니다. 부품은 네모 손잡이로 크기를 바꾸고 × 로 지웁니다. ↻ 손잡이를 끌면 자유롭게 회전합니다(Shift 15° 단위, 0·90·180·270° 근처에서 붙음).'} 방향키 0.1 m(Shift 1 m), R 90° 회전, M 좌우 반전, Delete 부품 삭제, Ctrl+Z 되돌리기.</p>
-          <div class="pu-ed-wrap${tool ? ' drawing' : ''}" tabindex="0" data-ed-wrap>${editorSvg(draft, sel)}</div>
-          <div class="pu-legend"><span><i style="background:#e08a2e"></i>현관</span><span><i style="background:#2aa6d8"></i>창</span><span><i style="background:#c9d8e6"></i>홀·복도</span><span><i style="background:#3f6b93"></i>계단(화살표 오름)</span><span><i style="background:#2c4f75"></i>승강기(주황 선 문)</span><span><i style="background:#8aa6c0"></i>샤프트</span></div>
+          <div class="pu-ed-tools"><span class="section-label">그리기</span>${Object.entries(TOOLS).map(([k, v]) => `<button class="btn${tool === k ? ' primary' : ''}" type="button" data-ed-tool="${k}">${v}</button>`).join('')}${tool ? '<button class="btn" type="button" data-ed-tool="">끝내기 (Esc)</button>' : ''}
+            <label class="pu-ed-snap" title="Ctrl을 누르는 동안 잠시 해제"><input type="checkbox" data-ed-snap ${snapOn ? 'checked' : ''}>스냅</label></div>
+          <p class="pu-note">${tool ? toolHint() : '세대·부품을 눌러 고르고 끌어서 옮깁니다. 세대를 고르면 외곽 벽(파란 굵은 선)을 끌어 밀고 당길 수 있고, 주황 현관과 파란 창은 끌어서 벽을 따라 옮기거나 × 로 지웁니다. 벽을 두 번 누르면 창이 생깁니다. 부품은 네모 손잡이로 크기, ↻ 로 자유 회전(Shift 15°), × 로 삭제.'} 가장자리는 다른 벽의 연장선에 붙고(분홍 안내선), Ctrl을 누르는 동안 스냅이 꺼집니다. 방향키 0.1 m(Shift 1 m), R 90°, M 좌우 반전, Delete 삭제, Ctrl+Z 되돌리기.</p>
+          <div class="pu-ed-wrap${tool ? ' drawing' : ''}" tabindex="0" data-ed-wrap>${editorSvg(draft, { sel, guides })}</div>
+          <div class="pu-legend"><span><i style="background:#e08a2e"></i>현관</span><span><i style="background:#2aa6d8"></i>창</span><span><i style="background:#c9d8e6"></i>홀·복도</span><span><i style="background:#3f6b93"></i>계단(화살표 오름)</span><span><i style="background:#2c4f75"></i>승강기(주황 선 문)</span><span><i style="background:#8aa6c0"></i>샤프트</span><span><i style="background:#d6337a"></i>스냅 안내선</span></div>
         </section>
-        <aside class="panel pu-ed-side">
-          <h3>${s ? esc(sel.kind === 'unit' ? s.type + '형 · ' + (s.facing || '') : s.name || s.kind) : '선택 없음'}</h3>
-          ${s ? `<div class="pu-inputs"><label>X (m)<input type="number" step=".05" value="${fmt3(box[0])}" data-ed-x></label><label>Y (m)<input type="number" step=".05" value="${fmt3(box[1])}" data-ed-y></label>
-            ${sel.kind === 'part' ? `<label>폭 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[2] - box[0])}" data-ed-w></label><label>깊이 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[3] - box[1])}" data-ed-h></label>` : ''}
-            <label>회전 (°)<input type="number" step="1" value="${Math.round(normAngle(s.angle) * 10) / 10}" data-ed-angle></label></div>
-            <div class="pu-combo-actions"><button class="btn" type="button" data-ed-turn="-15">−15°</button><button class="btn" type="button" data-ed-turn="15">+15°</button><button class="btn" type="button" data-ed-rotate>90° 회전</button><button class="btn" type="button" data-ed-angle0>각도 0°</button></div>
-            <div class="pu-combo-actions">${sel.kind === 'unit' ? '<button class="btn" type="button" data-ed-mirror>좌우 반전</button>' : '<button class="btn" type="button" data-ed-delete>부품 삭제</button>'}</div>` : '<p class="pu-note">도면에서 세대나 부품을 누르세요.</p>'}
+        <aside class="panel pu-ed-side">${sidePanel(g)}
           <div class="pu-combo-metrics"><div><span>외곽</span><b>${fmt(draft.width)} × ${fmt(draft.depth)}m</b></div><div><span>코어·홀 공용</span><b>${fmt(draft.commonArea)}㎡</b></div></div>
           <p class="pu-note">${esc(draft.facings.join(' · '))}<br>${esc(windowLabel(draft))}</p>
           <ul class="pu-checks">${issues.length ? issues.map(x => `<li class="pu-ng">✗ ${esc(x)}</li>`).join('') : '<li class="pu-ok">✓ 겹침 없음 · 현관과 계단·승강기가 홀에 닿음</li>'}</ul>
@@ -1368,28 +1545,77 @@
         </aside></div>`;
       bindList(); bindCanvas(); bindSide();
     }
+    const toolHint = () => tool === 'door' ? '<b>현관 놓기</b>: 세대 외곽 벽을 누르면 그 자리에 현관(폭 1 m)을 놓습니다.' : tool === 'window' ? `<b>창 추가</b>: 세대 외곽 벽을 누르면 그 자리에 창(${WINDOW_NEW} m)을 놓습니다.`
+      : `<b>${esc(PART_SIZES[tool][2])} 그리기</b>: 빈 곳을 끌어 크기를 정하거나, 눌러서 기본 크기(${PART_SIZES[tool][0]} × ${PART_SIZES[tool][1]} m)로 놓습니다.`;
+    function sidePanel(g) {
+      if (!sel) return '<h3>선택 없음</h3><p class="pu-note">도면에서 세대나 부품을 누르세요.</p>';
+      if (sel.kind === 'door') { const u = g.units[sel.i]; return `<h3>${u.type}형 현관</h3><p class="pu-note">벽을 따라 끌어 옮깁니다. 다른 벽으로 끌면 그 벽으로 옮겨 갑니다.</p><div class="pu-combo-actions"><button class="btn" type="button" data-ed-deldoor>현관 삭제</button><button class="btn" type="button" data-ed-backunit>세대 선택</button></div>`; }
+      if (sel.kind === 'window') { const w = (g.units[sel.i].windows || [])[sel.k]; return `<h3>${g.units[sel.i].type}형 창${w ? ' · ' + esc(w.room || '') : ''}</h3><p class="pu-note">${w ? `길이 ${fmt(w.length)} m · ${DIR_NAMES[w.dir] || ''}쪽` : ''} · 벽을 따라 끌어 옮기거나 다른 벽으로 옮깁니다.</p><div class="pu-inputs"><label>길이 (m)<input type="number" step=".05" min="${WINDOW_MIN}" value="${w ? fmt3(w.length) : ''}" data-ed-winlen></label></div><div class="pu-combo-actions"><button class="btn" type="button" data-ed-delwin>창 삭제</button><button class="btn" type="button" data-ed-backunit>세대 선택</button></div>`; }
+      const s = sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i];
+      if (!s) return '<h3>선택 없음</h3>';
+      const box = sel.kind === 'unit' ? boxOf(s.rects) : s.rect;
+      return `<h3>${esc(sel.kind === 'unit' ? s.type + '형 · ' + (s.facing || '') : s.name || s.kind)}</h3>
+        <div class="pu-inputs"><label>X (m)<input type="number" step=".05" value="${fmt3(box[0])}" data-ed-x></label><label>Y (m)<input type="number" step=".05" value="${fmt3(box[1])}" data-ed-y></label>
+          ${sel.kind === 'part' ? `<label>폭 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[2] - box[0])}" data-ed-w></label><label>깊이 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[3] - box[1])}" data-ed-h></label>` : ''}
+          <label>회전 (°)<input type="number" step="1" value="${Math.round(normAngle(s.angle) * 10) / 10}" data-ed-angle></label></div>
+        <div class="pu-combo-actions"><button class="btn" type="button" data-ed-turn="-15">−15°</button><button class="btn" type="button" data-ed-turn="15">+15°</button><button class="btn" type="button" data-ed-rotate>90° 회전</button><button class="btn" type="button" data-ed-angle0>각도 0°</button></div>
+        <div class="pu-combo-actions">${sel.kind === 'unit' ? `<button class="btn" type="button" data-ed-mirror>좌우 반전</button>${s.door ? '' : '<button class="btn" type="button" data-ed-tool-door>현관 놓기</button>'}<button class="btn" type="button" data-ed-tool-window>창 추가</button>${s.windowsManual ? '<button class="btn" type="button" data-ed-autowin>창 자동 계산으로</button>' : ''}` : '<button class="btn" type="button" data-ed-delete>부품 삭제</button>'}</div>
+        ${sel.kind === 'unit' ? `<p class="pu-note">${s.windowsManual ? '창을 직접 배치한 세대입니다.' : '창은 외곽에 닿는 거실·침실·주방·발코니 변에서 자동으로 계산합니다. 창을 옮기거나 지우면 이 세대는 직접 배치로 바뀝니다.'} 외곽 벽은 도면의 파란 굵은 선을 끌어 밀고 당깁니다.</p>` : ''}`;
+    }
     function bindList() { container.querySelectorAll('[data-ed-pick]').forEach(b => b.addEventListener('click', () => { load(Number(b.dataset.edPick)); status = ''; render(); })); }
     function svgPoint(svg, e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = svg.getScreenCTM(); return m ? p.matrixTransform(m.inverse()) : { x: 0, y: 0 }; }
+    // Snap reach is about 10 screen pixels, whatever the zoom (as in Stage 1); Ctrl turns it off while held.
+    function tolerance(e) { if (!snapOn || (e && (e.ctrlKey || e.metaKey))) return 0; const m = container.querySelector('[data-ed-svg]').getScreenCTM(); return m && m.a ? 10 / m.a : .3; }
     // Redraws inside the existing svg element so a captured pointer keeps working during a drag.
     function redrawCanvas(preview) {
       const keep = container.querySelector('[data-ed-svg]'), tmp = container.ownerDocument.createElement('div');
-      tmp.innerHTML = editorSvg(draft, sel, preview); keep.innerHTML = tmp.firstElementChild.innerHTML;
+      tmp.innerHTML = editorSvg(draft, { sel, preview, guides }); keep.innerHTML = tmp.firstElementChild.innerHTML;
     }
     const elCentre = () => sel.kind === 'part' ? partCentre(draft.geometry.core.parts[sel.i]) : unitCentre(draft.geometry.units[sel.i]);
+    // Nearest unit wall to a drawing point (for the door/window tools), within a few metres.
+    function wallUnderPointer(p) {
+      let best = null;
+      draft.geometry.units.forEach((u, i) => { const q = toUnitFrame(u, p), w = nearestWall(u, q, 0); if (w && (!best || w.d < best.d)) best = { i, q, d: w.d }; });
+      return best && best.d < 3 ? best : null;
+    }
     function bindCanvas() {
       const svg = container.querySelector('[data-ed-svg]'), wrap = container.querySelector('[data-ed-wrap]');
       svg.addEventListener('pointerdown', e => {
-        const p = svgPoint(svg, e);
+        const p = svgPoint(svg, e), pt = [p.x, p.y];
+        if (tool === 'door' || tool === 'window') {
+          const hitWall = wallUnderPointer(pt);
+          if (!hitWall) { status = '세대 외곽 벽 가까이를 누르세요.'; render(); return; }
+          if (tool === 'door') { const r = editMoveDoor(draft, hitWall.i, hitWall.q, 0); sel = { kind: 'door', i: hitWall.i }; tool = null; change(r.t); }
+          else { const next = editAddWindow(draft, hitWall.i, hitWall.q); sel = { kind: 'window', i: hitWall.i, k: next.geometry.units[hitWall.i].windows.length - 1 }; tool = null; change(next); }
+          return;
+        }
         if (tool) { drag = { mode: 'draw', x: p.x, y: p.y, base: draft, id: e.pointerId, rect: null }; svg.setPointerCapture(e.pointerId); e.preventDefault(); return; }
         const handle = e.target.closest('[data-handle]');
         if (handle && sel) {
           const kind = handle.dataset.handle;
           if (kind === 'del' && sel.kind === 'part') { const i = sel.i; sel = null; change(editRemovePart(draft, i)); return; }
-          const [cx, cy] = elCentre(), el = sel.kind === 'part' ? draft.geometry.core.parts[sel.i] : draft.geometry.units[sel.i];
-          drag = { mode: kind === 'rot' ? 'rotate' : 'resize', handle: kind, x: p.x, y: p.y, cx, cy, a0: Math.atan2(p.y - cy, p.x - cx), ang0: el.angle || 0, base: draft, moved: false, id: e.pointerId };
-          svg.setPointerCapture(e.pointerId); e.preventDefault();
-          return;
+          if (kind === 'del-door' && sel.kind === 'door') { const i = sel.i; sel = { kind: 'unit', i }; change(editDeleteDoor(draft, i)); return; }
+          if (kind === 'del-win' && sel.kind === 'window') { const { i, k } = sel; sel = { kind: 'unit', i }; change(editDeleteWindow(draft, i, k)); return; }
+          if (kind === 'rot' || HANDLES[kind]) {
+            const [cx, cy] = elCentre(), el = sel.kind === 'part' ? draft.geometry.core.parts[sel.i] : draft.geometry.units[sel.i];
+            drag = { mode: kind === 'rot' ? 'rotate' : 'resize', handle: kind, x: p.x, y: p.y, cx, cy, a0: Math.atan2(p.y - cy, p.x - cx), ang0: el.angle || 0, base: draft, moved: false, id: e.pointerId };
+            svg.setPointerCapture(e.pointerId); e.preventDefault();
+            return;
+          }
         }
+        const edge = e.target.closest('[data-edge]'), door = e.target.closest('[data-door]'), win = e.target.closest('[data-win]');
+        if (edge) {
+          const [i, k] = edge.dataset.edge.split(':').map(Number), u = draft.geometry.units[i];
+          // Two taps on the same wall within 0.4 s add a window there.
+          const now = Date.now(), again = lastWallTap && lastWallTap.key === edge.dataset.edge && now - lastWallTap.time < 400;
+          lastWallTap = { key: edge.dataset.edge, time: now };
+          if (again) { lastWallTap = null; const next = editAddWindow(draft, i, toUnitFrame(u, pt)); sel = { kind: 'window', i, k: next.geometry.units[i].windows.length - 1 }; change(next); return; }
+          sel = { kind: 'edge', i, e: k };
+          drag = { mode: 'edge', i, e: k, start: toUnitFrame(u, pt), base: draft, moved: false, id: e.pointerId };
+          svg.setPointerCapture(e.pointerId); e.preventDefault(); redrawCanvas(); return;
+        }
+        if (door) { const i = Number(door.dataset.door); sel = { kind: 'door', i }; drag = { mode: 'door', i, base: draft, moved: false, id: e.pointerId, start: toUnitFrame(draft.geometry.units[i], pt), wall: openingWall(draft.geometry.units[i], draft.geometry.units[i].door) }; svg.setPointerCapture(e.pointerId); e.preventDefault(); redrawCanvas(); wrap.focus({ preventScroll: true }); return; }
+        if (win) { const [i, k] = win.dataset.win.split(':').map(Number); sel = { kind: 'window', i, k }; drag = { mode: 'window', i, k, base: draft, moved: false, id: e.pointerId, start: toUnitFrame(draft.geometry.units[i], pt), wall: openingWall(draft.geometry.units[i], (draft.geometry.units[i].windows || [])[k]) }; svg.setPointerCapture(e.pointerId); e.preventDefault(); redrawCanvas(); wrap.focus({ preventScroll: true }); return; }
         const item = e.target.closest('[data-sel]');
         if (!item) { sel = null; render(); focusCanvas(); return; }
         const [kind, i] = item.dataset.sel.split(':');
@@ -1401,17 +1627,47 @@
       });
       svg.addEventListener('pointermove', e => {
         if (!drag || e.pointerId !== drag.id) return;
-        const p = svgPoint(svg, e);
+        const p = svgPoint(svg, e), pt = [p.x, p.y], tol = tolerance(e);
         if (drag.mode === 'draw') {
           const g = v => round(Math.round(v / .05) * .05);
           drag.rect = [g(Math.min(drag.x, p.x)), g(Math.min(drag.y, p.y)), g(Math.max(drag.x, p.x)), g(Math.max(drag.y, p.y))];
           redrawCanvas(drag.rect);
           return;
         }
+        if ((drag.mode === 'door' || drag.mode === 'window') && drag.wall && !drag.decided) {
+          // The first 25 cm decide: across the wall pushes/pulls the wall, along it slides the opening.
+          const u = drag.base.geometry.units[drag.i], q = toUnitFrame(u, pt), ax = drag.wall.horizontal ? 1 : 0, across = q[ax] - drag.start[ax], along = q[1 - ax] - drag.start[1 - ax];
+          if (Math.hypot(across, along) < .25) return;
+          drag.decided = true;
+          if (Math.abs(across) > 1.5 * Math.abs(along)) { drag.mode = 'edge'; drag.e = drag.wall.e; sel = { kind: 'edge', i: drag.i, e: drag.wall.e }; }
+        }
+        if (drag.mode === 'door' || drag.mode === 'window') {
+          const u = drag.base.geometry.units[drag.i], q = toUnitFrame(u, pt);
+          const r = drag.mode === 'door' ? editMoveDoor(drag.base, drag.i, q, tol) : editMoveWindow(drag.base, drag.i, drag.k, q, tol);
+          drag.moved = true; draft = r.t;
+          // Guides are in the unit frame; show them only for unrotated units.
+          guides = normAngle(u.angle) ? [] : r.guides;
+          redrawCanvas();
+          return;
+        }
+        if (drag.mode === 'edge') {
+          const u = drag.base.geometry.units[drag.i], w = outlineEdge(u, drag.e), q = toUnitFrame(u, pt), ax = w.horizontal ? 1 : 0;
+          let delta = q[ax] - drag.start[ax], line = null;
+          if (tol && !normAngle(u.angle)) {
+            const lines = snapLines(drag.base, (k, j) => k === 'unit' && j === drag.i), own = ax ? u.outline.map(v => v[1]).concat((u.rooms || []).flatMap(r => [r.rect[1], r.rect[3]])) : u.outline.map(v => v[0]).concat((u.rooms || []).flatMap(r => [r.rect[0], r.rect[2]]));
+            const s = snapAxis([w.a[ax]], [...(ax ? lines.y : lines.x), ...own.filter(v => Math.abs(v - w.a[ax]) > 1e-6)], delta, tol);
+            delta = s.d; line = s.line;
+          } else delta = round(Math.round(delta / .05) * .05);
+          const r = moveOutlineEdge(drag.base, drag.i, drag.e, delta);
+          if (r.ok) { draft = r.t; drag.moved = Math.abs(delta) > 1e-6; guides = line === null ? [] : [{ axis: ax ? 'y' : 'x', value: line }]; status = ''; }
+          else { draft = drag.base; status = r.message; guides = []; }
+          redrawCanvas();
+          return;
+        }
         if (drag.mode === 'resize') {
-          const rect = resizeRect(drag.base, sel.i, drag.handle, p.x - drag.x, p.y - drag.y);
+          const rect = resizeRect(drag.base, sel.i, drag.handle, p.x - drag.x, p.y - drag.y, tol);
           if (!drag.moved && rect.join() === drag.base.geometry.core.parts[sel.i].rect.join()) return;
-          drag.moved = true;
+          drag.moved = true; guides = rect.guides || [];
           draft = editResize(drag.base, sel.i, rect);
           redrawCanvas();
           return;
@@ -1426,14 +1682,15 @@
           redrawCanvas();
           return;
         }
-        const [dx, dy] = snapMove(drag.base, sel, p.x - drag.x, p.y - drag.y);
-        if (!dx && !dy && !drag.moved) return;
-        drag.moved = true;
-        draft = editMove(drag.base, sel, dx, dy);
+        const s = snapMove(drag.base, sel, p.x - drag.x, p.y - drag.y, tol);
+        if (!s.dx && !s.dy && !drag.moved) return;
+        drag.moved = true; guides = s.guides;
+        draft = editMove(drag.base, sel, s.dx, s.dy);
         redrawCanvas();
       });
       const end = e => {
         if (!drag || e.pointerId !== drag.id) return;
+        guides = [];
         if (drag.mode === 'draw') {
           const r = drag.rect, kind = tool;
           const next = r && r[2] - r[0] >= PART_MIN && r[3] - r[1] >= PART_MIN ? editAddPart(drag.base, kind, r) : editAddPart(drag.base, kind, [drag.x, drag.y]);
@@ -1442,6 +1699,7 @@
           change(next);
           return;
         }
+        if (drag.mode === 'edge') sel = { kind: 'unit', i: drag.i };
         if (drag.moved && draft !== drag.base) { undo.push(drag.base); if (undo.length > 80) undo.shift(); }
         drag = null; render(); focusCanvas();
       };
@@ -1452,17 +1710,40 @@
         if (e.key === 'Escape' && tool) { e.stopPropagation(); tool = null; render(); focusCanvas(); return; }
         if (!sel) return;
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'r', 'R', 'm', 'M', 'Delete', 'Backspace'].includes(e.key)) e.stopPropagation();
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          if (sel.kind === 'part') { const i = sel.i; sel = null; change(editRemovePart(draft, i)); }
+          else if (sel.kind === 'door') { const i = sel.i; sel = { kind: 'unit', i }; change(editDeleteDoor(draft, i)); }
+          else if (sel.kind === 'window') { const { i, k } = sel; sel = { kind: 'unit', i }; change(editDeleteWindow(draft, i, k)); }
+          return;
+        }
+        if (sel.kind !== 'unit' && sel.kind !== 'part') return;
         const step = e.shiftKey ? 1 : .1, keys = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
         if (keys[e.key]) { e.preventDefault(); change(editMove(draft, sel, ...keys[e.key])); return; }
         if (e.key === 'r' || e.key === 'R') { e.preventDefault(); change(editRotate(draft, sel)); return; }
-        if ((e.key === 'm' || e.key === 'M') && sel.kind === 'unit') { e.preventDefault(); change(editMirror(draft, sel)); return; }
-        if ((e.key === 'Delete' || e.key === 'Backspace') && sel.kind === 'part') { e.preventDefault(); const i = sel.i; sel = null; change(editRemovePart(draft, i)); }
+        if ((e.key === 'm' || e.key === 'M') && sel.kind === 'unit') { e.preventDefault(); change(editMirror(draft, sel)); }
       });
     }
     function bindSide() {
-      const q = s => container.querySelector(s), num = el => Number(el && el.value);
-      container.querySelectorAll('[data-ed-tool]').forEach(b => b.addEventListener('click', () => { tool = b.dataset.edTool || null; sel = null; render(); focusCanvas(); }));
-      if (sel) {
+      const q = s => container.querySelector(s), num = el => Number(el && el.value), on = (s, f) => { const el = q(s); if (el) el.addEventListener('click', f); };
+      container.querySelectorAll('[data-ed-tool]').forEach(b => b.addEventListener('click', () => { tool = b.dataset.edTool || null; if (tool !== 'door' && tool !== 'window') sel = null; render(); focusCanvas(); }));
+      q('[data-ed-snap]').addEventListener('change', e => { snapOn = e.target.checked; focusCanvas(); });
+      on('[data-ed-tool-door]', () => { tool = 'door'; render(); focusCanvas(); });
+      on('[data-ed-tool-window]', () => { tool = 'window'; render(); focusCanvas(); });
+      on('[data-ed-autowin]', () => change(editAutoWindows(draft, sel.i)));
+      on('[data-ed-deldoor]', () => { const i = sel.i; sel = { kind: 'unit', i }; change(editDeleteDoor(draft, i)); });
+      on('[data-ed-delwin]', () => { const { i, k } = sel; sel = { kind: 'unit', i }; change(editDeleteWindow(draft, i, k)); });
+      on('[data-ed-backunit]', () => { sel = { kind: 'unit', i: sel.i }; render(); focusCanvas(); });
+      if (q('[data-ed-winlen]')) q('[data-ed-winlen]').addEventListener('change', e => {
+        const { i, k } = sel, u = draft.geometry.units[i], w = u.windows[k], len = Math.max(WINDOW_MIN, Number(e.target.value) || WINDOW_MIN);
+        const c = clone(draft), cu = c.geometry.units[i], list = manualWindowsOf(cu), m = [(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2], wall = nearestWall(cu, m, Math.min(len, WINDOW_MIN));
+        if (!wall) return;
+        const o = openingOnWall(wall, m, Math.min(len, wall.length), [], 0);
+        list[k] = { ...list[k], a: o.a, b: o.b };
+        setManual(cu, list);
+        change(refreshEdited(c));
+      });
+      if (sel && (sel.kind === 'unit' || sel.kind === 'part')) {
         const setBox = () => {
           const g = draft.geometry, s = sel.kind === 'unit' ? boxOf(g.units[sel.i].rects) : g.core.parts[sel.i].rect;
           let next = editMove(draft, sel, num(q('[data-ed-x]')) - s[0], num(q('[data-ed-y]')) - s[1]);
@@ -1475,10 +1756,10 @@
         ['[data-ed-x]', '[data-ed-y]', '[data-ed-w]', '[data-ed-h]'].forEach(k => { const el = q(k); if (el) el.addEventListener('change', setBox); });
         q('[data-ed-angle]').addEventListener('change', e => change(editSetAngle(draft, sel, Number(e.target.value))));
         container.querySelectorAll('[data-ed-turn]').forEach(b => b.addEventListener('click', () => { const el = sel.kind === 'unit' ? draft.geometry.units[sel.i] : draft.geometry.core.parts[sel.i]; change(editSetAngle(draft, sel, (el.angle || 0) + Number(b.dataset.edTurn))); }));
-        q('[data-ed-angle0]').addEventListener('click', () => change(editSetAngle(draft, sel, 0)));
-        q('[data-ed-rotate]').addEventListener('click', () => change(editRotate(draft, sel)));
-        q('[data-ed-mirror]') && q('[data-ed-mirror]').addEventListener('click', () => change(editMirror(draft, sel)));
-        q('[data-ed-delete]') && q('[data-ed-delete]').addEventListener('click', () => { const i = sel.i; sel = null; change(editRemovePart(draft, i)); });
+        on('[data-ed-angle0]', () => change(editSetAngle(draft, sel, 0)));
+        on('[data-ed-rotate]', () => change(editRotate(draft, sel)));
+        on('[data-ed-mirror]', () => change(editMirror(draft, sel)));
+        on('[data-ed-delete]', () => { const i = sel.i; sel = null; change(editRemovePart(draft, i)); });
       }
       q('[data-ed-undo]').addEventListener('click', () => { if (undo.length) { draft = undo.pop(); render(); } });
       q('[data-ed-reset]').addEventListener('click', () => { load(index); status = '저장본으로 되돌림'; render(); });
@@ -1621,5 +1902,5 @@
     }
     render(); loadDefaultPlans(); return { render, destroy() { editor?.destroy?.(); container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, editMove, editRotate, editMirror, editAddPart, editRemovePart, editResize, resizeRect, editSetAngle, polysOverlap, refreshEdited, normalizeEdited, checkEdited, isEditable, exportCandidates, candidateFileName, computeWindows, windowSummary, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, editMove, editRotate, editMirror, editAddPart, editRemovePart, editResize, resizeRect, editSetAngle, polysOverlap, snapMove, editMoveDoor, editDeleteDoor, editMoveWindow, editAddWindow, editDeleteWindow, editAutoWindows, moveOutlineEdge, refreshEdited, normalizeEdited, checkEdited, isEditable, exportCandidates, candidateFileName, computeWindows, windowSummary, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });
