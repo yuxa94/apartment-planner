@@ -261,3 +261,49 @@ test('rooms are layers: the upper room takes the overlapped area and reordering 
   U.resizeRoom(unit, 'bath1', 'bottom', 5.7, { linked: false });
   assert.ok(U.checkUnit(unit).hidden.includes('shoes'), 'a fully covered room is reported');
 });
+
+test('blank plans load through the shared project validator and start empty', () => {
+  const S = require('./state.js');
+  const project = S.createProject();
+  U.ensureUnits(project);
+  const blank = U.createBlankUnit({ name: '테스트 도면', type: 74, width: 10, depth: 8 });
+  project.units.push(blank);
+  const loaded = S.validateProject(JSON.parse(JSON.stringify(project)));
+  const unit = loaded.units.find(u => u.id === blank.id);
+  assert.equal(unit.custom, true);
+  assert.equal(unit.rooms.length, 0);
+  assert.equal(U.checkUnit(unit).gapArea, 80);
+  const room = U.addRoom(unit);
+  assert.deepEqual([room.width, room.depth], [3, 3], 'a big empty plan gets a 3 m room, not a flood fill');
+  assert.equal(U.createBlankUnit({ type: 99, width: 999 }).type, 84);
+  assert.equal(U.createBlankUnit({ type: 99, width: 999 }).width, 60);
+});
+
+test('markup areas list the visible rooms under them and travel with the Claude request', () => {
+  const project = { revision: 3, units: [], typologies: [] };
+  U.ensureUnits(project);
+  const unit = project.units.find(u => u.type === 59);
+  const mark = { label: 'A', x: 7, y: 5, width: 2, depth: 2 };
+  const rooms = U.roomsInMark(unit, mark);
+  assert.deepEqual(rooms.map(r => r.id), ['bed2', 'living', 'hall']);
+  assert.deepEqual(rooms.map(r => r.overlapArea), [2.4, 0.8, 0.8]);
+  const request = U.buildUnitRequest(project, 'unit-59', '영역 A로 욕실을 옮겨줘', [mark]);
+  assert.equal(request.unitId, 'unit-59');
+  assert.equal(request.marks[0].label, 'A');
+  assert.match(U.unitRequestPrompt(request), /영역 A: x 7~9 m, y 5~7 m \(침실 2, 거실, 복도\)/);
+});
+
+test('patches can target a blank plan by unitId', () => {
+  const project = { revision: 5, units: [], typologies: [] };
+  U.ensureUnits(project);
+  const blank = U.createBlankUnit({ id: 'plan-x', name: '빈 도면', type: 59, width: 6, depth: 4 });
+  project.units.push(blank);
+  const patch = { schema: 'apartment-planner-unit-patch/1', baseRevision: 5, unitId: 'plan-x', unitType: 59,
+    rooms: [{ id: 'a', name: '거실', category: 'living', x: 0, y: 0, width: 4, depth: 4 }, { id: 'b', name: '욕실', category: 'wet', x: 4, y: 0, width: 2, depth: 4 }] };
+  const result = U.applyUnitPatch(project, patch);
+  assert.equal(result.unitId, 'plan-x');
+  assert.equal(blank.rooms.length, 2);
+  assert.equal(U.checkUnit(blank).gapArea, 0);
+  assert.equal(project.units.find(u => u.id === 'unit-59').rooms.length, 14, 'the 59 template is untouched');
+  assert.throws(() => U.readUnitPatch(project, Object.assign({}, patch, { unitId: 'nope' })), /찾을 수 없습니다/);
+});
