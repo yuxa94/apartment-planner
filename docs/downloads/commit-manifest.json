@@ -1,0 +1,418 @@
+{
+  "format": "planby-course-git/1",
+  "date": "2026-10-16",
+  "baseline": "fd2d680d980a01f3db6c878b36297e61ba3cfa77",
+  "common": "08c978f627e333f13f317b2df057b33cc817ac84",
+  "bundleSha256": "bc687d0b9c3fad31420405920df4de5ba813ef17af65e779f44cc00cc307d6b0",
+  "stages": [
+    {
+      "n": 1,
+      "name": "단위세대 계획",
+      "branch": "stage1-unit-plan",
+      "start": "c878de6",
+      "mid": "3a5e6dc",
+      "end": "ae123eb",
+      "port": 8771,
+      "app": "package/planby-unit-planner.html",
+      "input": "59·74·84 참고도면과 v1 실 구획",
+      "result": "unit-59/74/84.json",
+      "check": "스냅·실 레이어·영역 표시·답변 검토 후 적용",
+      "commit": "ae123ebfdab2257b3b568497f59c15913e57c210",
+      "fileCount": 35,
+      "commits": [
+        {
+          "short": "c878de6",
+          "hash": "c878de6f48ad3e2220dc225b60301ef0ad4aa69f",
+          "subject": "stage1-unit-plan: lock app to 'units' stage and document scope",
+          "feature": "단위세대 화면 고정",
+          "slides": [
+            5
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/c878de6f48ad3e2220dc225b60301ef0ad4aa69f",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f"
+        },
+        {
+          "short": "c310442",
+          "hash": "c310442ef8b3e227df65a002cb363010f975cc3a",
+          "subject": "Stage 1: reference-traced unit outlines, gap fill, outline editing, Claude round trip",
+          "feature": "참고도면 외곽·빈틈 채우기·외곽 편집·JSON 왕복",
+          "slides": [
+            6,
+            7,
+            8,
+            9
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/c310442ef8b3e227df65a002cb363010f975cc3a",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/c310442ef8b3e227df65a002cb363010f975cc3a"
+        },
+        {
+          "short": "4f4033b",
+          "hash": "4f4033b4615ad9b71b8e4ee87a1bde5e1e324a47",
+          "subject": "Stage 1: room resize handles, remove Astra request, export unit plans",
+          "feature": "실 크기 조절·Astra 문구 제거·세대 JSON 내보내기",
+          "slides": [
+            14
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/4f4033b4615ad9b71b8e4ee87a1bde5e1e324a47",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/4f4033b4615ad9b71b8e4ee87a1bde5e1e324a47"
+        },
+        {
+          "short": "833527c",
+          "hash": "833527cf7e31c1f3edd0690d02d52139d5ede437",
+          "subject": "Stage 1: Claude chat panel and room layers",
+          "feature": "Claude 대화 패널·실 레이어",
+          "slides": [
+            10,
+            13,
+            14,
+            15
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/833527cf7e31c1f3edd0690d02d52139d5ede437",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/833527cf7e31c1f3edd0690d02d52139d5ede437"
+        },
+        {
+          "short": "c02fdf2",
+          "hash": "c02fdf2487a5371d2928b32557c0f5e7be30eeae",
+          "subject": "Stage 1: blank plans and red markup areas for Claude requests",
+          "feature": "빈 평면·빨간 요청 영역",
+          "slides": [
+            11,
+            12
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/c02fdf2487a5371d2928b32557c0f5e7be30eeae",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/c02fdf2487a5371d2928b32557c0f5e7be30eeae"
+        },
+        {
+          "short": "3a5e6dc",
+          "hash": "3a5e6dce927c222f1e6541b9670880408b0c41ff",
+          "subject": "Stage 1: snap room moves and resizes to nearby edges and vertices",
+          "feature": "변·꼭짓점 스냅",
+          "slides": [
+            16
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/3a5e6dce927c222f1e6541b9670880408b0c41ff",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/3a5e6dce927c222f1e6541b9670880408b0c41ff"
+        },
+        {
+          "short": "b718397",
+          "hash": "b71839748501bea81de378373c7759588fc35ad3",
+          "subject": "Stage 1: single-file package for use inside Claude or ChatGPT",
+          "feature": "단일 HTML 패키지",
+          "slides": [
+            41,
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/b71839748501bea81de378373c7759588fc35ad3",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/b71839748501bea81de378373c7759588fc35ad3"
+        },
+        {
+          "short": "ae123eb",
+          "hash": "ae123ebfdab2257b3b568497f59c15913e57c210",
+          "subject": "Stage 1: Claude artifact build of the unit planner",
+          "feature": "Claude 아티팩트 빌드",
+          "slides": [
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/ae123ebfdab2257b3b568497f59c15913e57c210",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/ae123ebfdab2257b3b568497f59c15913e57c210"
+        }
+      ],
+      "githubBranch": "https://github.com/yuxa94/apartment-planner/tree/stage1-unit-plan",
+      "githubStart": "https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f",
+      "githubFinal": "https://github.com/yuxa94/apartment-planner/tree/ae123ebfdab2257b3b568497f59c15913e57c210"
+    },
+    {
+      "n": 2,
+      "name": "동평면 조합",
+      "branch": "stage2-building-plan",
+      "start": "f3a6e34",
+      "mid": "54b3670",
+      "end": "77e281f",
+      "port": 8772,
+      "app": "dist/planby-building-plan.html",
+      "input": "Stage 1 세대 평면 JSON",
+      "result": "apartment-planner-building/1 후보 JSON",
+      "check": "후보 생성·창/문 편집·코어 부품·후보 JSON",
+      "commit": "77e281ff27905389f788d5946f66d3425bded959",
+      "fileCount": 33,
+      "commits": [
+        {
+          "short": "f3a6e34",
+          "hash": "f3a6e34053a273dd22798b1600bab54f7c8662df",
+          "subject": "stage2-building-plan: lock app to 'combinations' stage and document scope",
+          "feature": "동평면 화면 고정",
+          "slides": [],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/f3a6e34053a273dd22798b1600bab54f7c8662df",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df"
+        },
+        {
+          "short": "0cbd2e1",
+          "hash": "0cbd2e16b5b5f4e2af87d28f3695b50ad90a2349",
+          "subject": "stage2: reproduce Susaek4 101 single-loaded corridor plan from A-303",
+          "feature": "수색4 101동 A-303 재현",
+          "slides": [
+            18,
+            19,
+            20
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/0cbd2e16b5b5f4e2af87d28f3695b50ad90a2349",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/0cbd2e16b5b5f4e2af87d28f3695b50ad90a2349"
+        },
+        {
+          "short": "7a54467",
+          "hash": "7a544673fdd7f75140315962a08ed49c7f901cd0",
+          "subject": "stage2: explore unit combinations around a single core",
+          "feature": "단일 코어 중심 조합 탐색",
+          "slides": [
+            21,
+            22
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/7a544673fdd7f75140315962a08ed49c7f901cd0",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/7a544673fdd7f75140315962a08ed49c7f901cd0"
+        },
+        {
+          "short": "ea29484",
+          "hash": "ea29484646c72cc56c603e3b09dcfdadde6e0af1",
+          "subject": "stage2: build cores from parts by floor count and units per core",
+          "feature": "층수·세대수별 코어 부품화",
+          "slides": [
+            23
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/ea29484646c72cc56c603e3b09dcfdadde6e0af1",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/ea29484646c72cc56c603e3b09dcfdadde6e0af1"
+        },
+        {
+          "short": "217e190",
+          "hash": "217e19020cc851dc9102e9d21e598b0497f6e7d6",
+          "subject": "stage2: drawn Gyeyang core blocks and unit-first (tetris) assembly",
+          "feature": "계양 코어 형상·세대 우선 조립",
+          "slides": [
+            24,
+            25,
+            26
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/217e19020cc851dc9102e9d21e598b0497f6e7d6",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/217e19020cc851dc9102e9d21e598b0497f6e7d6"
+        },
+        {
+          "short": "54b3670",
+          "hash": "54b3670966337d4eafa2d1fd129d22f55ddb0566",
+          "subject": "stage2: corridor-network hall, 4-unit clusters and candidate JSON export",
+          "feature": "복도망·4세대 조합·후보 JSON",
+          "slides": [
+            26,
+            27,
+            28
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/54b3670966337d4eafa2d1fd129d22f55ddb0566",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/54b3670966337d4eafa2d1fd129d22f55ddb0566"
+        },
+        {
+          "short": "a90843b",
+          "hash": "a90843bb03acdcef381bbc0010a922c3ffc82fdd",
+          "subject": "stage2: facing switches, windows, hand editor with free rotation; drop Astra request",
+          "feature": "향·창·자유회전·수동 편집",
+          "slides": [
+            27,
+            28
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/a90843bb03acdcef381bbc0010a922c3ffc82fdd",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/a90843bb03acdcef381bbc0010a922c3ffc82fdd"
+        },
+        {
+          "short": "3b7a0b6",
+          "hash": "3b7a0b6abbec63f7c2c33285c936c79515f0b5db",
+          "subject": "stage2: Stage 1 style snapping, editable doors/windows, outline push/pull",
+          "feature": "스냅·문/창 편집·외곽 밀기/당기기",
+          "slides": [
+            27,
+            28
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/3b7a0b6abbec63f7c2c33285c936c79515f0b5db",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/3b7a0b6abbec63f7c2c33285c936c79515f0b5db"
+        },
+        {
+          "short": "5a57a08",
+          "hash": "5a57a088f16a403830e23599f48e16deef3c82a0",
+          "subject": "stage2: single-file package for Claude/ChatGPT with JSON text round trip",
+          "feature": "단일 파일·JSON 텍스트 왕복",
+          "slides": [
+            41,
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/5a57a088f16a403830e23599f48e16deef3c82a0",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/5a57a088f16a403830e23599f48e16deef3c82a0"
+        },
+        {
+          "short": "77e281f",
+          "hash": "77e281ff27905389f788d5946f66d3425bded959",
+          "subject": "stage2: build dist/planby-building-plan.html",
+          "feature": "배포 HTML 커밋",
+          "slides": [
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/77e281ff27905389f788d5946f66d3425bded959",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/77e281ff27905389f788d5946f66d3425bded959"
+        }
+      ],
+      "githubBranch": "https://github.com/yuxa94/apartment-planner/tree/stage2-building-plan",
+      "githubStart": "https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df",
+      "githubFinal": "https://github.com/yuxa94/apartment-planner/tree/77e281ff27905389f788d5946f66d3425bded959"
+    },
+    {
+      "n": 3,
+      "name": "단지 배치 검토",
+      "branch": "stage3-site-plan",
+      "start": "a3b2e9f",
+      "mid": "2f446b7",
+      "end": "b1aab09",
+      "port": 8773,
+      "app": "package/planby-site-planner.html",
+      "input": "Stage 2 동평면 JSON",
+      "result": "프로젝트/patch JSON · 배치안 버전",
+      "check": "동평면 가져오기·거리/높이·대지 경계·3D·배치안 저장",
+      "commit": "b1aab092a422b3b30220e33dbc6a2ae6079d04aa",
+      "fileCount": 43,
+      "commits": [
+        {
+          "short": "a3b2e9f",
+          "hash": "a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89",
+          "subject": "stage3-site-plan: lock app to 'site' stage and document scope",
+          "feature": "단지배치 화면 고정",
+          "slides": [],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89"
+        },
+        {
+          "short": "26022ec",
+          "hash": "26022ec002ac0bba491a4d0bc81dfd1a7b4a93b2",
+          "subject": "Show actual/required distance on spacing labels and highlight failures in red",
+          "feature": "실제/요구 거리·미충족 빨간 표시",
+          "slides": [
+            30,
+            31,
+            32
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/26022ec002ac0bba491a4d0bc81dfd1a7b4a93b2",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/26022ec002ac0bba491a4d0bc81dfd1a7b4a93b2"
+        },
+        {
+          "short": "0136f32",
+          "hash": "0136f32c8e7aae1533f05f97a9ee66eac858bfdc",
+          "subject": "Add facing-aware spacing profile and height formula to site review",
+          "feature": "채광면/측벽별 거리·높이 산식",
+          "slides": [
+            30,
+            31,
+            32,
+            33
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/0136f32c8e7aae1533f05f97a9ee66eac858bfdc",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/0136f32c8e7aae1533f05f97a9ee66eac858bfdc"
+        },
+        {
+          "short": "be4b1a6",
+          "hash": "be4b1a6fb1652b397ea8c926e11a135f954755bb",
+          "subject": "Add drawing/3D views, law presets and clearer candidate area to site review",
+          "feature": "도면·3D·법령 프리셋",
+          "slides": [
+            34,
+            35,
+            36,
+            37
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/be4b1a6fb1652b397ea8c926e11a135f954755bb",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/be4b1a6fb1652b397ea8c926e11a135f954755bb"
+        },
+        {
+          "short": "b98cc61",
+          "hash": "b98cc610d2b037d41ee09ab77f4494ff116fafed",
+          "subject": "Add drag rotation handle for buildings on the site map",
+          "feature": "대지 위 동 회전 핸들",
+          "slides": [
+            38,
+            39
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/b98cc610d2b037d41ee09ab77f4494ff116fafed",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/b98cc610d2b037d41ee09ab77f4494ff116fafed"
+        },
+        {
+          "short": "4f03d8c",
+          "hash": "4f03d8c20e2843e03975a87049bdb88e2a05051a",
+          "subject": "Add on-map site boundary editing",
+          "feature": "대지 경계 직접 편집",
+          "slides": [
+            38,
+            39
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/4f03d8c20e2843e03975a87049bdb88e2a05051a",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/4f03d8c20e2843e03975a87049bdb88e2a05051a"
+        },
+        {
+          "short": "2f446b7",
+          "hash": "2f446b72e2a1ddcfac4be1abca73142570db2415",
+          "subject": "Import Stage 2 building plans; 3D north/spacing editing and mouse controls",
+          "feature": "Stage 2 동평면 가져오기·3D 마우스 조작",
+          "slides": [
+            37,
+            38,
+            39
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/2f446b72e2a1ddcfac4be1abca73142570db2415",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/2f446b72e2a1ddcfac4be1abca73142570db2415"
+        },
+        {
+          "short": "eff3a32",
+          "hash": "eff3a321f3a63819bc5f8b23d7962e75b4fa4bd9",
+          "subject": "Reverse horizontal orbit direction in the 3D view",
+          "feature": "3D 좌우 회전 방향 수정",
+          "slides": [
+            37
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/eff3a321f3a63819bc5f8b23d7962e75b4fa4bd9",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/eff3a321f3a63819bc5f8b23d7962e75b4fa4bd9"
+        },
+        {
+          "short": "2725a3f",
+          "hash": "2725a3f81459461b4c11b0337658d03287912e63",
+          "subject": "Add layout versions: save, load, rename and delete building layouts",
+          "feature": "배치안 저장·불러오기·이름 변경·삭제",
+          "slides": [
+            40
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/2725a3f81459461b4c11b0337658d03287912e63",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/2725a3f81459461b4c11b0337658d03287912e63"
+        },
+        {
+          "short": "d9ff7d7",
+          "hash": "d9ff7d7617831d8f7c062dbcd0e69f48801f8261",
+          "subject": "Add a shareable package: single-file app and LLM round-trip kit",
+          "feature": "단일 HTML·LLM 왕복 지침",
+          "slides": [
+            41,
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/d9ff7d7617831d8f7c062dbcd0e69f48801f8261",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/d9ff7d7617831d8f7c062dbcd0e69f48801f8261"
+        },
+        {
+          "short": "b1aab09",
+          "hash": "b1aab092a422b3b30220e33dbc6a2ae6079d04aa",
+          "subject": "Add a Claude artifact build with framed save and copy fallbacks",
+          "feature": "아티팩트 저장·복사 대체 경로",
+          "slides": [
+            41,
+            42
+          ],
+          "githubCommit": "https://github.com/yuxa94/apartment-planner/commit/b1aab092a422b3b30220e33dbc6a2ae6079d04aa",
+          "githubSource": "https://github.com/yuxa94/apartment-planner/tree/b1aab092a422b3b30220e33dbc6a2ae6079d04aa"
+        }
+      ],
+      "githubBranch": "https://github.com/yuxa94/apartment-planner/tree/stage3-site-plan",
+      "githubStart": "https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89",
+      "githubFinal": "https://github.com/yuxa94/apartment-planner/tree/b1aab092a422b3b30220e33dbc6a2ae6079d04aa"
+    }
+  ],
+  "repository": "https://github.com/yuxa94/apartment-planner",
+  "visibility": "public"
+}

@@ -1,0 +1,280 @@
+첫 실습 · 단위세대 화면 살펴보기
+
+첨부한 Stage 1 시작 소스를 새 수업 폴더에 복원하고 단위세대 화면을 실행해줘. assets의 59A·74A·84A 참고 이미지가 열리는지 확인해줘.
+평형을 바꾸고 실을 선택해 치수·면적·잠금이 어디에 표시되는지 설명해줘. 다음 실습 전에는 기능을 추가하지 마.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 c878de6: https://github.com/yuxa94/apartment-planner/commit/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+1 · 외곽선을 정하고 꽉 차게 채우기
+
+지금 수동으로 실을 배치할 수 있는 건 좋은데, 주어진 외곽 안을 실들이 꽉 차게 채울 수 있어야 해.
+외곽선도 직접 지정할 수 있게 해줘.
+API 키 없이 너한테 요청해서 고칠 수 있는 형태로 만들고, assets의 59A·74A·84A 참고도면을 참고해서 다시 구성해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 c310442: https://github.com/yuxa94/apartment-planner/commit/c310442ef8b3e227df65a002cb363010f975cc3a
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/c310442ef8b3e227df65a002cb363010f975cc3a
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+2A · 팝업 대신 대화 패널 하나로
+
+Claude에 요청할 때 창이 새로 떠서 보기가 불편해. 오른쪽에 채팅창 하나를 만들어줘.
+요청을 쓰면 요청문이 복사되고, Claude 답변을 같은 입력창에 통째로 붙여넣으면 자동으로 검토한 뒤 적용 버튼이 나오게 해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 833527c: https://github.com/yuxa94/apartment-planner/commit/833527cf7e31c1f3edd0690d02d52139d5ede437
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/833527cf7e31c1f3edd0690d02d52139d5ede437
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+2B · 빨간 영역으로 위치를 가리키기
+
+여기에 빈 도면을 추가할 수 있게 해줘.
+그리고 만들어진 도면 위에 빨간색으로 영역을 그릴 수 있게 해줘. LLM에게 “이 부분으로 무엇을 옮겨달라”처럼 요청할 수 있게 하고 싶어.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 c02fdf2: https://github.com/yuxa94/apartment-planner/commit/c02fdf2487a5371d2928b32557c0f5e7be30eeae
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/c02fdf2487a5371d2928b32557c0f5e7be30eeae
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+3A · 실 크기 조절과 레이어
+
+각각의 실 크기도 조절할 수 있게 해줘.
+그리고 공간 면적표 대신 레이어로 만들어서 보이는 순서를 바꿀 수 있게 해줘. 위로 올라간 공간이 아래 공간의 면적을 점유하는 형식이면 좋겠어.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 4f4033b: https://github.com/yuxa94/apartment-planner/commit/4f4033b4615ad9b71b8e4ee87a1bde5e1e324a47
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/4f4033b4615ad9b71b8e4ee87a1bde5e1e324a47
+관련 커밋 833527c: https://github.com/yuxa94/apartment-planner/commit/833527cf7e31c1f3edd0690d02d52139d5ede437
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/833527cf7e31c1f3edd0690d02d52139d5ede437
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+3B · 가까운 변과 꼭짓점에 스냅
+
+공간을 옮기거나 크기를 바꿀 때 가까운 변이나 꼭짓점에 스냅되면 좋겠어.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/c878de6f48ad3e2220dc225b60301ef0ad4aa69f
+관련 커밋 3a5e6dc: https://github.com/yuxa94/apartment-planner/commit/3a5e6dce927c222f1e6541b9670880408b0c41ff
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/3a5e6dce927c222f1e6541b9670880408b0c41ff
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+4 · 참고 동평면을 그대로 재현하기
+
+수색4 101동(A-303, 복도형 4세대 + 후면 코어)을 그대로 재현하는 조합 규칙부터 만들어줘.
+도면의 치수열을 읽어서 세대 전면·깊이, 복도 폭, 코어 크기를 정하고, 도면과 생성 결과를 나란히 비교하는 카드를 보여줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 0cbd2e1: https://github.com/yuxa94/apartment-planner/commit/0cbd2e16b5b5f4e2af87d28f3695b50ad90a2349
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/0cbd2e16b5b5f4e2af87d28f3695b50ad90a2349
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+5A · 코어 1개 + 세대 경우의 수
+
+내가 말한 배치는 코어 1개에 유닛을 붙일 수 있는 경우의 수를 탐색하는 거야.
+unit-plans의 59·74·84 평면 3개로, 현관이 코어 면에 닿고 서로 겹치지 않는 조합을 찾아서 2·3·4세대 코어로 묶어 보여줘.
+좌우 대칭이거나 위치만 조금 다른 안은 하나로 합쳐줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 7a54467: https://github.com/yuxa94/apartment-planner/commit/7a544673fdd7f75140315962a08ed49c7f901cd0
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/7a544673fdd7f75140315962a08ed49c7f901cd0
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+5B · 층수에 따라 코어를 부품으로 조립
+
+계단, 엘리베이터, 복도를 코어를 만들 때 유동적으로 바꾸고 싶어. 판상형, 타워형, ㄴ자, Y자 같은 형태까지 고려하면 어떤 식으로 개발하면 좋을지 리서치해서 알려줘.
+(답을 본 뒤) 지금 작업 커밋하고, 1단계 코어 부품화부터 진행해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 ea29484: https://github.com/yuxa94/apartment-planner/commit/ea29484646c72cc56c603e3b09dcfdadde6e0af1
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/ea29484646c72cc56c603e3b09dcfdadde6e0af1
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+6A · AutoCAD MCP로 실제 코어 DWG 읽기
+
+인천계양1 core 폴더의 코어 DWG 6개를 AutoCAD MCP로 읽어줘. 원본은 수정하지 마.
+도면의 계단·승강기·샤프트 블록은 그대로 쓰고, 홀과 복도는 세대에 맞게 유동적으로 생기게 해줘.
+53A와 101·103·104동 코어도 같은 방식으로 추가해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 217e190: https://github.com/yuxa94/apartment-planner/commit/217e19020cc851dc9102e9d21e598b0497f6e7d6
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/217e19020cc851dc9102e9d21e598b0497f6e7d6
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+6B · 세대 먼저 맞붙이고 빈틈에 코어
+
+지금 코어가 그대로 정사각형인 것 같아. 세대들을 먼저 맞붙여 배치하고, 현관 앞을 이어 홀을 만든 뒤 그 사이에 계단·승강기·샤프트를 넣는 방식으로 바꿔줘.
+(결과를 본 뒤) 커밋하고, 4세대 조합이 나오게 하고 3세대 홀이 너무 커지는 문제를 개선해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 217e190: https://github.com/yuxa94/apartment-planner/commit/217e19020cc851dc9102e9d21e598b0497f6e7d6
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/217e19020cc851dc9102e9d21e598b0497f6e7d6
+관련 커밋 54b3670: https://github.com/yuxa94/apartment-planner/commit/54b3670966337d4eafa2d1fd129d22f55ddb0566
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/54b3670966337d4eafa2d1fd129d22f55ddb0566
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+7 · 후보를 JSON으로 저장하고 손으로 고치기
+
+각 후보들을 JSON으로 저장할 수 있게 해줘.
+저장한 안은 다른 탭에서 수동으로 고칠 수 있게 하고, Stage 1의 편집·스냅 기능을 참고해서 세대 외곽선을 밀고 당기거나 창문과 문 위치를 옮기고 삭제할 수 있게 해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/f3a6e34053a273dd22798b1600bab54f7c8662df
+관련 커밋 54b3670: https://github.com/yuxa94/apartment-planner/commit/54b3670966337d4eafa2d1fd129d22f55ddb0566
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/54b3670966337d4eafa2d1fd129d22f55ddb0566
+관련 커밋 a90843b: https://github.com/yuxa94/apartment-planner/commit/a90843bb03acdcef381bbc0010a922c3ffc82fdd
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/a90843bb03acdcef381bbc0010a922c3ffc82fdd
+관련 커밋 3b7a0b6: https://github.com/yuxa94/apartment-planner/commit/3b7a0b6abbec63f7c2c33285c936c79515f0b5db
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/3b7a0b6abbec63f7c2c33285c936c79515f0b5db
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+8 · 계약안을 먼저 받고 구현하기
+
+면 구분 인동거리와 높이 산정식을 engine.js에 규칙 프로필로 넣고 화면 거리선에도 근거를 표시해줘.
+공통 모듈 변경이니 계약 변경점을 먼저 정리해서 보여줘.
+(계약안을 본 뒤) 계약안대로 구현해줘. 대각 배치는 기존 단순 규칙으로 폴백하는 걸로 해.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 26022ec: https://github.com/yuxa94/apartment-planner/commit/26022ec002ac0bba491a4d0bc81dfd1a7b4a93b2
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/26022ec002ac0bba491a4d0bc81dfd1a7b4a93b2
+관련 커밋 0136f32: https://github.com/yuxa94/apartment-planner/commit/0136f32c8e7aae1533f05f97a9ee66eac858bfdc
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/0136f32c8e7aae1533f05f97a9ee66eac858bfdc
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+9A · 법령 프리셋과 도면 보기
+
+첨부한 인동거리배치도처럼 볼 수 있는 도면 보기를 만들어줘.
+스크린샷에 있는 법령 기준을 프리셋으로 추가하고, 법령이나 기준으로 더 추가할 게 있으면 찾아서 추가해줘.
+조례는 바뀔 수 있으니 시행일과 원문 확인일을 화면에 같이 남겨줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 be4b1a6: https://github.com/yuxa94/apartment-planner/commit/be4b1a6fb1652b397ea8c926e11a135f954755bb
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/be4b1a6fb1652b397ea8c926e11a135f954755bb
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+10A · Stage 2 동평면을 대지로 가져오기
+
+이런 형태로 이제 각 동에 대한 파일이 들어올 거야. 이 파일을 불러와서 대지에 놓을 수 있게 구조를 만들어줘.
+편집 탭은 없어도 될 것 같아. 3D에서도 정북·인동 관련해서 보고 수정할 수 있게 해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 b98cc61: https://github.com/yuxa94/apartment-planner/commit/b98cc610d2b037d41ee09ab77f4494ff116fafed
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/b98cc610d2b037d41ee09ab77f4494ff116fafed
+관련 커밋 4f03d8c: https://github.com/yuxa94/apartment-planner/commit/4f03d8c20e2843e03975a87049bdb88e2a05051a
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/4f03d8c20e2843e03975a87049bdb88e2a05051a
+관련 커밋 2f446b7: https://github.com/yuxa94/apartment-planner/commit/2f446b72e2a1ddcfac4be1abca73142570db2415
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/2f446b72e2a1ddcfac4be1abca73142570db2415
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+10B · 조건을 충족하는 배치안 만들기
+
+지금 101동부터 105동까지 배치해 보려고 하는데, 모든 동이 현재 검토 조건을 충족하는 가능한 배치안을 만들어줘.
+거실이 서향이나 북향이 되는 회전은 빼줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 b98cc61: https://github.com/yuxa94/apartment-planner/commit/b98cc610d2b037d41ee09ab77f4494ff116fafed
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/b98cc610d2b037d41ee09ab77f4494ff116fafed
+관련 커밋 4f03d8c: https://github.com/yuxa94/apartment-planner/commit/4f03d8c20e2843e03975a87049bdb88e2a05051a
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/4f03d8c20e2843e03975a87049bdb88e2a05051a
+관련 커밋 2f446b7: https://github.com/yuxa94/apartment-planner/commit/2f446b72e2a1ddcfac4be1abca73142570db2415
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/2f446b72e2a1ddcfac4be1abca73142570db2415
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+10C · 배치안을 버전으로 저장
+
+배치안들을 버전별로 저장할 수 있게 해줘.
+그리고 네가 만든 배치안들도 새로운 버전으로 저장해 놔줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 2725a3f: https://github.com/yuxa94/apartment-planner/commit/2725a3f81459461b4c11b0337658d03287912e63
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/2725a3f81459461b4c11b0337658d03287912e63
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.
+
+────────
+
+11 · 단일 HTML 패키지와 아티팩트 게시
+
+지금 결과를 단일 HTML로 빌드하고 브라우저에서 저장·불러오기를 확인한 뒤 커밋해줘. Stage 1/3은 기존 아티팩트 빌드를 참고하고, Stage 2의 미커밋 아티팩트 변경은 부록과 구분해서 설명해줘.
+
+[이 실습의 자료와 기준 결과]
+자료·에셋: https://yuxa94.github.io/apartment-planner/materials.html
+시작 소스: https://github.com/yuxa94/apartment-planner/tree/a3b2e9f2f25bba58a1c90d19abfba73cb7be8b89
+관련 커밋 b718397: https://github.com/yuxa94/apartment-planner/commit/b71839748501bea81de378373c7759588fc35ad3
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/b71839748501bea81de378373c7759588fc35ad3
+관련 커밋 ae123eb: https://github.com/yuxa94/apartment-planner/commit/ae123ebfdab2257b3b568497f59c15913e57c210
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/ae123ebfdab2257b3b568497f59c15913e57c210
+관련 커밋 5a57a08: https://github.com/yuxa94/apartment-planner/commit/5a57a088f16a403830e23599f48e16deef3c82a0
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/5a57a088f16a403830e23599f48e16deef3c82a0
+관련 커밋 77e281f: https://github.com/yuxa94/apartment-planner/commit/77e281ff27905389f788d5946f66d3425bded959
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/77e281ff27905389f788d5946f66d3425bded959
+관련 커밋 d9ff7d7: https://github.com/yuxa94/apartment-planner/commit/d9ff7d7617831d8f7c062dbcd0e69f48801f8261
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/d9ff7d7617831d8f7c062dbcd0e69f48801f8261
+관련 커밋 b1aab09: https://github.com/yuxa94/apartment-planner/commit/b1aab092a422b3b30220e33dbc6a2ae6079d04aa
+해당 커밋 소스: https://github.com/yuxa94/apartment-planner/tree/b1aab092a422b3b30220e33dbc6a2ae6079d04aa
+위 소스는 기준 결과 비교용입니다. 새 기능을 만드는 실습에서는 현재 수업 코드를 수정하고, 막혔을 때만 기준 소스와 비교해 주세요.

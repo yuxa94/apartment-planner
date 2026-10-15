@@ -1,0 +1,42 @@
+[
+  {
+    "label": "59A 단위세대 참고도면",
+    "path": "materials/unit/59A-plan.png",
+    "bytes": 460824
+  },
+  {
+    "label": "74A 단위세대 참고도면",
+    "path": "materials/unit/74A-plan.png",
+    "bytes": 474014
+  },
+  {
+    "label": "84A 단위세대 참고도면",
+    "path": "materials/unit/84A-plan.png",
+    "bytes": 510302
+  },
+  {
+    "label": "수색4 동평면 원본 PDF · A-303은 PDF 3쪽",
+    "path": "materials/susaek-building.pdf",
+    "bytes": 41494111
+  },
+  {
+    "label": "청주월명 AG-109 · 거리·높이 산식 참고",
+    "path": "materials/cheongju-spacing.pdf",
+    "bytes": 532053
+  },
+  {
+    "label": "계양 코어 DWG 6개 · JSON에서 원본 파일 복원",
+    "path": "materials/core-dwg-source.json",
+    "bytes": 1265019
+  },
+  {
+    "label": "AutoCAD 없이 진행할 코어 추출 결과 JSON",
+    "path": "materials/cores.json",
+    "bytes": 8248
+  },
+  {
+    "label": "Stage 3 배치 탐색용 계산 엔진",
+    "path": "materials/planner-engine.js",
+    "bytes": 53929
+  }
+]

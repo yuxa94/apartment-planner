@@ -1,0 +1,6 @@
+Stage 2 미커밋 변경 부록
+교육 기준: 77e281ff27905389f788d5946f66d3425bded959
+
+로컬 변경: tools/build-standalone.cjs, dist/planby-building-plan.html 수정 및 dist/planby-building-plan.artifact.html 추가(미추적).
+빌드 도구 변경: --artifact 인자 추가, 문서 틀 제거, 다운로드 버튼 숨김, 닫는 script/style 태그와 HTML 주석 이스케이프 수정.
+본 강의의 Git bundle과 stage2-source.json 및 완성 앱은 77e281f 기준입니다. 이 미커밋 수정은 포함하지 않았습니다. Stage 2 아티팩트용 빌드가 필요하면 기준 소스와 별도 작업으로 수정·검증합니다. 원본 로컬 저장소를 새로 커밋하거나 변경하지 않았습니다.

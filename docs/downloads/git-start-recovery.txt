@@ -1,0 +1,55 @@
+Git 실습 안내 / 휴식 포함 240분
+
+사전 준비: Git과 Node.js 설치, git --version / node --version 확인. 배포 HTML만 보는 경우 설치 불필요. 수업 시간 전 course-repo.bundle.txt를 자료실에서 새 수업 폴더로 내려받습니다. 서버는 127.0.0.1에서 실행합니다.
+
+1. 이력 복원 (PowerShell)
+[IO.File]::WriteAllBytes((Join-Path $PWD 'course-repo.bundle'),
+  [Convert]::FromBase64String((Get-Content './course-repo.bundle.txt' -Raw)))
+git clone './course-repo.bundle' apartment-course
+cd apartment-course
+git branch -a
+git log --all --oneline --graph
+
+2. 만들기 실습 시작
+git worktree add -b my-stage1 ../course-stage1 c878de6
+git worktree add -b my-stage2 ../course-stage2 f3a6e34
+git worktree add -b my-stage3 ../course-stage3 a3b2e9f
+각 course-stage 폴더를 따로 Claude Code에서 엽니다. Git 폴더 안에서 index.html을 열거나 node server.cjs 8771/8772/8773으로 실행합니다. 서버 포트는 해당 Stage 숫자에 맞춰 하나만 입력합니다.
+
+3. 막힐 때 기준 결과 비교
+먼저 현재 Stage 폴더에서 git add -A / git commit -m "수업 중간 저장"으로 내 작업을 저장합니다. 큰 참고도면이나 인증 파일은 실습 폴더에 넣지 마세요. 아래 명령은 apartment-course 폴더에서 실행합니다.
+git worktree add -b check-stage1 ../check-stage1 3a5e6dc
+git worktree add -b check-stage2 ../check-stage2 54b3670
+git worktree add -b check-stage3 ../check-stage3 2f446b7
+기존 폴더는 유지되고 새 check 폴더가 생깁니다. 같은 이름이 이미 있으면 check-stage1-2처럼 브랜치/폴더 이름을 모두 바꿉니다. 각 check 폴더에서 node server.cjs 8871/8872/8873으로 실행하면 원래 실습과 동시에 비교할 수 있습니다. 같은 origin 자동저장 때문에 예전 프로젝트가 보이면 JSON 저장 후 새 시크릿 창 또는 별도 포트로 비교합니다.
+
+4. 완성본만 비교
+git worktree add -b final-stage1 ../final-stage1 ae123eb
+# 파일: ../final-stage1/package/planby-unit-planner.html
+git worktree add -b final-stage2 ../final-stage2 77e281f
+# 파일: ../final-stage2/dist/planby-building-plan.html
+git worktree add -b final-stage3 ../final-stage3 b1aab09
+# 파일: ../final-stage3/package/planby-site-planner.html
+
+5. 코드 변경 검증
+각 Stage 폴더에서 node --test 명령으로 자동 테스트를 실행합니다. Node 설치가 필요합니다. 스냅샷의 test-results.txt는 과거 기록입니다.
+
+6. 원본 소스 JSON 대안
+Git 이력이 필요하면 bundle 경로를 권장합니다. source.json은 각 최종 커밋의 전체 추적 파일 스냅샷이며 Git 이력은 없습니다. .gitignore, 테스트, 빌드 도구, 참고 이미지와 이미 커밋되어 있던 배포 파일도 포함합니다. 파일은 모두 Base64이며 gitBlob과 commit으로 원본을 대조할 수 있습니다.
+# Git이 없으면 Stage별 source.json을 새 폴더에 복원할 수 있습니다.
+# 아래를 stage1/2/3 파일명으로 바꾸어 각각 실행합니다.
+$courseSource = Get-Content './stage1-source.json' -Raw | ConvertFrom-Json
+$courseTarget = [IO.Path]::GetFullPath((Join-Path $PWD 'stage1-source'))
+if (Test-Path -LiteralPath $courseTarget) { throw '새 폴더 이름을 사용하세요.' }
+foreach ($courseFile in $courseSource.files) {
+  $coursePath = [IO.Path]::GetFullPath((Join-Path $courseTarget $courseFile.path))
+  if (-not $coursePath.StartsWith($courseTarget + [IO.Path]::DirectorySeparatorChar)) { throw '폴더 밖 경로' }
+  [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($coursePath)) | Out-Null
+  [IO.File]::WriteAllBytes($coursePath, [Convert]::FromBase64String($courseFile.content))
+}
+
+7. 기준과 차이
+Stage 1 ae123eb, Stage 2 77e281f, Stage 3 b1aab09. 원래 로컬 Stage 2의 미커밋 아티팩트 빌드 수정은 교육 기준에 섞지 않습니다. 부록 stage2-uncommitted.txt에서 설명합니다. Git bundle은 커밋된 원본 이력을 그대로 보존하므로 과거 문서의 경로/계정 표기도 보존될 수 있습니다. 기존 로컬 작업·lecture 폴더·인증 정보는 bundle에 추가하지 않았습니다.
+
+8. 단계 연결
+Stage 1 unit-59/74/84.json → Stage 2에서 후보 생성 → building/1 후보 JSON → Stage 3 불러오기. 입력·출력은 m/㎡를 사용합니다. 시작 커밋에는 이후 기능이 아직 없으므로 강의의 요청을 수행하거나 관련 커밋으로 새 비교 폴더를 만듭니다. AI 작업 결과의 커밋 해시는 강사 기록과 같아지지 않습니다. 커밋 표는 기준 결과를 찾아보는 용도입니다.
