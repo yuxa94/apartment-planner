@@ -4,7 +4,8 @@ const $=id=>document.getElementById(id),E=PlannerEngine,S=PlannerState,U=Planner
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 let project=S.createProject(),selected='b101',tab='site',history=[],future=[],snapshot,drag=null,viewBox=[0,0,210,185],heat='',heatTimer,heatEpoch=0,unitMount=null,comboMount=null,toastTimer;
-try{const saved=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);if(saved)project=S.validateProject(JSON.parse(saved));}catch{setTimeout(()=>toast('저장된 데이터가 호환되지 않아 예시 프로젝트를 열었습니다.'),200)}
+let saved=null;try{saved=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);}catch{/* storage blocked, e.g. a sandboxed chat-app frame */}
+try{if(saved)project=S.validateProject(JSON.parse(saved));}catch{setTimeout(()=>toast('저장된 데이터가 호환되지 않아 예시 프로젝트를 열었습니다.'),200)}
 selected=project.buildings[0]?.id; snapshot=S.clone(project);
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4200)}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(project));$('saveStatus').textContent='이 브라우저에 저장됨';}catch{$('saveStatus').textContent='자동 저장 불가 · 파일로 저장하세요';}}

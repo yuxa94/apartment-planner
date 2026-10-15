@@ -791,6 +791,7 @@
       .pu-msg.me{align-self:flex-end;background:#143e6a;color:#fff;border-bottom-right-radius:3px}.pu-msg.me small{color:#b9cbe0}
       .pu-msg.claude{align-self:flex-start;background:#f2f6fa;color:#24425e;border:1px solid #dfe8f0;border-bottom-left-radius:3px}.pu-msg.claude.bad{background:#fff4e7;border-color:#f2d7ad;color:#82531a}
       .pu-msg.system{align-self:center;background:transparent;color:#7d8fa1;font-size:11px;text-align:center;padding:2px 6px}
+      .pu-manual-copy{display:block;width:100%;box-sizing:border-box;margin-top:6px;border:0;border-radius:6px;padding:6px;font:11px/1.4 ui-monospace,Consolas,monospace;color:#1d3550;background:#e9f1fb;resize:vertical;min-height:54px}
       .pu-msg.me .btn{display:block;background:#fff;color:#143e6a;border-color:#fff}.pu-msg .btn{margin-top:8px;padding:6px 12px;font-size:12px}.pu-msg b{font-weight:700}
       .pu-chat textarea{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:9px;padding:9px 10px;font:13px/1.5 inherit;color:#233f59;resize:vertical;min-height:64px}
       .pu-chat-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}.pu-chat-actions .text-btn{font-size:11.5px}.pu-chat-mode{font-size:11px;color:#7d8fa1}
@@ -805,6 +806,8 @@
   const MARKS = {};
   const marksOf = id => MARKS[id] || (MARKS[id] = []);
   const MARK_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  // The single-file package for chat apps leaves out the reference PNGs (about 1.4 MB) and sets this flag.
+  const assetsAvailable = () => !(typeof window !== 'undefined' && window.PLANBY_NO_ASSETS);
 
   function mountUnits(container, project, onChange) {
     ensureUnits(project); injectStyles(container.ownerDocument); injectUnitEditorStyles(container.ownerDocument);
@@ -833,12 +836,12 @@
         <div class="pu-actions"><div class="pu-seg" role="group" aria-label="편집 대상"><button type="button" data-mode="rooms" class="${mode === 'rooms' ? 'active' : ''}" aria-pressed="${mode === 'rooms'}">공간 편집</button><button type="button" data-mode="outline" class="${mode === 'outline' ? 'active' : ''}" aria-pressed="${mode === 'outline'}">외곽선 편집</button><button type="button" data-mode="markup" class="pu-seg-mark${mode === 'markup' ? ' active' : ''}" aria-pressed="${mode === 'markup'}">✎ 영역 표시</button></div>
           <button type="button" class="btn" data-action="fill" title="잠기지 않은 공간을 늘려 빈 영역을 채웁니다">빈 영역 채우기</button><button type="button" class="btn" data-action="add">＋ 공간 추가</button>${unit.custom ? '' : '<button type="button" class="btn" data-action="reset">참고도면 배치로 재설정</button>'}
           </div>
-        <div class="pu-options"><label title="Ctrl을 누르는 동안 잠시 해제"><input type="checkbox" data-opt="snapOn" ${snapOn ? 'checked' : ''}>가까운 변·꼭짓점에 스냅</label><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label>${unit.custom ? '' : `<label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label>`}<label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
+        <div class="pu-options"><label title="Ctrl을 누르는 동안 잠시 해제"><input type="checkbox" data-opt="snapOn" ${snapOn ? 'checked' : ''}>가까운 변·꼭짓점에 스냅</label><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label>${unit.custom || !assetsAvailable() ? '' : `<label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label>`}<label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
         <p class="pu-hint">${mode === 'markup' ? '도면 위를 끌어 빨간 영역을 그리세요(A, B, C…). Claude 대화에서 “영역 A로 욕실을 옮겨줘”처럼 요청하면 영역 위치와 겹친 공간이 요청에 함께 들어갑니다. 영역을 눌러 선택하고 Delete로 지웁니다.' : mode === 'rooms' ? '공간을 드래그해 이동하세요. 선택한 공간의 파란 변·모서리를 끌면 크기가 바뀌고, 맞닿은 공간의 경계도 함께 움직입니다(Alt: 이 공간만). 방향키 이동 0.1m · Alt+방향키로 오른쪽·아래 변 크기 조절.' : '외곽 변을 드래그하면 그 벽에 붙은 공간이 함께 늘어나거나 줄어듭니다. 변을 더블클릭하면 꺾임점 2개가 생기고, 가운데 변을 끌어 들어가거나 튀어나온 부분을 만듭니다. 꼭짓점을 선택하고 Delete로 지웁니다. 방향키 0.1m · Shift 0.5m.'}</p>
         <div class="pu-canvas-wrap"><svg class="pu-canvas${mode === 'outline' ? ' pu-outline-mode' : mode === 'markup' ? ' pu-markup-mode' : ''}" aria-label="${esc(unit.name)} 편집 가능한 조닝" role="group" tabindex="-1"></svg></div>
         <div class="pu-legend">${CATEGORIES.map(k => `<span><i style="background:${COLORS[k]}"></i>${CATEGORY_LABELS[k]}</span>`).join('')}<span><i style="background:repeating-linear-gradient(45deg,#c9d5df 0 2px,#fff 2px 5px)"></i>빈 영역</span></div><div class="pu-statrow pu-four" data-stats></div><div data-checks aria-live="polite"></div><div class="pu-status" data-status role="status">${esc(status)}</div>
         ${unit.custom ? `<p class="pu-note">사용자가 만든 빈 도면입니다. 외곽선 편집으로 외곽을 그리고 ＋ 공간 추가나 Claude 대화로 공간을 채우세요. 기준 평형 ${type}형은 동평면 조합에서 쓰는 참고값이며, 외곽 면적은 법정 전용면적이 아닙니다.</p>` : `<p class="pu-note">외곽과 실 배치는 LH 양주회천 A-26 ${type}A 공식 안내도의 표기 치수를 따라 개략 추적한 계획값입니다. 벽 두께와 중심선을 구분하지 않았고, 외곽 면적에는 확장 발코니·벽체·실외기실이 포함되므로 명목 전용면적과 다릅니다. 법정 전용면적 산정이 아닙니다.</p>
-        <details class="pu-reference"><summary>공식 참고 평면과 도면 표기 치수 보기 · ${type}A</summary><img src="assets/${type}A-plan.png" alt="LH 양주회천 A-26 ${type}A 공식 참고 평면"><p>자료: LH 양주회천 A-26 ${type}A · 공식 도면 표기 ${Object.entries(ROOM_DATA[type].officialDims).map(([k, v]) => `${esc(k)} <strong>${esc(v)}</strong>`).join(' · ')} (mm).<br>표기 기준과 마감 두께를 확인하지 않은 값이며, 시공·가구 제작용 실측치가 아닙니다.</p></details>`}
+        <details class="pu-reference"><summary>공식 참고 평면과 도면 표기 치수 보기 · ${type}A</summary>${assetsAvailable() ? '' : '<p>이 패키지에는 참고 이미지가 없습니다. 원본: <a href="https://www.lh-hca26.co.kr/sub03_01.html?tab=1" target="_blank" rel="noopener">LH 양주회천 A-26 평면 안내</a></p>'}<img ${assetsAvailable() ? '' : 'hidden '}src="${assetsAvailable() ? `assets/${type}A-plan.png` : ''}" alt="LH 양주회천 A-26 ${type}A 공식 참고 평면"><p>자료: LH 양주회천 A-26 ${type}A · 공식 도면 표기 ${Object.entries(ROOM_DATA[type].officialDims).map(([k, v]) => `${esc(k)} <strong>${esc(v)}</strong>`).join(' · ')} (mm).<br>표기 기준과 마감 두께를 확인하지 않은 값이며, 시공·가구 제작용 실측치가 아닙니다.</p></details>`}
         </div><aside class="pu-inspector"><div class="panel"><h3>${{ rooms: '공간 편집', outline: '외곽선', markup: '표시한 영역' }[mode]}</h3><div data-inspector></div></div><div class="panel pu-chat"><h3>✧ Claude 대화 <small>API 없이 복사·붙여넣기</small></h3><div class="pu-chat-log" data-chat-log aria-live="polite"></div>
           <div class="pu-chat-marks" data-chat-marks></div><textarea data-chat-input rows="3" placeholder="수정 요청을 쓰거나, Claude의 답변을 통째로 붙여넣으세요. (Ctrl+Enter 보내기)">${esc(CHAT.draft)}</textarea>
           <div class="pu-chat-actions"><span><button type="button" class="text-btn" data-chat-file-save>요청 파일 저장</button> · <label class="text-btn" style="cursor:pointer">답변 파일 열기<input type="file" accept=".json,application/json,text/plain" data-chat-file hidden></label></span><button type="button" class="btn primary" data-chat-send></button></div></div>
@@ -913,7 +916,7 @@
     }
     function paintSvg() {
       const unit = active(), report = checkUnit(unit), bad = new Set(report.outside.concat(report.hidden));
-      const poly = unit.outline, svg = container.querySelector('.pu-canvas'), pad = 1.1, image = !unit.custom && ROOM_DATA[type] && ROOM_DATA[type].image;
+      const poly = unit.outline, svg = container.querySelector('.pu-canvas'), pad = 1.1, image = !unit.custom && assetsAvailable() && ROOM_DATA[type] && ROOM_DATA[type].image;
       svg.setAttribute('viewBox', `${-pad} ${-pad} ${unit.width + pad * 2} ${unit.depth + pad * 2}`);
       const path = 'M' + poly.map(p => p[0] + ' ' + p[1]).join('L') + 'Z';
       const horizontal = Array.from({ length: Math.ceil(unit.depth) }, (_, i) => `<path d="M0 ${i}H${unit.width}"/>`).join('');
@@ -1310,7 +1313,8 @@
       if (!log) return;
       log.innerHTML = CHAT.log.length ? CHAT.log.map((m, i) => {
         if (m.role === 'system') return `<div class="pu-msg system">${esc(m.text)}</div>`;
-        if (m.role === 'me') return `<div class="pu-msg me">${esc(m.text)}<small>${esc(m.label)}${m.marks && m.marks.length ? ' · 영역 ' + m.marks.join(', ') : ''} · 개정 ${m.revision} · 요청문 ${m.copied ? '복사됨' : '자동 복사 안 됨'} · ${m.time}</small><button type="button" class="btn" data-chat-copy="${i}">${m.copied ? '요청문 다시 복사' : '요청문 복사'}</button></div>`;
+        // In sandboxed frames (chat app canvases) the clipboard may be blocked, so the prompt stays selectable.
+        if (m.role === 'me') return `<div class="pu-msg me">${esc(m.text)}${m.copied ? '' : `<textarea class="pu-manual-copy" readonly rows="3" aria-label="요청문 직접 복사" onfocus="this.select()">${esc(m.prompt)}</textarea>`}<small>${esc(m.label)}${m.marks && m.marks.length ? ' · 영역 ' + m.marks.join(', ') : ''} · 개정 ${m.revision} · 요청문 ${m.copied ? '복사됨' : '자동 복사 안 됨'} · ${m.time}</small><button type="button" class="btn" data-chat-copy="${i}">${m.copied ? '요청문 다시 복사' : '요청문 복사'}</button></div>`;
         if (m.error) return `<div class="pu-msg claude bad"><b>적용할 수 없는 답변</b><br>${esc(m.error)}<small>${m.time}</small></div>`;
         return `<div class="pu-msg claude${m.issues.length ? ' bad' : ''}"><b>${esc(m.label)} 수정안</b>${m.summary ? '<br>' + esc(m.summary) : ''}<br>공간 ${m.rooms}개 · 외곽 ${fmt(m.outlineArea)}㎡ · 빈 영역 ${m.gapArea === null ? '—' : fmt(m.gapArea) + '㎡'}${m.issues.length ? '<br>' + m.issues.map(esc).join('<br>') : ''}
           ${m.applied ? '<small>적용됨 · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다 · ' + m.time + '</small>' : `<br><button type="button" class="btn primary" data-chat-apply="${i}">이 수정안 적용</button><small>${m.time}</small>`}</div>`;
