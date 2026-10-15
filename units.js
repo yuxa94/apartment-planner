@@ -138,6 +138,88 @@
     });
   }
 
+  // Reference building plans read from drawing dimension strings (mm → m). Observed values, not DWG extraction.
+  const REFERENCES = {
+    'susaek4-101': {
+      id: 'susaek4-101', name: '수색4 101동 · 편복도 4세대 + 후면 코어',
+      source: 'HAUD 수색4 사업시행변경인가(2019.08) A-303 · 101동 2층 및 3~7층 평면도 1/100',
+      unitType: 39, unitArea: 39, balconyDepth: 1.5, corridorDepth: 2.056, entranceWidth: 1.0,
+      // Entrances are paired at the shared wall (mirrored units), read from the plan.
+      units: [{ frontage: 5.02, depth: 10.385, entrance: 'right' }, { frontage: 5.02, depth: 10.385, entrance: 'left' },
+        { frontage: 5.02, depth: 10.385, entrance: 'right' }, { frontage: 5.02, depth: 10.385, entrance: 'left' }],
+      // Core offset from grid A1, width A2–A3; depth 2,800 + 620 (B4–B5). Parts follow the 4,880 / 2,000 / 2,550 dimension segments.
+      core: { offset: 5.375, width: 9.43, depth: 3.42, parts: [
+        { kind: 'stair', name: '계단실', x: 0, y: 0, width: 4.88, depth: 2.8 },
+        { kind: 'hall', name: '승강기홀', x: 4.88, y: 0, width: 2.0, depth: 2.8 },
+        { kind: 'elevator', name: '승강기', x: 6.88, y: 0, width: 2.55, depth: 2.8 },
+        { kind: 'shaft', name: 'AV/PS · PS · ST · EPS/TPS', x: 0, y: 2.8, width: 9.43, depth: 0.62 }] },
+      expected: [
+        { key: 'width', label: '동 전체 폭 (A1–A4)', value: 20.08 },
+        { key: 'depth', label: '동 전체 깊이 (B1–B5)', value: 15.86 },
+        { key: 'unitDepth', label: '세대 깊이 (B1–B3, 발코니 포함)', value: 10.385 },
+        { key: 'coreOffset', label: '코어 시작 위치 (A1–A2)', value: 5.375 },
+        { key: 'coreWidth', label: '코어 폭 (A2–A3)', value: 9.43 },
+        { key: 'eastEnd', label: '코어 끝 ~ 동 끝 (A3–A4)', value: 5.275 }],
+      excluded: ['코어 상부 5.0 m 구간 (2층 개방부, 3층 한정 부분)', '세대 내부 실 구획', '벽체 두께와 중심선·외곽선 구분', '계단·승강기 세부 치수 (치수선 구간 기준 개략 구획)']
+    }
+  };
+
+  // Single-loaded corridor rule: units side by side by frontage, entrances on the corridor edge, core behind the corridor.
+  function buildCorridorPlan(spec) {
+    const unitsSpec = spec.units || [], core = spec.core, cd = spec.corridorDepth;
+    const width = unitsSpec.reduce((s, u) => s + u.frontage, 0), unitY = core.depth + cd;
+    const depth = unitY + Math.max(...unitsSpec.map(u => u.depth));
+    const units = [], entrances = [];
+    let x = 0;
+    unitsSpec.forEach((u, i) => {
+      units.push({ id: 'u' + i, type: spec.unitType, name: spec.unitType + '㎡형', x: round(x), y: round(unitY), width: u.frontage, depth: u.depth, balconyDepth: spec.balconyDepth || 0, entrance: u.entrance });
+      const ew = spec.entranceWidth || 1;
+      entrances.push({ unitId: 'u' + i, x: round(u.entrance === 'left' ? x + .2 : x + u.frontage - .2 - ew), y: round(unitY), width: ew });
+      x += u.frontage;
+    });
+    const coreX = Number.isFinite(core.offset) ? core.offset : (width - core.width) / 2;
+    const cores = [{ id: 'c0', name: '코어', x: round(coreX), y: 0, width: core.width, depth: core.depth, parts: (core.parts || []).map(p => ({ ...p, x: round(coreX + p.x), y: round(p.y) })) }];
+    const corridors = [{ x: 0, y: round(core.depth), width: round(width), depth: cd }];
+    const c = corridors[0], k = cores[0], eps = 1e-6;
+    const checks = [
+      { label: '모든 세대 현관이 복도 경계에 접함', ok: entrances.every(e => Math.abs(e.y - (c.y + c.depth)) < eps && e.x >= c.x - eps && e.x + e.width <= c.x + c.width + eps) },
+      { label: '코어가 복도 후면에 접함', ok: Math.abs(k.y + k.depth - c.y) < eps && k.x >= c.x - eps && k.x + k.width <= c.x + c.width + eps },
+      { label: '세대가 빈틈 없이 연속 배치', ok: units.every((u, i) => i === 0 ? Math.abs(u.x) < eps : Math.abs(u.x - (units[i - 1].x + units[i - 1].width)) < eps) }];
+    const totalUnitArea = spec.unitArea * units.length, coreOnlyArea = core.width * core.depth, corridorArea = c.width * c.depth;
+    return { width: round(width), depth: round(depth), units, entrances, cores, corridors, checks, totalUnitArea, coreOnlyArea: round(coreOnlyArea), coreArea: round(coreOnlyArea + corridorArea) };
+  }
+
+  function reproduceReference(id) {
+    const ref = REFERENCES[id];
+    if (!ref) return null;
+    const plan = buildCorridorPlan(ref), core = plan.cores[0];
+    const measured = { width: plan.width, depth: plan.depth, unitDepth: plan.units[0].depth, coreOffset: core.x, coreWidth: core.width, eastEnd: round(plan.width - core.x - core.width) };
+    const comparison = ref.expected.map(e => { const diff = round(measured[e.key] - e.value); return { label: e.label, drawing: e.value, generated: measured[e.key], diff, ok: Math.abs(diff) <= .01 }; });
+    return { id: 'ref-' + ref.id, name: ref.name, width: plan.width, depth: plan.depth, unitsPerFloor: plan.units.length,
+      unitArea: ref.unitArea, totalUnitArea: plan.totalUnitArea, nominalArea: plan.totalUnitArea, coreArea: plan.coreArea, coreOnlyArea: plan.coreOnlyArea,
+      coreCount: 1, coreCapacity: plan.units.length, unitMix: [{ type: ref.unitType, count: plan.units.length }], source: 'reference', referenceId: ref.id,
+      referenceSource: ref.source, layout: 'single-loaded', footprintArea: round(plan.width * plan.depth), sourceUnitIds: [],
+      reviewStatus: '도면 치수 판독 재현 · 피난·구조·설비 미검토', checks: plan.checks, comparison, excluded: ref.excluded.slice(),
+      geometry: { units: plan.units, cores: plan.cores, corridors: plan.corridors, entrances: plan.entrances } };
+  }
+
+  function referenceSvg(t) {
+    const g = t.geometry, pad = 3.2, partFill = { stair: '#3f6b93', hall: '#6f95b8', elevator: '#2f557b', shaft: '#8aa6c0' };
+    const dim = (x1, x2, y, label) => `<g stroke="#8193a5" stroke-width=".05"><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line x1="${x1}" y1="${y - .3}" x2="${x1}" y2="${y + .3}"/><line x1="${x2}" y1="${y - .3}" x2="${x2}" y2="${y + .3}"/></g><text x="${(x1 + x2) / 2}" y="${y - .25}" text-anchor="middle" font-size=".5" fill="#5d7185">${label}</text>`;
+    const mm = v => Math.round(v * 1000).toLocaleString('ko-KR');
+    const core = g.cores[0];
+    return `<svg viewBox="${-pad} ${-pad} ${t.width + pad * 2} ${t.depth + pad * 2}" role="img" aria-label="${esc(t.name)} 재현 평면">
+      ${g.corridors.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="#e3eaf1" stroke="#9fb2c4" stroke-width=".05"/><text x="${r.x + r.width - .4}" y="${r.y + r.depth / 2 + .2}" text-anchor="end" font-size=".55" fill="#5d7185">복도 ${mm(r.depth)}</text>`).join('')}
+      ${g.units.map(u => `<g><rect x="${u.x}" y="${u.y}" width="${u.width}" height="${u.depth}" fill="#d2e9ee" stroke="#6d8ca4" stroke-width=".08"/><rect x="${u.x}" y="${u.y + u.depth - u.balconyDepth}" width="${u.width}" height="${u.balconyDepth}" fill="#eef6f8" stroke="#9ab4c4" stroke-width=".04"/><text x="${u.x + u.width / 2}" y="${u.y + u.depth / 2}" text-anchor="middle" font-size=".75" font-weight="650" fill="#3b5c77">${esc(u.name)}</text><text x="${u.x + u.width / 2}" y="${u.y + u.depth - u.balconyDepth / 2 + .18}" text-anchor="middle" font-size=".42" fill="#7b91a3">발코니</text></g>`).join('')}
+      ${g.entrances.map(e => `<g><rect x="${e.x}" y="${e.y - .12}" width="${e.width}" height=".24" fill="#e08a2e"/><text x="${e.x + e.width / 2}" y="${e.y + .75}" text-anchor="middle" font-size=".42" fill="#b4691c">현관</text></g>`).join('')}
+      ${core.parts.map(p => `<g><rect x="${p.x}" y="${p.y}" width="${p.width}" height="${p.depth}" fill="${partFill[p.kind] || '#507ca5'}" stroke="#fff" stroke-width=".05"/><text x="${p.x + p.width / 2}" y="${p.y + p.depth / 2 + .17}" text-anchor="middle" font-size="${p.depth < 1 ? .32 : p.width < 2.2 ? .4 : .5}" fill="white">${esc(p.name)}</text></g>`).join('')}
+      ${dim(0, t.width, -1.6, mm(t.width))}
+      ${dim(0, core.x, -.6, mm(core.x))}${dim(core.x, core.x + core.width, -.6, mm(core.width))}${dim(core.x + core.width, t.width, -.6, mm(t.width - core.x - core.width))}
+      ${g.units.map(u => dim(u.x, u.x + u.width, t.depth + 1.1, mm(u.width))).join('')}
+      <g transform="translate(${t.width + 1.6} 0)"><g stroke="#8193a5" stroke-width=".05"><line x1="0" y1="0" x2="0" y2="${t.depth}"/><line x1="-.3" y1="0" x2=".3" y2="0"/><line x1="-.3" y1="${t.depth}" x2=".3" y2="${t.depth}"/></g><text transform="translate(-.25 ${t.depth / 2}) rotate(-90)" text-anchor="middle" font-size=".5" fill="#5d7185">${mm(t.depth)}</text></g>
+    </svg>`;
+  }
+
   function ensureUnits(project) {
     if (!Array.isArray(project.units)) project.units = [];
     for (const type of TYPES) if (!project.units.some(u => Number(u.type) === type)) project.units.push(createUnit(type));
@@ -148,8 +230,8 @@
     if (doc.getElementById('planner-units-style')) return;
     const style = doc.createElement('style'); style.id = 'planner-units-style';
     style.textContent = `
-      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}
-      @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
+      @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector,.pu-ref-body{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
     `;
     doc.head.appendChild(style);
   }
@@ -283,6 +365,19 @@
       ${geometry.cores.map(r => `<g><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="#507ca5" rx=".15"/><path d="M${r.x + .65} ${r.y + 1.1}h2.1m-2.1 .6h2.1m-2.1 .6h2.1m-2.1 .6h2.1" stroke="#c8dcea" stroke-width=".12"/><rect x="${r.x + 3.2}" y="${r.y + .8}" width="1.6" height="1.8" fill="none" stroke="#c8dcea" stroke-width=".12"/><text x="${r.x + r.width / 2}" y="${r.y + 4.8}" text-anchor="middle" font-size="${font * .8}" fill="white">코어</text></g>`).join('')}</svg>`;
   }
 
+  function referencePanel(t) {
+    const allOk = t.comparison.every(r => r.ok) && t.checks.every(c => c.ok);
+    return `<section class="panel pu-ref"><div class="pu-toolbar"><h3>참고 재현 · ${esc(t.name)}</h3><span class="tag ${allOk ? 'green' : 'amber'}">${allOk ? '도면 치수 일치' : '치수 차이 있음'}</span></div>
+      <p class="pu-note">${esc(t.referenceSource)}. 세대(${t.unitMix[0].type}㎡ × ${t.unitsPerFloor})는 좁은 전면 폭으로 나란히 놓고, 현관은 복도 경계에, 코어는 복도 뒤에 붙입니다. 치수는 도면 치수선을 판독한 관찰값이며 DWG 추출값이 아닙니다.</p>
+      <div class="pu-ref-body"><div class="pu-ref-drawing">${referenceSvg(t)}</div><div class="pu-ref-side">
+        <table class="pu-roomlist"><thead><tr><th>항목</th><th>도면</th><th>재현</th></tr></thead><tbody>${t.comparison.map(r => `<tr><td>${esc(r.label)}</td><td>${r.drawing.toFixed(3)}</td><td class="${r.ok ? 'pu-ok' : 'pu-ng'}">${r.generated.toFixed(3)}${r.ok ? '' : ' (' + (r.diff > 0 ? '+' : '') + r.diff.toFixed(3) + ')'}</td></tr>`).join('')}</tbody></table>
+        <ul class="pu-checks">${t.checks.map(c => `<li class="${c.ok ? 'pu-ok' : 'pu-ng'}">${c.ok ? '✓' : '✗'} ${esc(c.label)}</li>`).join('')}</ul>
+        <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(t.totalUnitArea)}㎡</b></div><div><span>코어 + 복도 / 층</span><b>${fmt(t.coreArea)}㎡</b></div></div>
+        <div class="pu-warning">재현 제외: ${t.excluded.map(esc).join(' · ')}. 피난·구조·설비 적합성은 미검토입니다.</div>
+        <div class="pu-combo-actions"><button class="btn" data-ref-save>동 유형으로 저장</button><button class="btn primary" data-ref-place>대지에 배치 →</button></div>
+      </div></div></section>`;
+  }
+
   function mountCombinations(container, project, onChange, onPlace) {
     ensureUnits(project); injectStyles(container.ownerDocument);
     let count = 4, coreCapacity = 4, types = [59, 74, 84], status = '';
@@ -296,11 +391,12 @@
     }
     function render() {
       const candidates = generateCombinations(project.units, { count, coreCapacity, types });
+      const reference = reproduceReference('susaek4-101');
       container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>세대와 코어로 동평면 후보 만들기</h3><span class="tag">유한 후보 3안</span></div><p class="pu-note">선택한 평형을 순서대로 고르게 배분합니다. 현재 세대 외곽 크기를 유지하며, 연결 띠와 코어를 더한 개념 조합입니다.</p>
         <div class="pu-combo-fields"><div><div class="section-label" style="margin-bottom:8px">포함할 평형</div><div class="pu-mix">${TYPES.map(t => `<label><input type="checkbox" data-mix="${t}" ${types.includes(t) ? 'checked' : ''}>${t}㎡</label>`).join('')}</div></div>
         <label>층당 세대 수<select data-count>${[2, 4, 6].map(n => `<option value="${n}" ${n === count ? 'selected' : ''}>${n}세대</option>`).join('')}</select></label><label>코어당 계획 세대 수<select data-core><option value="2" ${coreCapacity === 2 ? 'selected' : ''}>최대 2세대</option><option value="4" ${coreCapacity === 4 ? 'selected' : ''}>최대 4세대</option></select></label></div>
         <div class="pu-warning">코어 5.8 × 6.2m와 연결 띠는 임의 계획값입니다. HAUD에서 실측·추출한 코어가 아니며, 현관 접합·공용 동선·피난·구조·채광 적합성은 미검토입니다.</div></div>
-        <div class="pu-status" role="status">${esc(status)}</div><div class="pu-combo-grid">${candidates.length ? candidates.map((c, i) => `<article class="pu-combo-card">${schematicSvg(c)}<h3>${esc(c.name)}</h3><div class="pu-combo-meta">${c.unitMix.map(m => `${m.type}형 ${m.count}세대`).join(' + ')}<br>코어 ${c.coreCount}개 · ${fmt(c.width)} × ${fmt(c.depth)}m</div><div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>개념 공용부 / 층</span><b>${fmt(c.coreArea)}㎡</b></div></div><span class="tag">연결 적합성 미검토</span><div class="pu-combo-actions"><button class="btn" type="button" data-save="${i}">후보 저장</button><button class="btn primary" type="button" data-place="${i}">대지에 배치 →</button></div></article>`).join('') : '<div class="pu-empty">조합할 평형을 한 개 이상 선택하세요.</div>'}</div>
+        <div class="pu-status" role="status">${esc(status)}</div>${referencePanel(reference)}<h3 class="pu-section-title">개념 후보 <small>임의 가정 · 참고도면 근거 없음</small></h3><div class="pu-combo-grid">${candidates.length ? candidates.map((c, i) => `<article class="pu-combo-card">${schematicSvg(c)}<h3>${esc(c.name)}</h3><div class="pu-combo-meta">${c.unitMix.map(m => `${m.type}형 ${m.count}세대`).join(' + ')}<br>코어 ${c.coreCount}개 · ${fmt(c.width)} × ${fmt(c.depth)}m</div><div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>개념 공용부 / 층</span><b>${fmt(c.coreArea)}㎡</b></div></div><span class="tag">연결 적합성 미검토</span><div class="pu-combo-actions"><button class="btn" type="button" data-save="${i}">후보 저장</button><button class="btn primary" type="button" data-place="${i}">대지에 배치 →</button></div></article>`).join('') : '<div class="pu-empty">조합할 평형을 한 개 이상 선택하세요.</div>'}</div>
         <p class="pu-footnote">탐색 범위: 선택 평형을 59→74→84 순서로 순환 배분 × 3가지 직교 배치. 세대 수보다 선택 평형이 많으면 뒷순서 평형은 제외됩니다. 모든 가능한 동평면을 탐색한 결과가 아닙니다. 공용부는 코어와 연결 띠의 합집합이며, 세대 조닝 면적·법정 연면적과 구분합니다.</p>
         <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}</small></div><button class="btn" type="button" data-saved-place="${i}">배치에 추가</button></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>`;
       container.querySelectorAll('[data-mix]').forEach(input => input.addEventListener('change', () => { types = Array.from(container.querySelectorAll('[data-mix]:checked')).map(el => Number(el.dataset.mix)); render(); }));
@@ -308,9 +404,11 @@
       container.querySelector('[data-core]').addEventListener('change', e => { coreCapacity = Number(e.target.value); render(); });
       container.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', () => { save(candidates[Number(b.dataset.save)]); render(); }));
       container.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { const saved = save(candidates[Number(b.dataset.place)]); if (typeof onPlace === 'function') onPlace(saved); }));
+      container.querySelector('[data-ref-save]').addEventListener('click', () => { save(reference); render(); });
+      container.querySelector('[data-ref-place]').addEventListener('click', () => { const saved = save(reference); if (typeof onPlace === 'function') onPlace(saved); });
       container.querySelectorAll('[data-saved-place]').forEach(b => b.addEventListener('click', () => { if (typeof onPlace === 'function') onPlace(project.typologies[Number(b.dataset.savedPlace)]); }));
     }
     render(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, mountUnits, mountCombinations, schematicSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });

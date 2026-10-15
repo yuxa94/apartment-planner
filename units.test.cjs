@@ -109,3 +109,31 @@ test('mix choices and candidate generation are deterministic', () => {
   assert.deepEqual(a, U.generateCombinations(units, options));
   assert.deepEqual(a[0].unitMix, [{ type: 74, count: 4 }]);
 });
+
+test('Susaek4 101 reproduction matches the A-303 dimension strings', () => {
+  const t = U.reproduceReference('susaek4-101');
+  assert.equal(t.unitsPerFloor, 4);
+  assert.equal(t.width, 20.08);
+  for (const row of t.comparison) assert.ok(row.ok, row.label + ' ' + row.generated + ' vs ' + row.drawing);
+  for (const check of t.checks) assert.ok(check.ok, check.label);
+  // Narrow frontage, deep plan; entrances paired at the shared walls.
+  for (const u of t.geometry.units) assert.ok(u.width < u.depth);
+  assert.deepEqual(t.geometry.units.map(u => u.entrance), ['right', 'left', 'right', 'left']);
+  const corridor = t.geometry.corridors[0], core = t.geometry.cores[0];
+  assert.equal(core.y + core.depth, corridor.y);
+  assert.ok(t.geometry.units.every(u => Math.abs(u.y - (corridor.y + corridor.depth)) < 1e-9));
+  assert.equal(U.reproduceReference('missing'), null);
+});
+
+test('corridor rule flags a core that overhangs the corridor', () => {
+  const ref = U.REFERENCES['susaek4-101'];
+  const plan = U.buildCorridorPlan({ ...ref, core: { ...ref.core, offset: 15 } });
+  assert.equal(plan.checks.find(c => c.label.includes('코어')).ok, false);
+});
+
+test('saved reproduction is a valid project typology', () => {
+  const S = require('./state.js');
+  const p = S.createProject();
+  p.typologies.push(JSON.parse(JSON.stringify(U.reproduceReference('susaek4-101'))));
+  assert.equal(S.validateProject(p).typologies[0].id, 'ref-susaek4-101');
+});
