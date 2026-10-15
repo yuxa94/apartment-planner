@@ -36,3 +36,5 @@
 .map-body.mass .map-legend{display:none}
 #siteSvg[hidden]{display:none}
 .cad-overlay[hidden]{display:none}
+.map-tools #siteModeBtn[aria-pressed="true"]{background:#2f6f99;color:#fff;font-weight:600}
+.map-tools #siteModeBtn:disabled{opacity:.45}

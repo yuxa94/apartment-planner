@@ -214,6 +214,29 @@
     return out;
   }
 
+  // Site boundary editing: draggable vertices (double-click deletes), a "+"
+  // at each edge midpoint to insert a vertex, and edge lengths in metres.
+  function siteHandles(site, k, cad) {
+    const color = cad ? '#ff8a80' : '#2f6f99', fill = cad ? '#1f2428' : '#ffffff';
+    let out = '';
+    site.forEach((a, i) => {
+      const b = site[(i + 1) % site.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      out += alongText(a, b, `${m1(len)} m`, 1.9 * k, color, -1.6 * k, 600) +
+        `<g class="site-insert" data-insert="${i}" style="cursor:copy"><title>꼭짓점 추가</title>` +
+        `<circle cx="${m[0]}" cy="${m[1]}" r="${2.2 * k}" fill="transparent"/>` +
+        `<circle cx="${m[0]}" cy="${m[1]}" r="${1.1 * k}" fill="${fill}" stroke="${color}" stroke-width="${0.25 * k}" opacity=".9"/>` +
+        `<path d="M${m[0] - 0.6 * k} ${m[1]}H${m[0] + 0.6 * k}M${m[0]} ${m[1] - 0.6 * k}V${m[1] + 0.6 * k}" stroke="${color}" stroke-width="${0.25 * k}"/></g>`;
+    });
+    site.forEach((p, i) => {
+      out += `<g class="site-vertex" data-vertex="${i}" style="cursor:move"><title>P${i + 1} (${m1(p[0])}, ${m1(p[1])}) · 드래그 이동 · 더블클릭 삭제</title>` +
+        `<circle cx="${p[0]}" cy="${p[1]}" r="${2.6 * k}" fill="transparent"/>` +
+        `<rect x="${p[0] - 1.2 * k}" y="${p[1] - 1.2 * k}" width="${2.4 * k}" height="${2.4 * k}" fill="${fill}" stroke="${color}" stroke-width="${0.4 * k}"/>` +
+        `<text x="${p[0] + 2 * k}" y="${p[1] - 2 * k}" font-size="${2.2 * k}" font-weight="700" fill="${color}" pointer-events="none">P${i + 1}</text></g>`;
+    });
+    return out;
+  }
+
   // Full SVG markup for the map. opts: project, result, selected, viewBox,
   // heat (svg string), showDistances, mode ('plan' | 'cad').
   function draw(opts) {
@@ -243,7 +266,7 @@
       const a = site[0], b = site[1];
       out += alongText(a, b, '대지경계선', 1.6 * k, T.site, -1.2 * k);
     } else {
-      site.forEach((p, i) => out += `<circle cx="${p[0]}" cy="${p[1]}" r=".7" fill="#fff" stroke="#6f9989" stroke-width=".4"/><text x="${p[0] + 1.6}" y="${p[1] - 1.6}" font-size="${2.2 * k}" fill="#8ca297">P${i + 1}</text>`);
+      if (!opts.siteEdit) site.forEach((p, i) => out += `<circle cx="${p[0]}" cy="${p[1]}" r=".7" fill="#fff" stroke="#6f9989" stroke-width=".4"/><text x="${p[0] + 1.6}" y="${p[1] - 1.6}" font-size="${2.2 * k}" fill="#8ca297">P${i + 1}</text>`);
     }
 
     const byId = new Map(r.buildings.map(q => [q.id, q]));
@@ -277,7 +300,8 @@
       }
     }
 
-    if (sel && !sel.locked) out += rotateHandle(sel, k, cad, !!opts.rotating);
+    if (opts.siteEdit) out += siteHandles(site, k, cad);
+    else if (sel && !sel.locked) out += rotateHandle(sel, k, cad, !!opts.rotating);
 
     const nx = viewBox[0] + viewBox[2] - 12 * k, ny = viewBox[1] + 15 * k;
     out += `<g transform="translate(${nx} ${ny}) scale(${k})"><circle r="7" fill="${cad ? '#1f2428' : '#fff'}" stroke="${cad ? T.north : 'none'}" stroke-width=".3" opacity=".85"/><g transform="rotate(${rules.northAngle})"><path d="M0 -5 L-1.5 2 L0 1 L1.5 2Z" fill="${T.north}"/><text x="0" y="-7.6" text-anchor="middle" font-size="3" fill="${T.north}">N</text></g></g>`;

@@ -33,3 +33,15 @@ test('the selected, unlocked building gets a rotation handle and angle readout',
   project.buildings[0].locked = true;
   assert.doesNotMatch(D.draw({ ...view, selected: 'b101' }), /data-rotate=/);
 });
+
+test('site edit mode shows vertex and insert handles instead of the rotation handle', () => {
+  const S = require('./state.js'), E = require('./engine.js');
+  const project = S.createProject();
+  const result = E.evaluateSite(project.site.polygon, project.buildings, project.rules);
+  const svg = D.draw({ project, result, selected: 'b101', viewBox: [0, 0, 210, 185], showDistances: true, mode: 'plan', siteEdit: true });
+  const n = project.site.polygon.length;
+  assert.equal((svg.match(/data-vertex="/g) || []).length, n);
+  assert.equal((svg.match(/data-insert="/g) || []).length, n);
+  assert.doesNotMatch(svg, /data-rotate=/);
+  assert.match(svg, />150\.0 m</); // first edge [15,20]→[165,20]
+});
