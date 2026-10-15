@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* Builds the shareable package in package/:
    - planby-site-planner.html: index.html with style.css and every script inlined,
-     so it opens from a single file (browser, Claude artifact) with no server.
+     so it opens from a single file in a browser with no server.
+   - artifact.html: the same app without the document shell, for Claude artifacts.
    - planner-engine.js: engine, state, presets and building import bundled for an
      LLM's code tool (Node require, or a browser/global script).
    usage: node tools/build-package.cjs [--project path/to/project.json]
@@ -37,6 +38,15 @@ function buildHtml(projectPath) {
   return html.replace('<!doctype html>', `<!doctype html>\n${stamp}`);
 }
 
+// Claude artifact variant: the host wraps the page in its own document shell, so
+// keep only <title>, the styles and the body content (scripts included).
+function buildArtifact(html) {
+  const style = [...html.matchAll(/<style>[\s\S]*?<\/style>/g)].map(m => m[0]).join('\n');
+  const body = html.match(/<body>([\s\S]*)<\/body>/);
+  if (!body) throw new Error('index.html has no <body>');
+  return `<title>PLANBY 단지배치 검토</title>\n<style>:root{color-scheme:light}</style>\n${style}\n${body[1].trim()}\n`;
+}
+
 function buildEngine() {
   const parts = ['engine.js', 'state.js', 'presets.js', 'building-import.js'].map(f =>
     `/* ${f} */\n(function (module) {\n${read(f)}\n}).call(globalThis, undefined);`);
@@ -50,7 +60,8 @@ const { project } = args();
 fs.mkdirSync(out, { recursive: true });
 const html = buildHtml(project);
 fs.writeFileSync(path.join(out, 'planby-site-planner.html'), html);
+fs.writeFileSync(path.join(out, 'artifact.html'), buildArtifact(html));
 fs.writeFileSync(path.join(out, 'planner-engine.js'), buildEngine());
 fs.copyFileSync(path.join(root, 'rules-reference.json'), path.join(out, 'rules-reference.json'));
 console.log(`package/planby-site-planner.html ${(html.length / 1024).toFixed(0)} KB${project ? ' (with embedded project)' : ''}`);
-console.log('package/planner-engine.js, package/rules-reference.json');
+console.log('package/artifact.html, package/planner-engine.js, package/rules-reference.json');

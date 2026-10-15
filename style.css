@@ -62,3 +62,4 @@
 .layout-actions button:hover{color:#24496c;background:#f3f6f8}
 .layout-empty{font-size:11px;color:#97a5ad;padding:6px 2px}
 .layout-count{font-size:10px;color:#97a5ad;margin-left:4px}
+.export-text{width:100%;box-sizing:border-box;font:12px/1.5 Consolas,'D2Coding',monospace;border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--ink);background:#fbfcfd;resize:vertical}
