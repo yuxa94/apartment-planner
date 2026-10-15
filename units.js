@@ -433,6 +433,60 @@
     Object.assign(unit, { outline: trial.outline, rooms: trial.rooms, width: trial.width, depth: trial.depth });
     return { ok: true };
   }
+  /* ---------- room resize: move one side, optionally dragging the shared wall with it ---------- */
+  const OPPOSITE = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
+  const MIN_ROOM = 0.3;
+  function problemTotals(report) {
+    return { overlap: report.overlaps.reduce((s, p) => s + p.area, 0), outside: report.outside.length };
+  }
+  // With `linked` (default) rooms touching that side along the room's span move their facing side too,
+  // so a gapless plan stays gapless. Without it the room alone changes and may not overlap anything new.
+  function resizeRoom(unit, roomId, side, value, options) {
+    options = options || {};
+    if (!SIDES.includes(side) || !Number.isFinite(value)) return { ok: false, message: '크기 조절 값이 올바르지 않습니다.' };
+    const trial = clone(unit), room = trial.rooms.find(r => r.id === roomId);
+    if (!room) return { ok: false, message: '공간을 찾을 수 없습니다.' };
+    if (room.locked) return { ok: false, message: `${room.name}은(는) 잠겨 있습니다.` };
+    const cur = sideValue(room, side);
+    value = round(value);
+    if (Math.abs(value - cur) < 1e-4) return { ok: true, changed: [] };
+    const horizontal = side === 'left' || side === 'right', lo = horizontal ? room.y : room.x, hi = lo + (horizontal ? room.depth : room.width);
+    const moved = [room];
+    if (options.linked !== false) {
+      for (const other of trial.rooms) {
+        if (other === room || Math.abs(sideValue(other, OPPOSITE[side]) - cur) > 1e-3) continue;
+        const start = horizontal ? other.y : other.x, end = start + (horizontal ? other.depth : other.width);
+        if (Math.min(end, hi) - Math.max(start, lo) <= 1e-3) continue;
+        if (other.locked) return { ok: false, message: `맞닿은 ${other.name}이(가) 잠겨 있습니다.` };
+        Object.assign(other, withSide(other, OPPOSITE[side], value));
+        moved.push(other);
+      }
+    }
+    Object.assign(room, withSide(room, side, value));
+    const small = moved.find(r => r.width < MIN_ROOM - 1e-6 || r.depth < MIN_ROOM - 1e-6);
+    if (small) return { ok: false, message: `${small.name}이(가) ${MIN_ROOM * 1000} mm보다 작아집니다.` };
+    // Pre-existing problems must not block a resize, but the resize may not add any.
+    const before = problemTotals(checkUnit(unit)), after = problemTotals(checkUnit(trial));
+    if (after.overlap > before.overlap + 1e-4) return { ok: false, message: '다른 공간과 겹칩니다.' };
+    if (after.outside > before.outside) return { ok: false, message: '외곽을 벗어납니다.' };
+    trial.rooms.forEach((r, i) => Object.assign(unit.rooms[i], r));
+    return { ok: true, changed: moved.map(r => r.id) };
+  }
+  // Like resizeRoom, but when the requested side position is blocked it backs off toward the
+  // current position in 0.05 m steps, so a drag stops at the nearest wall instead of freezing.
+  function resizeRoomClamped(unit, roomId, side, value, options) {
+    const room = unit.rooms.find(r => r.id === roomId);
+    if (!room) return { ok: false, message: '공간을 찾을 수 없습니다.' };
+    const cur = sideValue(room, side), dir = Math.sign(value - cur);
+    let first = null;
+    for (let v = value, i = 0; (v - cur) * dir > 1e-4 && i < 400; v = round(v - dir * 0.05), i++) {
+      const result = resizeRoom(unit, roomId, side, v, options);
+      if (result.ok) return Object.assign(result, { value: v, clamped: i > 0, message: first && first.message });
+      first = first || result;
+    }
+    return first || { ok: true, changed: [] };
+  }
+
   function addRoom(unit, options) {
     options = options || {};
     normalizeUnit(unit);
@@ -596,6 +650,7 @@
       .pu-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pu-spacer{flex:1}.pu-seg{display:inline-flex;border:1px solid #d6e0ea;border-radius:9px;overflow:hidden;background:#fff}.pu-seg button{border:0;background:transparent;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;color:#506377;cursor:pointer}.pu-seg button.active{background:#143e6a;color:#fff}
       .pu-options{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#5f7386;margin:0 0 8px}.pu-options label{display:flex;gap:6px;align-items:center;cursor:pointer}.pu-options input{accent-color:#1f62b4}
       .pu-outline-mode .pu-room{pointer-events:none;opacity:.6}.pu-edge{cursor:grab}.pu-vertex{cursor:move}.pu-edge:focus,.pu-vertex:focus{outline:none}
+      [data-resize=left],[data-resize=right]{cursor:ew-resize}[data-resize=top],[data-resize=bottom]{cursor:ns-resize}[data-resize="left top"],[data-resize="right bottom"]{cursor:nwse-resize}[data-resize="right top"],[data-resize="left bottom"]{cursor:nesw-resize}
       .pu-statrow.pu-four{grid-template-columns:repeat(4,1fr)}.pu-inputs input[type=text],.pu-inputs select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:#fff;color:#233f59;font:inherit}.pu-wide{grid-column:1 / -1}
       .pu-coords{width:100%;box-sizing:border-box;min-height:150px;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:12px/1.5 ui-monospace,Consolas,monospace;color:#233f59;resize:vertical}
       .pu-row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.pu-danger{color:#a5462b!important}
@@ -611,7 +666,7 @@
     const doc = container.ownerDocument, win = doc.defaultView;
     let type = TYPES.includes(Number(project.selectedUnitType)) ? Number(project.selectedUnitType) : 59;
     let selectedId = 'living', drag = null, selectionPointer = null;
-    let mode = 'rooms', selectedEdge = null, selectedVertex = null, autoFill = true, orthogonal = true, overlay = false, status = '', lastEdgeTap = null;
+    let mode = 'rooms', selectedEdge = null, selectedVertex = null, autoFill = true, orthogonal = true, overlay = false, status = '', lastEdgeTap = null, linked = true;
     const active = () => project.units.find(u => Number(u.type) === type);
     const changed = () => { project.selectedUnitType = type; if (typeof onChange === 'function') onChange(); };
     function markChanged() {
@@ -629,8 +684,8 @@
         <div class="pu-actions"><div class="pu-seg" role="group" aria-label="편집 대상"><button type="button" data-mode="rooms" class="${mode === 'rooms' ? 'active' : ''}" aria-pressed="${mode === 'rooms'}">공간 편집</button><button type="button" data-mode="outline" class="${mode === 'outline' ? 'active' : ''}" aria-pressed="${mode === 'outline'}">외곽선 편집</button></div>
           <button type="button" class="btn" data-action="fill" title="잠기지 않은 공간을 늘려 빈 영역을 채웁니다">빈 영역 채우기</button><button type="button" class="btn" data-action="add">＋ 공간 추가</button><button type="button" class="btn" data-action="reset">참고도면 배치로 재설정</button>
           <span class="pu-spacer"></span><button type="button" class="btn" data-action="request">✧ Claude에 요청</button><button type="button" class="btn primary" data-action="apply">Claude 결과 적용</button></div>
-        <div class="pu-options"><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label><label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label></div>
-        <p class="pu-hint">${mode === 'rooms' ? '공간을 드래그해 이동하세요. 선택한 공간은 방향키로 0.1m씩 이동합니다. 치수·이름·용도는 오른쪽에서 조정합니다.' : '외곽 변을 드래그하면 그 벽에 붙은 공간이 함께 늘어나거나 줄어듭니다. 변을 더블클릭하면 꺾임점 2개가 생기고, 가운데 변을 끌어 들어가거나 튀어나온 부분을 만듭니다. 꼭짓점을 선택하고 Delete로 지웁니다. 방향키 0.1m · Shift 0.5m.'}</p>
+        <div class="pu-options"><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label><label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label><label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
+        <p class="pu-hint">${mode === 'rooms' ? '공간을 드래그해 이동하세요. 선택한 공간의 파란 변·모서리를 끌면 크기가 바뀌고, 맞닿은 공간의 경계도 함께 움직입니다(Alt: 이 공간만). 방향키 이동 0.1m · Alt+방향키로 오른쪽·아래 변 크기 조절.' : '외곽 변을 드래그하면 그 벽에 붙은 공간이 함께 늘어나거나 줄어듭니다. 변을 더블클릭하면 꺾임점 2개가 생기고, 가운데 변을 끌어 들어가거나 튀어나온 부분을 만듭니다. 꼭짓점을 선택하고 Delete로 지웁니다. 방향키 0.1m · Shift 0.5m.'}</p>
         <div class="pu-canvas-wrap"><svg class="pu-canvas${mode === 'outline' ? ' pu-outline-mode' : ''}" aria-label="${type}형 편집 가능한 조닝" role="group" tabindex="-1"></svg></div>
         <div class="pu-legend">${CATEGORIES.map(k => `<span><i style="background:${COLORS[k]}"></i>${CATEGORY_LABELS[k]}</span>`).join('')}<span><i style="background:repeating-linear-gradient(45deg,#c9d5df 0 2px,#fff 2px 5px)"></i>빈 영역</span></div><div class="pu-statrow pu-four" data-stats></div><div data-checks aria-live="polite"></div><div class="pu-status" data-status role="status">${esc(status)}</div>
         <p class="pu-note">외곽과 실 배치는 LH 양주회천 A-26 ${type}A 공식 안내도의 표기 치수를 따라 개략 추적한 계획값입니다. 벽 두께와 중심선을 구분하지 않았고, 외곽 면적에는 확장 발코니·벽체·실외기실이 포함되므로 명목 전용면적과 다릅니다. 법정 전용면적 산정이 아닙니다.</p>
@@ -643,6 +698,7 @@
         if (input.dataset.opt === 'autoFill') autoFill = input.checked;
         if (input.dataset.opt === 'orthogonal') orthogonal = input.checked;
         if (input.dataset.opt === 'overlay') { overlay = input.checked; paintSvg(); }
+        if (input.dataset.opt === 'linked') linked = input.checked;
       }));
       container.querySelector('[data-action="fill"]').addEventListener('click', () => {
         const before = checkUnit(active()), after = fillUnit(active());
@@ -706,7 +762,31 @@
         <path d="${path}" fill="url(#pu-hatch-${type})" fill-opacity="${overlay ? .35 : 1}"/><g stroke="#e3eaf0" stroke-width=".018" clip-path="url(#pu-clip-${type})">${horizontal}${vertical}</g>
         <text x="${unit.width / 2}" y="${-pad + .3}" text-anchor="middle" font-size=".2" fill="#7890a3">외곽 ${fmt(unit.width)} × ${fmt(unit.depth)}m · ${fmt(report.outlineArea)}㎡</text>
         ${unit.rooms.map(r => `<g class="pu-room ${r.locked ? 'pu-locked' : ''}" data-room="${esc(r.id)}" tabindex="${mode === 'rooms' ? 0 : -1}" role="button" aria-label="${esc(r.name)} ${fmt(r.width * r.depth)}제곱미터 ${r.locked ? '잠김' : '선택 및 이동'}" aria-pressed="${r.id === selectedId}"><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="${COLORS[r.category] || COLORS.service}" fill-opacity="${overlay ? .55 : 1}" stroke="${bad.has(r.id) ? '#c36735' : r.id === selectedId && mode === 'rooms' ? '#2569ad' : '#8fa8bc'}" stroke-width="${r.id === selectedId && mode === 'rooms' ? '.065' : '.03'}"/>${r.width > .55 && r.depth > .45 ? `<text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 - .08}" text-anchor="middle" font-size="${r.width < 1.5 ? '.17' : '.23'}" font-weight="650" fill="#294b64">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</text><text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + .2}" text-anchor="middle" font-size="${r.width < 1.5 ? '.14' : '.17'}" fill="#6a8397">${fmt(r.width * r.depth)}㎡</text>${r.width > 1.6 && r.depth > 1.2 ? `<text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + .42}" text-anchor="middle" font-size=".14" fill="#8aa0b2">${mm(r.width)} × ${mm(r.depth)}</text>` : ''}` : ''}</g>`).join('')}
-        <path d="${path}" fill="none" stroke="#3d566d" stroke-width=".07" stroke-linejoin="miter" pointer-events="none"/>${dims}${editHandles}`;
+        <path d="${path}" fill="none" stroke="#3d566d" stroke-width=".07" stroke-linejoin="miter" pointer-events="none"/>${dims}${editHandles}${resizeHandles(unit)}`;
+    }
+    function resizeHandles(unit) {
+      const r = mode === 'rooms' && unit.rooms.find(room => room.id === selectedId);
+      if (!r || r.locked) return '';
+      const hit = .24, grip = .1, x2 = r.x + r.width, y2 = r.y + r.depth, cx = r.x + r.width / 2, cy = r.y + r.depth / 2;
+      const gripLen = len => Math.min(.6, len * .4);
+      const edge = (side, x, y, w, h, gx, gy, gw, gh) => `<g data-resize="${side}"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="transparent"/><rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx=".04" fill="#2569ad" pointer-events="none"/></g>`;
+      return '<g class="pu-handles">' +
+        edge('left', r.x - hit / 2, r.y + hit / 2, hit, Math.max(0, r.depth - hit), r.x - grip / 2, cy - gripLen(r.depth) / 2, grip, gripLen(r.depth)) +
+        edge('right', x2 - hit / 2, r.y + hit / 2, hit, Math.max(0, r.depth - hit), x2 - grip / 2, cy - gripLen(r.depth) / 2, grip, gripLen(r.depth)) +
+        edge('top', r.x + hit / 2, r.y - hit / 2, Math.max(0, r.width - hit), hit, cx - gripLen(r.width) / 2, r.y - grip / 2, gripLen(r.width), grip) +
+        edge('bottom', r.x + hit / 2, y2 - hit / 2, Math.max(0, r.width - hit), hit, cx - gripLen(r.width) / 2, y2 - grip / 2, gripLen(r.width), grip) +
+        [['left top', r.x, r.y], ['right top', x2, r.y], ['left bottom', r.x, y2], ['right bottom', x2, y2]].map(([sides, x, y]) => `<circle data-resize="${sides}" cx="${x}" cy="${y}" r=".13" fill="#fff" stroke="#2569ad" stroke-width=".05"/>`).join('') +
+        '</g>';
+    }
+    // Apply each dragged side in turn; a blocked side stops at the nearest valid position.
+    function applyResize(unit, roomId, sides, starts, dx, dy, link) {
+      let message = '';
+      for (const side of sides) {
+        const horizontal = side === 'left' || side === 'right';
+        const result = resizeRoomClamped(unit, roomId, side, snap(starts[side] + (horizontal ? dx : dy), 0.05), { linked: link });
+        if (!result.ok || result.clamped) message = result.message || message;
+      }
+      return message;
     }
     function paintInspector() {
       const unit = active(), inspector = container.querySelector('[data-inspector]');
@@ -789,6 +869,12 @@
         if (p) drag = { kind: v ? 'vertex' : 'edge', index: v ? selectedVertex : selectedEdge, startX: p.x, startY: p.y, pointerId: event.pointerId, snapshot: snapshotOf(active()), moved: false };
         selectionPointer = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); refresh(); return;
       }
+      const handle = event.target.closest('[data-resize]');
+      if (handle && p) {
+        const room = active().rooms.find(r => r.id === selectedId), sides = handle.dataset.resize.split(' ');
+        drag = { kind: 'resize', id: room.id, sides, starts: Object.fromEntries(sides.map(side => [side, sideValue(room, side)])), startX: p.x, startY: p.y, pointerId: event.pointerId, snapshot: snapshotOf(active()), moved: false, area: room.width * room.depth };
+        selectionPointer = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); return;
+      }
       const g = event.target.closest('[data-room]'); if (!g) return;
       const room = active().rooms.find(r => r.id === g.dataset.room);
       selectedId = room.id; selectionPointer = event.pointerId;
@@ -802,6 +888,14 @@
       if (drag.kind === 'room') {
         drag.moved = editRoom(unit, drag.id, { x: snap(drag.x + dx, 0.1), y: snap(drag.y + dy, 0.1) }) || drag.moved;
         refresh(); return;
+      }
+      if (drag.kind === 'resize') {
+        restore(unit, drag.snapshot);
+        const message = applyResize(unit, drag.id, drag.sides, drag.starts, dx, dy, linked !== event.altKey);
+        const room = unit.rooms.find(r => r.id === drag.id);
+        drag.moved = drag.sides.some(side => Math.abs(sideValue(room, side) - drag.starts[side]) > 1e-4);
+        setStatus(`${room.name} ${mm(room.width)} × ${mm(room.depth)} mm · ${fmt(room.width * room.depth)}㎡${message ? ' · ' + message : ''}`);
+        paintSvg(); paintStats(); return;
       }
       // Re-apply the whole drag from its starting state, so snapping never accumulates.
       restore(unit, drag.snapshot);
@@ -822,8 +916,9 @@
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       if (finished && finished.moved) {
         if (finished.result) syncSelection(finished.result);
-        if (finished.kind !== 'room' && autoFill) fillUnit(active());
-        if (finished.kind !== 'room') setStatus('외곽을 변경했습니다.' + (autoFill ? ' 빈 영역을 자동으로 채웠습니다.' : ''));
+        if ((finished.kind === 'vertex' || finished.kind === 'edge') && autoFill) fillUnit(active());
+        if (finished.kind === 'vertex' || finished.kind === 'edge') setStatus('외곽을 변경했습니다.' + (autoFill ? ' 빈 영역을 자동으로 채웠습니다.' : ''));
+        if (finished.kind === 'resize') { const room = active().rooms.find(r => r.id === finished.id); setStatus(`${room.name} ${fmt(finished.area)}㎡ → ${fmt(room.width * room.depth)}㎡ (${mm(room.width)} × ${mm(room.depth)} mm)`); }
         refresh(); markChanged();
       }
       focusSelected();
@@ -831,6 +926,7 @@
     function pointerCancel(event) {
       if (selectionPointer !== event.pointerId) return;
       if (drag && drag.kind === 'room') editRoom(active(), drag.id, { x: drag.x, y: drag.y });
+      else if (drag && drag.kind === 'resize') restore(active(), drag.snapshot);
       else if (drag) restore(active(), drag.snapshot);
       drag = null; selectionPointer = null; refresh();
     }
@@ -876,6 +972,13 @@
       selectedId = g.dataset.room;
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); refresh(); focusSelected(); return; }
       if (!vector) return;
+      if (event.altKey) {
+        event.preventDefault();
+        const room = active().rooms.find(r => r.id === selectedId), side = vector[0] ? 'right' : 'bottom';
+        const result = resizeRoom(active(), room.id, side, sideValue(room, side) + (vector[0] || vector[1]), { linked });
+        if (result.ok) { setStatus(`${room.name} ${mm(room.width)} × ${mm(room.depth)} mm`); refresh(); markChanged(); } else setStatus(result.message);
+        focusSelected(); return;
+      }
       event.preventDefault(); const room = active().rooms.find(r => r.id === selectedId), unitStep = event.shiftKey ? 0.5 : 0.1;
       if (editRoom(active(), room.id, { x: room.x + Math.sign(vector[0]) * unitStep, y: room.y + Math.sign(vector[1]) * unitStep })) { refresh(); markChanged(); }
       focusSelected();
@@ -991,6 +1094,6 @@
     }
     render(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, polygonArea, rectInside,
+  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, resizeRoom, resizeRoomClamped, polygonArea, rectInside,
     buildUnitRequest, unitRequestPrompt, extractJson, readUnitPatch, applyUnitPatch, ensureUnits, generateCombinations, mountUnits, mountCombinations, schematicSvg };
 });

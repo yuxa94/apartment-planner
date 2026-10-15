@@ -1,0 +1,211 @@
+{
+  "schema": "apartment-planner-unit/1",
+  "coordinateUnit": "m",
+  "areaUnit": "㎡",
+  "axes": "x 오른쪽, y 아래(화면 기준), 원점 = 외곽 경계상자 좌상단",
+  "projectRevision": 42,
+  "exportedAt": "2026-10-15T07:24:20.613Z",
+  "unit": {
+    "id": "unit-59",
+    "type": 59,
+    "name": "59형 · 참고도면 조닝",
+    "width": 12.9,
+    "depth": 9.2,
+    "outline": [
+      [
+        0,
+        0
+      ],
+      [
+        8.7,
+        0
+      ],
+      [
+        8.7,
+        2.9
+      ],
+      [
+        12.9,
+        2.9
+      ],
+      [
+        12.9,
+        9.2
+      ],
+      [
+        3.6,
+        9.2
+      ],
+      [
+        3.6,
+        8.1
+      ],
+      [
+        0,
+        8.1
+      ]
+    ],
+    "layoutVersion": 2,
+    "rooms": [
+      {
+        "id": "dress",
+        "name": "드레스룸",
+        "x": 0,
+        "y": 0,
+        "width": 1.8,
+        "depth": 4.5,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "ac",
+        "name": "실외기실",
+        "x": 1.8,
+        "y": 0,
+        "width": 1.8,
+        "depth": 2.1,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "bath2",
+        "name": "부부욕실",
+        "x": 1.8,
+        "y": 2.1,
+        "width": 1.8,
+        "depth": 2.4,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "master",
+        "name": "안방",
+        "x": 0,
+        "y": 4.5,
+        "width": 3.6,
+        "depth": 3.6,
+        "category": "bedroom",
+        "locked": false
+      },
+      {
+        "id": "kitchen",
+        "name": "주방·식당",
+        "x": 3.6,
+        "y": 0,
+        "width": 3.8,
+        "depth": 4.3,
+        "category": "kitchen",
+        "locked": false
+      },
+      {
+        "id": "living",
+        "name": "거실",
+        "x": 3.6,
+        "y": 4.3,
+        "width": 3.8,
+        "depth": 4.9,
+        "category": "living",
+        "locked": false
+      },
+      {
+        "id": "utility",
+        "name": "다용도실",
+        "x": 7.4,
+        "y": 0,
+        "width": 1.3,
+        "depth": 2.8,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "pantry",
+        "name": "팬트리",
+        "x": 7.4,
+        "y": 2.8,
+        "width": 0.7,
+        "depth": 1.5,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "storage",
+        "name": "현관창고",
+        "x": 8.1,
+        "y": 2.8,
+        "width": 0.6,
+        "depth": 1.5,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "entry",
+        "name": "현관",
+        "x": 8.7,
+        "y": 2.9,
+        "width": 2.6,
+        "depth": 1.4,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "bath1",
+        "name": "공용욕실",
+        "x": 11.3,
+        "y": 2.9,
+        "width": 1.6,
+        "depth": 2.6,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "hall",
+        "name": "복도",
+        "x": 7.4,
+        "y": 4.3,
+        "width": 3.9,
+        "depth": 1.2,
+        "category": "circulation",
+        "locked": false
+      },
+      {
+        "id": "bed2",
+        "name": "침실 2",
+        "x": 7.4,
+        "y": 5.5,
+        "width": 2.75,
+        "depth": 3.7,
+        "category": "bedroom",
+        "locked": false
+      },
+      {
+        "id": "bed3",
+        "name": "침실 3",
+        "x": 10.15,
+        "y": 5.5,
+        "width": 2.75,
+        "depth": 3.7,
+        "category": "bedroom",
+        "locked": false
+      }
+    ],
+    "reference": {
+      "status": "illustrative",
+      "project": "LH 양주회천 A-26",
+      "type": "59A",
+      "image": "assets/59A-plan.png",
+      "officialLivingWidthMm": 3790,
+      "areaDefinition": "직사각형 조닝 영역. 벽체·발코니·법정 전용면적 미산정.",
+      "geometrySource": "공식 안내도 표기 치수를 따라 개략 추적. 벽 두께·중심선 미구분.",
+      "sourceFile": "59-74-84_실별면적_치수_대표도면.md",
+      "dimensionStatus": "공식 도면 표기값은 조닝의 유효치수와 구분"
+    }
+  },
+  "checks": {
+    "outlineArea": 102.54,
+    "roomArea": 102.54,
+    "gapArea": 0,
+    "overlaps": [],
+    "outside": []
+  },
+  "note": "참고도면 표기 치수를 따라 개략 추적한 계획값. 법정 전용면적 산정 아님."
+}

@@ -213,3 +213,30 @@ test('untouched first-edition templates are upgraded, edited ones are kept', () 
   assert.equal(project.units[1].rooms[0].x, 0.4);
   assert.deepEqual(project.units[1].outline, [[0, 0], [12.9, 0], [12.9, 8.3], [0, 8.3]]);
 });
+
+test('resizing a room moves the shared wall with its neighbours and keeps the plan gapless', () => {
+  const unit = U.createUnit(59), bed3 = unit.rooms.find(r => r.id === 'bed3'), bed2 = unit.rooms.find(r => r.id === 'bed2');
+  const result = U.resizeRoom(unit, 'bed3', 'left', 9.85);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.changed.sort(), ['bed2', 'bed3']);
+  assert.equal(bed3.width, 3.05);
+  assert.equal(bed2.width, 2.45);
+  assert.equal(U.checkUnit(unit).gapArea, 0);
+  assert.equal(U.resizeRoom(unit, 'bed3', 'left', 9.5, { linked: false }).ok, false, 'alone it may not overlap');
+  assert.equal(U.resizeRoom(unit, 'bed3', 'right', 13.5).ok, false, 'may not leave the outline');
+  assert.equal(U.resizeRoom(unit, 'bed2', 'right', 7.6).ok, false, 'neighbour may not shrink below 300 mm');
+  unit.rooms.find(r => r.id === 'kitchen').locked = true;
+  assert.match(U.resizeRoom(unit, 'living', 'top', 4).message, /잠겨/);
+});
+
+test('an unlinked resize shrinks freely and a clamped grow stops at the nearest neighbour', () => {
+  const unit = U.createUnit(74), bath1 = unit.rooms.find(r => r.id === 'bath1');
+  assert.equal(U.resizeRoom(unit, 'bath1', 'right', 1.5, { linked: false }).ok, true);
+  assert.equal(bath1.width, 1.5);
+  assert.ok(U.checkUnit(unit).gapArea > 0);
+  const grown = U.resizeRoomClamped(unit, 'bath1', 'right', 2.2, { linked: false });
+  assert.equal(grown.ok, true);
+  assert.equal(grown.clamped, true);
+  assert.equal(bath1.width, 1.75);
+  assert.equal(U.checkUnit(unit).gapArea, 0);
+});
