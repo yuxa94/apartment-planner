@@ -178,12 +178,19 @@
       const d = Math.min(a.y + a.depth, b.y + b.depth) - Math.max(a.y, b.y);
       if (w > 1e-7 && d > 1e-7) overlaps.push({ a: a.id, b: b.id, area: round(w * d) });
     }));
-    // Sweep the occupied rectangles, so triple overlap is counted only once.
-    const xs = [...new Set(valid.flatMap(r => [r.x, r.x + r.width]))].sort((a, b) => a - b);
-    let unionArea = 0;
+    const unionArea = unionOf(valid), outlineArea = polygonArea(poly), layers = layerAreas(unit);
+    // The gap is exact only while every room sits inside the outline.
+    const gapArea = outside.length ? null : round(Math.max(0, outlineArea - unionArea));
+    const hidden = layers.filter(l => l.area > 0 && l.visibleArea < 0.01).map(l => l.id);
+    return { area: round(area), unionArea: round(unionArea), outlineArea: round(outlineArea), gapArea, overlaps, outside, invalid, layers, hidden };
+  }
+  // Sweep the rectangles along x, so overlapping parts count once.
+  function unionOf(rects) {
+    const xs = [...new Set(rects.flatMap(r => [r.x, r.x + r.width]))].sort((a, b) => a - b);
+    let total = 0;
     for (let i = 0; i < xs.length - 1; i++) {
       const middle = (xs[i] + xs[i + 1]) / 2;
-      const intervals = valid.filter(r => r.x < middle && r.x + r.width > middle).map(r => [r.y, r.y + r.depth]).sort((a, b) => a[0] - b[0]);
+      const intervals = rects.filter(r => r.x < middle && r.x + r.width > middle).map(r => [r.y, r.y + r.depth]).sort((a, b) => a[0] - b[0]);
       let low = null, high = null, depth = 0;
       for (const p of intervals) {
         if (low === null) { low = p[0]; high = p[1]; }
@@ -191,12 +198,46 @@
         else { depth += high - low; low = p[0]; high = p[1]; }
       }
       if (low !== null) depth += high - low;
-      unionArea += (xs[i + 1] - xs[i]) * depth;
+      total += (xs[i + 1] - xs[i]) * depth;
     }
-    const outlineArea = polygonArea(poly);
-    // The gap is exact only while every room sits inside the outline.
-    const gapArea = outside.length ? null : round(Math.max(0, outlineArea - unionArea));
-    return { area: round(area), unionArea: round(unionArea), outlineArea: round(outlineArea), gapArea, overlaps, outside, invalid };
+    return total;
+  }
+  function clipRect(a, b) {
+    const x = Math.max(a.x, b.x), y = Math.max(a.y, b.y), w = Math.min(a.x + a.width, b.x + b.width) - x, d = Math.min(a.y + a.depth, b.y + b.depth) - y;
+    return w > 1e-7 && d > 1e-7 ? { x, y, width: w, depth: d } : null;
+  }
+  const finiteRect = r => [r.x, r.y, r.width, r.depth].every(Number.isFinite) && r.width > 0 && r.depth > 0;
+  // Rooms are layers in array order: a later room sits on top and takes the area it overlaps.
+  function layerAreas(unit) {
+    const rooms = unit.rooms || [];
+    return rooms.map((r, i) => {
+      if (!finiteRect(r)) return { id: r.id, area: 0, visibleArea: 0, coveredArea: 0 };
+      const area = r.width * r.depth, covered = unionOf(rooms.slice(i + 1).filter(finiteRect).map(o => clipRect(o, r)).filter(Boolean));
+      return { id: r.id, area: round(area), visibleArea: round(Math.max(0, area - covered)), coveredArea: round(covered) };
+    });
+  }
+  // Centre of the largest uncovered cell of a room, so a partly hidden room keeps a readable label.
+  function visibleSpot(unit, index) {
+    const r = unit.rooms[index], uppers = unit.rooms.slice(index + 1).filter(finiteRect).map(o => clipRect(o, r)).filter(Boolean);
+    if (!uppers.length) return { x: r.x + r.width / 2, y: r.y + r.depth / 2, width: r.width, depth: r.depth };
+    const xs = [...new Set([r.x, r.x + r.width].concat(uppers.flatMap(u => [u.x, u.x + u.width])))].sort((a, b) => a - b);
+    const ys = [...new Set([r.y, r.y + r.depth].concat(uppers.flatMap(u => [u.y, u.y + u.depth])))].sort((a, b) => a - b);
+    let best = null;
+    for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
+      const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2, w = xs[i + 1] - xs[i], d = ys[j + 1] - ys[j];
+      if (uppers.some(u => cx > u.x && cx < u.x + u.width && cy > u.y && cy < u.y + u.depth)) continue;
+      if (!best || w * d > best.width * best.depth) best = { x: cx, y: cy, width: w, depth: d };
+    }
+    return best;
+  }
+  function moveRoomLayer(unit, roomId, toIndex) {
+    const from = unit.rooms.findIndex(r => r.id === roomId);
+    if (from < 0 || !Number.isInteger(toIndex)) return false;
+    const to = Math.max(0, Math.min(unit.rooms.length - 1, toIndex));
+    if (to === from) return false;
+    const [room] = unit.rooms.splice(from, 1);
+    unit.rooms.splice(to, 0, room);
+    return true;
   }
 
   function editRoom(unit, roomId, patch) {
@@ -246,7 +287,7 @@
     options = options || {};
     normalizeUnit(unit);
     const poly = unit.outline, step = options.step || 0.1, before = checkUnit(unit);
-    const bad = new Set(before.overlaps.flatMap(p => [p.a, p.b]).concat(before.outside, before.invalid));
+    const bad = new Set(before.outside.concat(before.invalid));
     const growable = unit.rooms.filter(r => !r.locked && !bad.has(r.id) && (!options.ids || options.ids.includes(r.id)));
     const phases = options.ids ? [growable] : [growable.filter(r => PRIMARY.has(r.category)), growable];
     for (const group of phases) {
@@ -274,7 +315,7 @@
     const poly = unit.outline, movable = new Set(growable.map(r => r.id));
     const opposite = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
     for (let pass = 0; pass < 40; pass++) {
-      const gap = checkUnit(unit).gapArea;
+      const start = checkUnit(unit), gap = start.gapArea, overlapBefore = problemTotals(start).overlap;
       if (gap === null || gap < 1e-3) return;
       const xs = [...new Set(poly.map(p => p[0]).concat(unit.rooms.flatMap(r => [r.x, r.x + r.width])))].sort((a, b) => a - b);
       const ys = [...new Set(poly.map(p => p[1]).concat(unit.rooms.flatMap(r => [r.y, r.y + r.depth])))].sort((a, b) => a - b);
@@ -306,7 +347,7 @@
             }
             if (!ok) continue;
             const report = checkUnit(Object.assign(clone(unit), { rooms: trial }));
-            if (report.overlaps.length || report.outside.length || report.gapArea === null || report.gapArea > gap - 1e-3) continue;
+            if (problemTotals(report).overlap > overlapBefore + 1e-4 || report.outside.length || report.gapArea === null || report.gapArea > gap - 1e-3) continue;
             // Copy into the existing room objects so callers holding references stay valid.
             trial.forEach((t, i) => Object.assign(unit.rooms[i], t)); improved = true; break;
           }
@@ -440,7 +481,7 @@
     return { overlap: report.overlaps.reduce((s, p) => s + p.area, 0), outside: report.outside.length };
   }
   // With `linked` (default) rooms touching that side along the room's span move their facing side too,
-  // so a gapless plan stays gapless. Without it the room alone changes and may not overlap anything new.
+  // so a gapless plan stays gapless. Without it the room alone changes; any overlap is settled by layer order.
   function resizeRoom(unit, roomId, side, value, options) {
     options = options || {};
     if (!SIDES.includes(side) || !Number.isFinite(value)) return { ok: false, message: '크기 조절 값이 올바르지 않습니다.' };
@@ -465,9 +506,8 @@
     Object.assign(room, withSide(room, side, value));
     const small = moved.find(r => r.width < MIN_ROOM - 1e-6 || r.depth < MIN_ROOM - 1e-6);
     if (small) return { ok: false, message: `${small.name}이(가) ${MIN_ROOM * 1000} mm보다 작아집니다.` };
-    // Pre-existing problems must not block a resize, but the resize may not add any.
+    // A room already outside may still be resized, but a resize may not push another room out.
     const before = problemTotals(checkUnit(unit)), after = problemTotals(checkUnit(trial));
-    if (after.overlap > before.overlap + 1e-4) return { ok: false, message: '다른 공간과 겹칩니다.' };
     if (after.outside > before.outside) return { ok: false, message: '외곽을 벗어납니다.' };
     trial.rooms.forEach((r, i) => Object.assign(unit.rooms[i], r));
     return { ok: true, changed: moved.map(r => r.id) };
@@ -505,19 +545,19 @@
     const unit = project.units.find(u => Number(u.type) === Number(type));
     if (!unit) throw new Error('세대 유형을 찾을 수 없습니다.');
     normalizeUnit(unit);
-    const report = checkUnit(unit), source = ROOM_DATA[unit.type];
+    const report = checkUnit(unit), source = ROOM_DATA[unit.type], areas = report.layers;
     return {
       schema: 'apartment-planner-unit-request/1', baseRevision: project.revision, unitType: Number(unit.type), request: String(text || '').slice(0, 4000),
       coordinateUnit: 'm', axes: 'x는 오른쪽, y는 아래쪽(화면 기준). 원점은 외곽 경계상자의 좌상단.',
       unit: { name: unit.name, outline: unit.outline, width: unit.width, depth: unit.depth,
-        rooms: unit.rooms.map(r => ({ id: r.id, name: r.name, category: r.category, x: r.x, y: r.y, width: r.width, depth: r.depth, locked: r.locked })) },
-      checks: { outlineArea: report.outlineArea, roomArea: report.area, gapArea: report.gapArea, overlaps: report.overlaps, outside: report.outside },
+        rooms: unit.rooms.map((r, i) => ({ id: r.id, name: r.name, category: r.category, x: r.x, y: r.y, width: r.width, depth: r.depth, locked: r.locked, visibleArea: areas[i].visibleArea })) },
+      checks: { outlineArea: report.outlineArea, occupiedArea: report.unionArea, gapArea: report.gapArea, overlaps: report.overlaps, outside: report.outside, hidden: report.hidden },
       reference: source ? { plan: 'LH 양주회천 A-26 ' + unit.type + 'A 공식 안내도', officialDimsMm: source.officialDims,
         note: '공식 도면 표기값이며 실내 유효치수가 아니다. 현재 조닝은 이 치수를 따라 개략 추적한 계획값이다.' } : null,
       categories: CATEGORY_LABELS,
       rules: [
         '좌표·치수 단위는 m이며 소수점 셋째 자리까지 쓴다. 외곽은 꼭짓점 배열, 실은 축에 평행한 직사각형 {x, y, width, depth}이다.',
-        '실은 서로 겹치지 않고 외곽 안에 있어야 하며, 특별한 요청이 없으면 빈틈 없이 외곽을 채운다.',
+        '실은 외곽 안에 있어야 한다. rooms 배열 순서가 레이어 순서이며 뒤에 있을수록 위 레이어다. 겹치면 위 레이어 실이 그 면적을 차지하고(visibleArea), 겹침 자체는 허용된다. 특별한 요청이 없으면 빈틈 없이 외곽을 채운다.',
         'locked가 true인 실은 이름·위치·치수를 그대로 둔다.',
         '기존 실 id는 유지하고, 새 실에는 새 id를 붙인다. category는 categories의 키 중 하나다.',
         'outline을 생략하면 기존 외곽을 유지한다. rooms를 보내면 그것이 전체 실 목록이 된다.',
@@ -654,12 +694,30 @@
       .pu-statrow.pu-four{grid-template-columns:repeat(4,1fr)}.pu-inputs input[type=text],.pu-inputs select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:#fff;color:#233f59;font:inherit}.pu-wide{grid-column:1 / -1}
       .pu-coords{width:100%;box-sizing:border-box;min-height:150px;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:12px/1.5 ui-monospace,Consolas,monospace;color:#233f59;resize:vertical}
       .pu-row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.pu-danger{color:#a5462b!important}
-      .pu-dialog{border:0;border-radius:14px;padding:0;width:min(760px,94vw);max-height:90vh;box-shadow:0 24px 60px rgba(15,35,55,.3)}.pu-dialog::backdrop{background:rgba(15,30,45,.45)}.pu-dlg{padding:20px 22px}.pu-dlg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.pu-dlg-head h3{margin:0;font-size:17px}.pu-dlg-head button{border:0;background:transparent;font-size:22px;cursor:pointer;color:#5d7083}
-      .pu-dlg textarea{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:8px;padding:10px;font:13px/1.55 inherit;color:#233f59;resize:vertical}.pu-dlg textarea.pu-mono{font:12px/1.45 ui-monospace,Consolas,monospace}.pu-dlg details{margin:10px 0}.pu-dlg summary{cursor:pointer;font-size:12px;color:#4b6680}.pu-dlg-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-dlg-result{font-size:12px;line-height:1.7;margin-top:10px}
+      .pu-layers-panel h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.pu-layers-panel h3 small{font-size:11px;font-weight:500;color:#8193a5}
+      .pu-layers{list-style:none;margin:0;padding:0;max-height:420px;overflow-y:auto}.pu-layer{display:grid;grid-template-columns:14px 10px minmax(0,1fr) auto auto;align-items:center;gap:7px;padding:6px 4px;border-bottom:1px solid #e9eef3;font-size:12px;background:#fff;border-top:2px solid transparent}
+      .pu-layer.selected{background:#eef5fd}.pu-layer.dragging{opacity:.45}.pu-layer.drop-above{border-top-color:#2569ad}.pu-layer.drop-below{border-bottom:2px solid #2569ad}.pu-layer.hidden-layer .pu-layer-name{color:#b0703a;text-decoration:line-through}
+      .pu-grip{cursor:grab;color:#a5b4c2;font-size:11px;letter-spacing:-2px;user-select:none}.pu-layer i{width:10px;height:10px;border-radius:3px}
+      .pu-layer-name{border:0;background:transparent;padding:0;text-align:left;color:#2c4964;font:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .pu-layer-area{color:#3c5873;font-variant-numeric:tabular-nums;text-align:right}.pu-layer-area small{color:#99a9b8;margin-left:2px}
+      .pu-layer-move{display:flex;gap:2px}.pu-layer-move button{border:1px solid #d9e3ec;background:#fff;border-radius:5px;width:22px;height:22px;padding:0;font-size:9px;color:#4c6780;cursor:pointer}.pu-layer-move button:disabled{opacity:.3;cursor:default}
+      .pu-layer-total{display:flex;justify-content:space-between;font-size:12px;color:#5f7386;padding:10px 4px 0}.pu-layer-total b{color:#1e5686}
+      .pu-chat h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.pu-chat h3 small{font-size:11px;font-weight:500;color:#8193a5}
+      .pu-chat-log{max-height:340px;min-height:90px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 10px;margin-bottom:10px;border-bottom:1px solid #e5ecf2}
+      .pu-msg{max-width:92%;border-radius:11px;padding:8px 11px;font-size:12px;line-height:1.6;word-break:break-word}.pu-msg small{display:block;color:#8597a8;font-size:10.5px;margin-top:3px}
+      .pu-msg.me{align-self:flex-end;background:#143e6a;color:#fff;border-bottom-right-radius:3px}.pu-msg.me small{color:#b9cbe0}
+      .pu-msg.claude{align-self:flex-start;background:#f2f6fa;color:#24425e;border:1px solid #dfe8f0;border-bottom-left-radius:3px}.pu-msg.claude.bad{background:#fff4e7;border-color:#f2d7ad;color:#82531a}
+      .pu-msg.system{align-self:center;background:transparent;color:#7d8fa1;font-size:11px;text-align:center;padding:2px 6px}
+      .pu-msg.me .btn{display:block;background:#fff;color:#143e6a;border-color:#fff}.pu-msg .btn{margin-top:8px;padding:6px 12px;font-size:12px}.pu-msg b{font-weight:700}
+      .pu-chat textarea{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:9px;padding:9px 10px;font:13px/1.5 inherit;color:#233f59;resize:vertical;min-height:64px}
+      .pu-chat-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}.pu-chat-actions .text-btn{font-size:11.5px}.pu-chat-mode{font-size:11px;color:#7d8fa1}
       @media(max-width:700px){.pu-statrow.pu-four{grid-template-columns:1fr 1fr}.pu-spacer{display:none}}
     `;
     doc.head.appendChild(style);
   }
+
+  const CHAT = { log: [], draft: '' };
+  const isReply = text => /apartment-planner-unit-patch\/1/.test(text);
 
   function mountUnits(container, project, onChange) {
     ensureUnits(project); injectStyles(container.ownerDocument); injectUnitEditorStyles(container.ownerDocument);
@@ -683,15 +741,17 @@
         <div class="pu-layout"><div class="pu-main"><div class="pu-toolbar"><h3>${esc(unit.name)}</h3><span class="tag">직접 편집 · 개념 조닝</span></div>
         <div class="pu-actions"><div class="pu-seg" role="group" aria-label="편집 대상"><button type="button" data-mode="rooms" class="${mode === 'rooms' ? 'active' : ''}" aria-pressed="${mode === 'rooms'}">공간 편집</button><button type="button" data-mode="outline" class="${mode === 'outline' ? 'active' : ''}" aria-pressed="${mode === 'outline'}">외곽선 편집</button></div>
           <button type="button" class="btn" data-action="fill" title="잠기지 않은 공간을 늘려 빈 영역을 채웁니다">빈 영역 채우기</button><button type="button" class="btn" data-action="add">＋ 공간 추가</button><button type="button" class="btn" data-action="reset">참고도면 배치로 재설정</button>
-          <span class="pu-spacer"></span><button type="button" class="btn" data-action="request">✧ Claude에 요청</button><button type="button" class="btn primary" data-action="apply">Claude 결과 적용</button></div>
+          </div>
         <div class="pu-options"><label><input type="checkbox" data-opt="autoFill" ${autoFill ? 'checked' : ''}>외곽 변경 후 빈 영역 자동 채우기</label><label><input type="checkbox" data-opt="orthogonal" ${orthogonal ? 'checked' : ''}>꼭짓점 이동 시 직각 유지</label><label><input type="checkbox" data-opt="overlay" ${overlay ? 'checked' : ''}>참고도면 겹쳐 보기</label><label title="Alt를 누른 채 끌면 반대로 동작합니다"><input type="checkbox" data-opt="linked" ${linked ? 'checked' : ''}>크기 조절 시 맞닿은 공간 함께 조정</label></div>
         <p class="pu-hint">${mode === 'rooms' ? '공간을 드래그해 이동하세요. 선택한 공간의 파란 변·모서리를 끌면 크기가 바뀌고, 맞닿은 공간의 경계도 함께 움직입니다(Alt: 이 공간만). 방향키 이동 0.1m · Alt+방향키로 오른쪽·아래 변 크기 조절.' : '외곽 변을 드래그하면 그 벽에 붙은 공간이 함께 늘어나거나 줄어듭니다. 변을 더블클릭하면 꺾임점 2개가 생기고, 가운데 변을 끌어 들어가거나 튀어나온 부분을 만듭니다. 꼭짓점을 선택하고 Delete로 지웁니다. 방향키 0.1m · Shift 0.5m.'}</p>
         <div class="pu-canvas-wrap"><svg class="pu-canvas${mode === 'outline' ? ' pu-outline-mode' : ''}" aria-label="${type}형 편집 가능한 조닝" role="group" tabindex="-1"></svg></div>
         <div class="pu-legend">${CATEGORIES.map(k => `<span><i style="background:${COLORS[k]}"></i>${CATEGORY_LABELS[k]}</span>`).join('')}<span><i style="background:repeating-linear-gradient(45deg,#c9d5df 0 2px,#fff 2px 5px)"></i>빈 영역</span></div><div class="pu-statrow pu-four" data-stats></div><div data-checks aria-live="polite"></div><div class="pu-status" data-status role="status">${esc(status)}</div>
         <p class="pu-note">외곽과 실 배치는 LH 양주회천 A-26 ${type}A 공식 안내도의 표기 치수를 따라 개략 추적한 계획값입니다. 벽 두께와 중심선을 구분하지 않았고, 외곽 면적에는 확장 발코니·벽체·실외기실이 포함되므로 명목 전용면적과 다릅니다. 법정 전용면적 산정이 아닙니다.</p>
         <details class="pu-reference"><summary>공식 참고 평면과 도면 표기 치수 보기 · ${type}A</summary><img src="assets/${type}A-plan.png" alt="LH 양주회천 A-26 ${type}A 공식 참고 평면"><p>자료: LH 양주회천 A-26 ${type}A · 공식 도면 표기 ${Object.entries(ROOM_DATA[type].officialDims).map(([k, v]) => `${esc(k)} <strong>${esc(v)}</strong>`).join(' · ')} (mm).<br>표기 기준과 마감 두께를 확인하지 않은 값이며, 시공·가구 제작용 실측치가 아닙니다.</p></details>
-        </div><aside class="pu-inspector"><div class="panel"><h3>${mode === 'rooms' ? '공간 편집' : '외곽선'}</h3><div data-inspector></div></div><div class="panel"><h3>공간별 면적</h3><div data-roomlist></div></div></aside></div>
-        <dialog class="pu-dialog" data-dialog></dialog>`;
+        </div><aside class="pu-inspector"><div class="panel"><h3>${mode === 'rooms' ? '공간 편집' : '외곽선'}</h3><div data-inspector></div></div><div class="panel pu-chat"><h3>✧ Claude 대화 <small>API 없이 복사·붙여넣기</small></h3><div class="pu-chat-log" data-chat-log aria-live="polite"></div>
+          <textarea data-chat-input rows="3" placeholder="수정 요청을 쓰거나, Claude의 답변을 통째로 붙여넣으세요. (Ctrl+Enter 보내기)">${esc(CHAT.draft)}</textarea>
+          <div class="pu-chat-actions"><span><button type="button" class="text-btn" data-chat-file-save>요청 파일 저장</button> · <label class="text-btn" style="cursor:pointer">답변 파일 열기<input type="file" accept=".json,application/json,text/plain" data-chat-file hidden></label></span><button type="button" class="btn primary" data-chat-send></button></div></div>
+          <div class="panel pu-layers-panel"><h3>레이어 <small>위에 있는 공간이 겹친 면적을 차지</small></h3><div data-roomlist></div></div></aside></div>`;
       container.querySelectorAll('[data-unit-type]').forEach(b => b.addEventListener('click', () => { type = Number(b.dataset.unitType); selectedId = 'living'; selectedEdge = selectedVertex = null; changed(); render(); }));
       container.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; selectedEdge = selectedVertex = null; render(); }));
       container.querySelectorAll('[data-opt]').forEach(input => input.addEventListener('change', () => {
@@ -717,8 +777,7 @@
         Object.assign(unit, { name: fresh.name, outline: fresh.outline, rooms: fresh.rooms, width: fresh.width, depth: fresh.depth, layoutVersion: 2, reference: fresh.reference });
         selectedEdge = selectedVertex = null; setStatus('참고도면 기반 배치로 재설정했습니다.'); render(); markChanged();
       });
-      container.querySelector('[data-action="request"]').addEventListener('click', openRequest);
-      container.querySelector('[data-action="apply"]').addEventListener('click', openApply);
+      wireChat();
       const svg = container.querySelector('.pu-canvas');
       svg.addEventListener('pointerdown', pointerDown);
       svg.addEventListener('pointermove', pointerMove);
@@ -738,7 +797,7 @@
       if (target) target.focus({ preventScroll: true });
     }
     function paintSvg() {
-      const unit = active(), report = checkUnit(unit), bad = new Set(report.overlaps.flatMap(p => [p.a, p.b]).concat(report.outside));
+      const unit = active(), report = checkUnit(unit), bad = new Set(report.outside.concat(report.hidden));
       const poly = unit.outline, svg = container.querySelector('.pu-canvas'), pad = 1.1, image = ROOM_DATA[type] && ROOM_DATA[type].image;
       svg.setAttribute('viewBox', `${-pad} ${-pad} ${unit.width + pad * 2} ${unit.depth + pad * 2}`);
       const path = 'M' + poly.map(p => p[0] + ' ' + p[1]).join('L') + 'Z';
@@ -761,8 +820,17 @@
         ${overlay && image ? `<image href="assets/${type}A-plan.png" x="${-image.x / image.scale}" y="${-image.y / image.scale}" width="${1400 / image.scale}" height="${1150 / image.scale}" opacity=".5" preserveAspectRatio="none" pointer-events="none"/>` : ''}
         <path d="${path}" fill="url(#pu-hatch-${type})" fill-opacity="${overlay ? .35 : 1}"/><g stroke="#e3eaf0" stroke-width=".018" clip-path="url(#pu-clip-${type})">${horizontal}${vertical}</g>
         <text x="${unit.width / 2}" y="${-pad + .3}" text-anchor="middle" font-size=".2" fill="#7890a3">외곽 ${fmt(unit.width)} × ${fmt(unit.depth)}m · ${fmt(report.outlineArea)}㎡</text>
-        ${unit.rooms.map(r => `<g class="pu-room ${r.locked ? 'pu-locked' : ''}" data-room="${esc(r.id)}" tabindex="${mode === 'rooms' ? 0 : -1}" role="button" aria-label="${esc(r.name)} ${fmt(r.width * r.depth)}제곱미터 ${r.locked ? '잠김' : '선택 및 이동'}" aria-pressed="${r.id === selectedId}"><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="${COLORS[r.category] || COLORS.service}" fill-opacity="${overlay ? .55 : 1}" stroke="${bad.has(r.id) ? '#c36735' : r.id === selectedId && mode === 'rooms' ? '#2569ad' : '#8fa8bc'}" stroke-width="${r.id === selectedId && mode === 'rooms' ? '.065' : '.03'}"/>${r.width > .55 && r.depth > .45 ? `<text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 - .08}" text-anchor="middle" font-size="${r.width < 1.5 ? '.17' : '.23'}" font-weight="650" fill="#294b64">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</text><text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + .2}" text-anchor="middle" font-size="${r.width < 1.5 ? '.14' : '.17'}" fill="#6a8397">${fmt(r.width * r.depth)}㎡</text>${r.width > 1.6 && r.depth > 1.2 ? `<text x="${r.x + r.width / 2}" y="${r.y + r.depth / 2 + .42}" text-anchor="middle" font-size=".14" fill="#8aa0b2">${mm(r.width)} × ${mm(r.depth)}</text>` : ''}` : ''}</g>`).join('')}
+        ${unit.rooms.map((r, i) => {
+          const spot = visibleSpot(unit, i), layer = report.layers[i], selected = r.id === selectedId && mode === 'rooms';
+          const label = spot && spot.width > .55 && spot.depth > .45 ? `<text x="${spot.x}" y="${spot.y - .08}" text-anchor="middle" font-size="${spot.width < 1.5 ? '.17' : '.23'}" font-weight="650" fill="#294b64">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</text><text x="${spot.x}" y="${spot.y + .2}" text-anchor="middle" font-size="${spot.width < 1.5 ? '.14' : '.17'}" fill="#6a8397">${fmt(layer.visibleArea)}㎡</text>${spot.width > 1.6 && spot.depth > 1.2 ? `<text x="${spot.x}" y="${spot.y + .42}" text-anchor="middle" font-size=".14" fill="#8aa0b2">${mm(r.width)} × ${mm(r.depth)}</text>` : ''}` : '';
+          return `<g class="pu-room ${r.locked ? 'pu-locked' : ''}" data-room="${esc(r.id)}" tabindex="${mode === 'rooms' ? 0 : -1}" role="button" aria-label="${esc(r.name)} ${fmt(layer.visibleArea)}제곱미터 ${r.locked ? '잠김' : '선택 및 이동'}" aria-pressed="${r.id === selectedId}"><rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="${COLORS[r.category] || COLORS.service}" fill-opacity="${overlay ? .55 : 1}" stroke="${bad.has(r.id) ? '#c36735' : selected ? '#2569ad' : '#8fa8bc'}" stroke-width="${selected ? '.065' : '.03'}"/>${label}</g>`;
+        }).join('')}${selectionOutline(unit)}
         <path d="${path}" fill="none" stroke="#3d566d" stroke-width=".07" stroke-linejoin="miter" pointer-events="none"/>${dims}${editHandles}${resizeHandles(unit)}`;
+    }
+    // A selected room that lies under other layers still shows its full extent as a dashed outline.
+    function selectionOutline(unit) {
+      const r = mode === 'rooms' && unit.rooms.find(room => room.id === selectedId);
+      return r ? `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.depth}" fill="none" stroke="#2569ad" stroke-width=".05" stroke-dasharray=".16 .1" pointer-events="none"/>` : '';
     }
     function resizeHandles(unit) {
       const r = mode === 'rooms' && unit.rooms.find(room => room.id === selectedId);
@@ -811,17 +879,17 @@
       }
       const room = unit.rooms.find(r => r.id === selectedId);
       if (!room) { inspector.innerHTML = '<p class="muted">공간을 선택하세요.</p>'; return; }
-      inspector.innerHTML = `<div class="pu-active-room"><i style="background:${COLORS[room.category] || COLORS.service}"></i><strong>${esc(room.name)}</strong></div><div class="pu-area">${fmt(room.width * room.depth)} <small>㎡ · 조닝 면적</small></div>
+      inspector.innerHTML = `<div class="pu-active-room"><i style="background:${COLORS[room.category] || COLORS.service}"></i><strong>${esc(room.name)}</strong></div><div class="pu-area">${fmt(checkUnit(unit).layers[unit.rooms.indexOf(room)].visibleArea)} <small>㎡ · 점유 면적 (사각형 ${fmt(room.width * room.depth)}㎡)</small></div>
         <div class="pu-inputs"><label class="pu-wide">이름<input type="text" data-room-name value="${esc(room.name)}" maxlength="40" ${room.locked ? 'disabled' : ''}></label><label class="pu-wide">용도<select data-room-category ${room.locked ? 'disabled' : ''}>${CATEGORIES.map(k => `<option value="${k}" ${room.category === k ? 'selected' : ''}>${CATEGORY_LABELS[k]}</option>`).join('')}</select></label>
         ${[['width', '가로'], ['depth', '세로'], ['x', 'X 위치'], ['y', 'Y 위치']].map(([key, label]) => `<label>${label} (m)<input aria-label="${label} (m)" data-room-field="${key}" type="number" value="${room[key]}" step="0.1" min="${key === 'width' || key === 'depth' ? '0.1' : '-500'}" max="500" ${room.locked ? 'disabled' : ''}></label>`).join('')}</div>
         <label class="pu-check"><input type="checkbox" data-lock ${room.locked ? 'checked' : ''}>이 공간의 위치·치수 잠금 (채우기·외곽 변경에서도 유지)</label>
-        <div class="pu-row-actions"><button type="button" class="btn" data-grow ${room.locked ? 'disabled' : ''}>이 공간만 늘려 채우기</button><button type="button" class="btn pu-danger" data-delete ${room.locked ? 'disabled' : ''}>삭제</button></div><p class="pu-hint">외곽을 벗어나거나 다른 공간과 겹치면 검토 항목에 표시됩니다.</p>`;
+        <div class="pu-row-actions"><button type="button" class="btn" data-layer-top>맨 위 레이어로</button><button type="button" class="btn" data-layer-bottom>맨 아래로</button></div><div class="pu-row-actions"><button type="button" class="btn" data-grow ${room.locked ? 'disabled' : ''}>이 공간만 늘려 채우기</button><button type="button" class="btn pu-danger" data-delete ${room.locked ? 'disabled' : ''}>삭제</button></div><p class="pu-hint">외곽을 벗어나거나 다른 공간과 겹치면 검토 항목에 표시됩니다.</p>`;
       inspector.querySelectorAll('[data-room-field]').forEach(input => input.addEventListener('change', () => {
         const field = input.dataset.roomField;
         if (input.value.trim() !== '' && editRoom(unit, room.id, { [field]: Number(input.value) })) {
           // Keep the input nodes mounted so typing, stepping and tabbing retain focus.
           input.value = String(room[field]); paintSvg(); paintStats();
-          inspector.querySelector('.pu-area').innerHTML = `${fmt(room.width * room.depth)} <small>㎡ · 조닝 면적</small>`;
+          inspector.querySelector('.pu-area').innerHTML = `${fmt(checkUnit(unit).layers[unit.rooms.indexOf(room)].visibleArea)} <small>㎡ · 점유 면적 (사각형 ${fmt(room.width * room.depth)}㎡)</small>`;
           markChanged();
         } else input.value = String(room[field]);
       }));
@@ -832,6 +900,8 @@
       });
       inspector.querySelector('[data-room-category]').addEventListener('change', e => { room.category = e.target.value; paintSvg(); inspector.querySelector('.pu-active-room i').style.background = COLORS[room.category]; markChanged(); });
       inspector.querySelector('[data-lock]').addEventListener('change', e => { room.locked = e.target.checked; refresh(); markChanged(); });
+      inspector.querySelector('[data-layer-top]').addEventListener('click', () => reorderLayer(room.id, unit.rooms.length - 1));
+      inspector.querySelector('[data-layer-bottom]').addEventListener('click', () => reorderLayer(room.id, 0));
       inspector.querySelector('[data-grow]').addEventListener('click', () => { const before = room.width * room.depth; fillUnit(unit, { ids: [room.id] }); setStatus(`${room.name} ${fmt(before)}㎡ → ${fmt(room.width * room.depth)}㎡`); refresh(); markChanged(); });
       inspector.querySelector('[data-delete]').addEventListener('click', () => {
         unit.rooms = unit.rooms.filter(r => r.id !== room.id); selectedId = unit.rooms[0] && unit.rooms[0].id;
@@ -840,13 +910,56 @@
     }
     function paintStats() {
       const unit = active(), report = checkUnit(unit);
-      container.querySelector('[data-stats]').innerHTML = `<div class="pu-stat"><span>명목 전용면적</span><b>${type}<small> ㎡</small></b></div><div class="pu-stat"><span>외곽 면적 · 확장·벽체 포함</span><b>${fmt(report.outlineArea)}<small> ㎡</small></b></div><div class="pu-stat"><span>공간 합계 · 중복 포함</span><b>${fmt(report.area)}<small> ㎡</small></b></div><div class="pu-stat"><span>빈 영역 · 미배분</span><b>${report.gapArea === null ? '—' : fmt(report.gapArea)}<small> ㎡</small></b></div>`;
+      container.querySelector('[data-stats]').innerHTML = `<div class="pu-stat"><span>명목 전용면적</span><b>${type}<small> ㎡</small></b></div><div class="pu-stat"><span>외곽 면적 · 확장·벽체 포함</span><b>${fmt(report.outlineArea)}<small> ㎡</small></b></div><div class="pu-stat"><span>공간 점유 합계 · 겹침 제외</span><b>${fmt(report.unionArea)}<small> ㎡</small></b></div><div class="pu-stat"><span>빈 영역 · 미배분</span><b>${report.gapArea === null ? '—' : fmt(report.gapArea)}<small> ㎡</small></b></div>`;
       const name = id => unit.rooms.find(r => r.id === id)?.name || id;
-      const issues = report.overlaps.map(p => `${name(p.a)} ↔ ${name(p.b)} 겹침 ${fmt(p.area)}㎡`).concat(report.outside.map(id => name(id) + ' 외곽 이탈')).concat(report.invalid.map(id => name(id) + ' 유효하지 않은 치수'));
-      container.querySelector('[data-checks]').innerHTML = issues.length ? `<div class="pu-warning"><strong>형상 확인 ${issues.length}건</strong><br>${issues.map(esc).join('<br>')}</div>` : `<div class="pu-pass">직사각형 형상 검사: 겹침·외곽 이탈 없음${report.gapArea > 0.05 ? ` · 빈 영역 ${fmt(report.gapArea)}㎡ (‘빈 영역 채우기’로 정리)` : ' · 외곽을 빈틈 없이 채움'}</div>`;
-      const list = container.querySelector('[data-roomlist]');
-      list.innerHTML = `<table class="pu-roomlist"><thead><tr><th>공간</th><th>㎡</th></tr></thead><tbody>${unit.rooms.map(r => `<tr class="${r.id === selectedId ? 'selected' : ''}"><td><button type="button" data-select-room="${esc(r.id)}">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</button></td><td>${fmt(r.width * r.depth)}</td></tr>`).join('')}</tbody></table>`;
+      const issues = report.outside.map(id => name(id) + ' 외곽 이탈').concat(report.hidden.map(id => name(id) + ' 위 레이어에 완전히 가려짐')).concat(report.invalid.map(id => name(id) + ' 유효하지 않은 치수'));
+      const covered = report.layers.reduce((sum, l) => sum + l.coveredArea, 0);
+      container.querySelector('[data-checks]').innerHTML = issues.length ? `<div class="pu-warning"><strong>형상 확인 ${issues.length}건</strong><br>${issues.map(esc).join('<br>')}</div>` : `<div class="pu-pass">직사각형 형상 검사: 외곽 이탈 없음${covered > 0.005 ? ` · 겹친 ${fmt(covered)}㎡는 위 레이어가 차지` : ''}${report.gapArea > 0.05 ? ` · 빈 영역 ${fmt(report.gapArea)}㎡ (‘빈 영역 채우기’로 정리)` : ' · 외곽을 빈틈 없이 채움'}</div>`;
+      paintLayers(unit, report);
+    }
+    function paintLayers(unit, report) {
+      const list = container.querySelector('[data-roomlist]'), n = unit.rooms.length;
+      // Shown top layer first, like a drawing program; the array keeps bottom-first order.
+      list.innerHTML = `<ol class="pu-layers">${unit.rooms.map((r, i) => ({ r, i, l: report.layers[i] })).reverse().map(({ r, i, l }) => `<li class="pu-layer${r.id === selectedId ? ' selected' : ''}${l.visibleArea < 0.01 ? ' hidden-layer' : ''}" draggable="true" data-layer="${esc(r.id)}">
+          <span class="pu-grip" aria-hidden="true">⋮⋮</span><i style="background:${COLORS[r.category] || COLORS.service}"></i>
+          <button type="button" class="pu-layer-name" data-select-room="${esc(r.id)}">${esc(r.name)}${r.locked ? ' · 잠금' : ''}</button>
+          <span class="pu-layer-area">${fmt(l.visibleArea)}${l.coveredArea > 0.005 ? `<small>/${fmt(l.area)}</small>` : ''}</span>
+          <span class="pu-layer-move"><button type="button" data-layer-step="1" data-id="${esc(r.id)}" aria-label="${esc(r.name)} 한 단계 위로" ${i === n - 1 ? 'disabled' : ''}>▲</button><button type="button" data-layer-step="-1" data-id="${esc(r.id)}" aria-label="${esc(r.name)} 한 단계 아래로" ${i === 0 ? 'disabled' : ''}>▼</button></span></li>`).join('')}</ol>
+        <div class="pu-layer-total"><span>점유 합계</span><b>${fmt(report.unionArea)}㎡</b></div>`;
       list.querySelectorAll('[data-select-room]').forEach(b => b.addEventListener('click', () => { selectedId = b.dataset.selectRoom; if (mode !== 'rooms') { mode = 'rooms'; render(); } else refresh(); focusSelected(); }));
+      list.querySelectorAll('[data-layer-step]').forEach(b => b.addEventListener('click', () => {
+        const index = unit.rooms.findIndex(r => r.id === b.dataset.id);
+        reorderLayer(b.dataset.id, index + Number(b.dataset.layerStep));
+        const again = Array.from(container.querySelectorAll('[data-layer-step]')).find(x => x.dataset.id === b.dataset.id && x.dataset.layerStep === b.dataset.layerStep && !x.disabled);
+        if (again) again.focus();
+      }));
+      let dragged = null;
+      list.querySelectorAll('[data-layer]').forEach(row => {
+        row.addEventListener('dragstart', e => { dragged = row.dataset.layer; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged); });
+        row.addEventListener('dragend', () => { dragged = null; list.querySelectorAll('.pu-layer').forEach(x => x.classList.remove('dragging', 'drop-above', 'drop-below')); });
+        row.addEventListener('dragover', e => {
+          if (!dragged || dragged === row.dataset.layer) return;
+          e.preventDefault();
+          const box = row.getBoundingClientRect(), above = e.clientY < box.top + box.height / 2;
+          row.classList.toggle('drop-above', above); row.classList.toggle('drop-below', !above);
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('drop-above', 'drop-below'));
+        row.addEventListener('drop', e => {
+          e.preventDefault();
+          if (!dragged || dragged === row.dataset.layer) return;
+          const above = row.classList.contains('drop-above');
+          // Index of the target once the dragged room is taken out; "above" in the list means a higher layer.
+          const rest = unit.rooms.filter(r => r.id !== dragged), target = rest.findIndex(r => r.id === row.dataset.layer);
+          reorderLayer(dragged, above ? target + 1 : target);
+        });
+      });
+    }
+    function reorderLayer(id, toIndex) {
+      const unit = active(), room = unit.rooms.find(r => r.id === id);
+      if (!room || !moveRoomLayer(unit, id, toIndex)) return;
+      const index = unit.rooms.indexOf(room), n = unit.rooms.length;
+      setStatus(`${room.name} → 레이어 ${n - index}/${n}${index === n - 1 ? ' (맨 위)' : index === 0 ? ' (맨 아래)' : ''}`);
+      refresh(); markChanged();
     }
     function point(event) {
       const svg = container.querySelector('.pu-canvas'), matrix = svg.getScreenCTM();
@@ -983,73 +1096,82 @@
       if (editRoom(active(), room.id, { x: room.x + Math.sign(vector[0]) * unitStep, y: room.y + Math.sign(vector[1]) * unitStep })) { refresh(); markChanged(); }
       focusSelected();
     }
-    function dialog(html) {
-      const dlg = container.querySelector('[data-dialog]');
-      dlg.innerHTML = `<div class="pu-dlg">${html}</div>`;
-      dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
-      if (!dlg.open) dlg.showModal();
-      return dlg;
-    }
     function download(name, text) {
       const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = doc.createElement('a');
       a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
-    function openRequest() {
-      const dlg = dialog(`<div class="pu-dlg-head"><h3>Claude에 ${type}형 수정 요청</h3><button type="button" data-close aria-label="닫기">×</button></div>
-        <p class="pu-hint">API 키 없이 사용합니다. 원하는 수정을 적고 <b>요청문 복사</b>를 누른 뒤 Claude 대화(Claude Code 세션 또는 claude.ai)에 붙여넣으세요. Claude가 돌려준 JSON은 <b>Claude 결과 적용</b>에 붙여넣으면 됩니다.</p>
-        <textarea data-req rows="4" placeholder="예: 거실 폭을 4.2m로 넓히고 주방·식당을 그만큼 줄여줘. 외곽은 유지하고 빈틈 없이 채워줘."></textarea>
-        <details><summary>Claude에게 보낼 요청문 미리보기</summary><textarea class="pu-mono" data-prompt rows="12" readonly></textarea></details>
-        <div class="pu-dlg-result" data-result></div>
-        <div class="pu-dlg-actions"><button type="button" class="btn" data-download>요청 파일 저장 (.json)</button><button type="button" class="btn primary" data-copy>요청문 복사</button></div>`);
-      const req = dlg.querySelector('[data-req]'), prompt = dlg.querySelector('[data-prompt]');
-      const build = () => unitRequestPrompt(buildUnitRequest(project, type, req.value));
-      const update = () => { prompt.value = build(); };
-      req.addEventListener('input', update); update(); req.focus();
-      dlg.querySelector('[data-copy]').addEventListener('click', async () => {
-        update();
-        try { await win.navigator.clipboard.writeText(prompt.value); }
-        catch (e) { prompt.closest('details').open = true; prompt.select(); doc.execCommand('copy'); }
-        dlg.querySelector('[data-result]').textContent = `요청문을 복사했습니다 (기준 개정 ${project.revision}). Claude 대화에 붙여넣으세요.`;
-      });
-      dlg.querySelector('[data-download]').addEventListener('click', () => {
-        download(`unit-${type}-request-r${project.revision}.json`, JSON.stringify(buildUnitRequest(project, type, req.value), null, 2));
-        dlg.querySelector('[data-result]').textContent = '요청 파일을 저장했습니다. Claude에게 파일을 전달하세요.';
-      });
+    function chatLog(entry) { CHAT.log.push(Object.assign({ time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) }, entry)); if (CHAT.log.length > 60) CHAT.log.shift(); paintChat(); }
+    function paintChat() {
+      const log = container.querySelector('[data-chat-log]');
+      if (!log) return;
+      log.innerHTML = CHAT.log.length ? CHAT.log.map((m, i) => {
+        if (m.role === 'system') return `<div class="pu-msg system">${esc(m.text)}</div>`;
+        if (m.role === 'me') return `<div class="pu-msg me">${esc(m.text)}<small>${m.type}형 · 개정 ${m.revision} · 요청문 ${m.copied ? '복사됨' : '자동 복사 안 됨'} · ${m.time}</small><button type="button" class="btn" data-chat-copy="${i}">${m.copied ? '요청문 다시 복사' : '요청문 복사'}</button></div>`;
+        if (m.error) return `<div class="pu-msg claude bad"><b>적용할 수 없는 답변</b><br>${esc(m.error)}<small>${m.time}</small></div>`;
+        return `<div class="pu-msg claude${m.issues.length ? ' bad' : ''}"><b>${m.type}형 수정안</b>${m.summary ? '<br>' + esc(m.summary) : ''}<br>공간 ${m.rooms}개 · 외곽 ${fmt(m.outlineArea)}㎡ · 빈 영역 ${m.gapArea === null ? '—' : fmt(m.gapArea) + '㎡'}${m.issues.length ? '<br>' + m.issues.map(esc).join('<br>') : ''}
+          ${m.applied ? '<small>적용됨 · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다 · ' + m.time + '</small>' : `<br><button type="button" class="btn primary" data-chat-apply="${i}">이 수정안 적용</button><small>${m.time}</small>`}</div>`;
+      }).join('') : '<div class="pu-msg system">① 요청을 쓰고 ‘요청 복사’ → Claude 채팅(이 세션 또는 claude.ai)에 붙여넣기<br>② Claude의 답변을 통째로 여기에 붙여넣고 ‘답변 검토’ → 적용</div>';
+      log.querySelectorAll('[data-chat-copy]').forEach(b => b.addEventListener('click', async () => { const m = CHAT.log[Number(b.dataset.chatCopy)]; m.copied = await copyText(m.prompt) || m.copied; b.textContent = m.copied ? '복사했습니다' : '복사 실패 — 요청 파일 저장을 이용하세요'; }));
+      log.querySelectorAll('[data-chat-apply]').forEach(b => b.addEventListener('click', () => applyFromChat(Number(b.dataset.chatApply))));
+      log.scrollTop = log.scrollHeight;
     }
-    function openApply() {
-      const dlg = dialog(`<div class="pu-dlg-head"><h3>Claude 결과 적용</h3><button type="button" data-close aria-label="닫기">×</button></div>
-        <p class="pu-hint">Claude가 준 <code>apartment-planner-unit-patch/1</code> JSON을 붙여넣으세요. 코드 블록(\`\`\`json)째 붙여넣어도 됩니다. 현재 개정은 <b>${project.revision}</b>입니다.</p>
-        <textarea class="pu-mono" data-patch rows="12" spellcheck="false" placeholder='{"schema":"apartment-planner-unit-patch/1","baseRevision":${project.revision},"unitType":${type},"rooms":[...]}'></textarea>
-        <div class="pu-dlg-actions" style="justify-content:space-between"><label class="btn">JSON 파일 불러오기<input type="file" accept=".json,application/json,text/plain" data-file hidden></label><span><button type="button" class="btn" data-check>검토</button> <button type="button" class="btn primary" data-apply disabled>적용</button></span></div>
-        <div class="pu-dlg-result" data-result></div>`);
-      const area = dlg.querySelector('[data-patch]'), out = dlg.querySelector('[data-result]'), applyBtn = dlg.querySelector('[data-apply]');
-      let candidate = null;
-      const check = () => {
-        candidate = null; applyBtn.disabled = true;
-        try {
-          const patch = extractJson(area.value), result = readUnitPatch(project, patch), r = result.report;
-          const names = id => result.unit.rooms.find(x => x.id === id)?.name || id;
-          const issues = r.overlaps.map(p => `${names(p.a)} ↔ ${names(p.b)} 겹침 ${fmt(p.area)}㎡`).concat(r.outside.map(id => names(id) + ' 외곽 이탈'));
-          candidate = patch; applyBtn.disabled = false;
-          out.innerHTML = `<div class="${issues.length ? 'pu-warning' : 'pu-pass'}"><strong>${result.type}형 · 공간 ${result.unit.rooms.length}개 · 외곽 꼭짓점 ${result.unit.outline.length}개</strong><br>외곽 ${fmt(r.outlineArea)}㎡ · 공간 합계 ${fmt(r.area)}㎡ · 빈 영역 ${r.gapArea === null ? '—' : fmt(r.gapArea) + '㎡'}${issues.length ? '<br>' + issues.map(esc).join('<br>') + '<br>적용 후 직접 고치거나 Claude에 다시 요청하세요.' : ''}${result.summary ? `<br><br>요약: ${esc(result.summary)}` : ''}</div>`;
-        } catch (e) { out.innerHTML = `<div class="pu-warning">${esc(e.message)}</div>`; }
-      };
-      area.addEventListener('input', () => { candidate = null; applyBtn.disabled = true; });
-      dlg.querySelector('[data-check]').addEventListener('click', check);
-      dlg.querySelector('[data-file]').addEventListener('change', async e => {
-        const file = e.target.files[0]; if (!file) return;
-        if (file.size > 2e6) { out.innerHTML = '<div class="pu-warning">2 MB 이하 파일을 선택하세요.</div>'; return; }
-        area.value = await file.text(); check(); e.target.value = '';
+    function updateChatMode() {
+      const input = container.querySelector('[data-chat-input]'), send = container.querySelector('[data-chat-send]');
+      send.textContent = isReply(input.value) ? '답변 검토' : '요청 복사';
+      send.disabled = !input.value.trim();
+    }
+    async function copyText(text) {
+      try { await win.navigator.clipboard.writeText(text); return true; } catch (e) {
+        const area = doc.createElement('textarea'); area.value = text; area.style.position = 'fixed'; area.style.opacity = '0'; doc.body.appendChild(area); area.select();
+        let ok = false; try { ok = doc.execCommand('copy'); } catch (err) { ok = false; }
+        area.remove(); return ok;
+      }
+    }
+    function reviewReply(text) {
+      try {
+        const patch = extractJson(text), result = readUnitPatch(project, patch), r = result.report;
+        const names = id => result.unit.rooms.find(x => x.id === id)?.name || id;
+        chatLog({ role: 'claude', type: result.type, patch, summary: result.summary, rooms: result.unit.rooms.length, outlineArea: r.outlineArea, gapArea: r.gapArea,
+          issues: r.outside.map(id => names(id) + ' 외곽 이탈').concat(r.hidden.map(id => names(id) + ' 위 레이어에 완전히 가려짐')), applied: false });
+      } catch (e) { chatLog({ role: 'claude', error: e.message }); }
+    }
+    async function sendChat() {
+      const input = container.querySelector('[data-chat-input]'), text = input.value.trim();
+      if (!text) return;
+      if (isReply(text)) reviewReply(text);
+      else {
+        const prompt = unitRequestPrompt(buildUnitRequest(project, type, text)), copied = await copyText(prompt);
+        chatLog({ role: 'me', text, type, revision: project.revision, copied, prompt });
+        if (copied) chatLog({ role: 'system', text: 'Claude 채팅에 붙여넣고, 받은 답변을 여기에 붙여넣으세요.' });
+      }
+      input.value = ''; CHAT.draft = ''; updateChatMode(); input.focus();
+    }
+    function applyFromChat(index) {
+      const entry = CHAT.log[index];
+      if (!entry || !entry.patch || entry.applied) return;
+      try {
+        const result = applyUnitPatch(project, entry.patch);
+        entry.applied = true; type = result.type; mode = 'rooms'; selectedEdge = selectedVertex = null;
+        setStatus(`Claude 수정안을 적용했습니다.${result.summary ? ' · ' + result.summary.slice(0, 120) : ''}`);
+        render(); markChanged();
+      } catch (e) { chatLog({ role: 'claude', error: e.message }); }
+    }
+    function wireChat() {
+      const input = container.querySelector('[data-chat-input]');
+      input.addEventListener('input', () => { CHAT.draft = input.value; updateChatMode(); });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendChat(); } });
+      container.querySelector('[data-chat-send]').addEventListener('click', sendChat);
+      container.querySelector('[data-chat-file-save]').addEventListener('click', () => {
+        download(`unit-${type}-request-r${project.revision}.json`, JSON.stringify(buildUnitRequest(project, type, input.value), null, 2));
+        chatLog({ role: 'system', text: `${type}형 요청 파일을 저장했습니다 (개정 ${project.revision}).` });
       });
-      applyBtn.addEventListener('click', () => {
-        if (!candidate) return;
-        try {
-          const result = applyUnitPatch(project, candidate);
-          type = result.type; mode = 'rooms'; selectedEdge = selectedVertex = null;
-          dlg.close(); setStatus(`Claude 결과를 적용했습니다. 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다.${result.summary ? ' · ' + result.summary.slice(0, 120) : ''}`);
-          render(); markChanged();
-        } catch (e) { out.innerHTML = `<div class="pu-warning">${esc(e.message)}</div>`; }
+      container.querySelector('[data-chat-file]').addEventListener('change', async e => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        if (file.size > 2e6) { chatLog({ role: 'claude', error: '2 MB 이하 파일을 선택하세요.' }); return; }
+        reviewReply(await file.text());
       });
+      updateChatMode(); paintChat();
     }
     render();
     return { render, destroy() { drag = null; selectionPointer = null; container.innerHTML = ''; } };
@@ -1094,6 +1216,6 @@
     }
     render(); return { render, destroy() { container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, resizeRoom, resizeRoomClamped, polygonArea, rectInside,
+  return { createUnit, checkUnit, editRoom, fillUnit, setOutline, moveEdge, moveVertex, splitEdge, removeVertex, addRoom, moveRoomLayer, layerAreas, resizeRoom, resizeRoomClamped, polygonArea, rectInside,
     buildUnitRequest, unitRequestPrompt, extractJson, readUnitPatch, applyUnitPatch, ensureUnits, generateCombinations, mountUnits, mountCombinations, schematicSvg };
 });

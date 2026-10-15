@@ -222,21 +222,42 @@ test('resizing a room moves the shared wall with its neighbours and keeps the pl
   assert.equal(bed3.width, 3.05);
   assert.equal(bed2.width, 2.45);
   assert.equal(U.checkUnit(unit).gapArea, 0);
-  assert.equal(U.resizeRoom(unit, 'bed3', 'left', 9.5, { linked: false }).ok, false, 'alone it may not overlap');
+  assert.equal(U.resizeRoom(unit, 'bed3', 'left', 9.5, { linked: false }).ok, true, 'alone it may overlap; layer order decides');
+  assert.equal(U.layerAreas(unit).find(l => l.id === 'bed2').visibleArea, 7.77, 'bed3 is the upper layer and takes 0.35 m of bed2');
   assert.equal(U.resizeRoom(unit, 'bed3', 'right', 13.5).ok, false, 'may not leave the outline');
   assert.equal(U.resizeRoom(unit, 'bed2', 'right', 7.6).ok, false, 'neighbour may not shrink below 300 mm');
   unit.rooms.find(r => r.id === 'kitchen').locked = true;
   assert.match(U.resizeRoom(unit, 'living', 'top', 4).message, /잠겨/);
 });
 
-test('an unlinked resize shrinks freely and a clamped grow stops at the nearest neighbour', () => {
+test('an unlinked resize may overlap and a clamped grow stops at the outline', () => {
   const unit = U.createUnit(74), bath1 = unit.rooms.find(r => r.id === 'bath1');
   assert.equal(U.resizeRoom(unit, 'bath1', 'right', 1.5, { linked: false }).ok, true);
-  assert.equal(bath1.width, 1.5);
   assert.ok(U.checkUnit(unit).gapArea > 0);
-  const grown = U.resizeRoomClamped(unit, 'bath1', 'right', 2.2, { linked: false });
-  assert.equal(grown.ok, true);
-  assert.equal(grown.clamped, true);
-  assert.equal(bath1.width, 1.75);
-  assert.equal(U.checkUnit(unit).gapArea, 0);
+  assert.equal(U.resizeRoom(unit, 'bath1', 'right', 2.2, { linked: false }).ok, true);
+  assert.equal(bath1.width, 2.2);
+  const grown = U.resizeRoomClamped(unit, 'bath1', 'left', -0.6, { linked: false });
+  assert.equal(grown.ok, false, 'the outline edge is at x = 0');
+  assert.equal(bath1.x, 0);
+});
+
+test('rooms are layers: the upper room takes the overlapped area and reordering hands it back', () => {
+  const unit = U.createUnit(74), bath1 = unit.rooms.find(r => r.id === 'bath1');
+  U.resizeRoom(unit, 'bath1', 'right', 2.2, { linked: false });
+  const area = id => U.layerAreas(unit).find(l => l.id === id);
+  assert.equal(unit.rooms.indexOf(bath1), 0, 'bath1 is the bottom layer');
+  assert.equal(area('bath1').visibleArea, 4.463, 'shoes and hall cover the extension');
+  assert.equal(area('shoes').visibleArea, 0.845);
+  const report = U.checkUnit(unit);
+  assert.equal(report.gapArea, 0);
+  assert.equal(report.unionArea, report.outlineArea);
+  assert.equal(U.moveRoomLayer(unit, 'bath1', unit.rooms.length - 1), true);
+  assert.equal(unit.rooms[unit.rooms.length - 1], bath1);
+  assert.equal(area('bath1').visibleArea, 5.61);
+  assert.equal(area('shoes').visibleArea, 0.26);
+  assert.equal(U.checkUnit(unit).unionArea, report.unionArea, 'reordering never changes the occupied total');
+  assert.equal(U.moveRoomLayer(unit, 'bath1', unit.rooms.length - 1), false, 'already on top');
+  U.resizeRoom(unit, 'bath1', 'right', 2.4, { linked: false });
+  U.resizeRoom(unit, 'bath1', 'bottom', 5.7, { linked: false });
+  assert.ok(U.checkUnit(unit).hidden.includes('shoes'), 'a fully covered room is reported');
 });
