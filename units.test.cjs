@@ -515,3 +515,24 @@ test('outline walls push and pull, carrying the rooms, door and windows on them'
   // Pushing a wall through the opposite side is refused.
   assert.equal(U.moveOutlineEdge(c, 0, e, -50).ok, false);
 });
+
+test('building JSON round-trips back into saved types, with clashing ids renamed and bad entries reported', () => {
+  const r = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] });
+  const doc = U.exportCandidates(r.combos.slice(0, 2), { floors: 25 });
+  const back = U.importCandidates(JSON.stringify(doc), [r.combos[0].id]);
+  assert.equal(back.added.length, 2);
+  assert.notEqual(back.added[0].id, r.combos[0].id, 'clashing id renamed');
+  assert.deepEqual(back.added[1].geometry.units.map(u => u.outline), r.combos[1].geometry.units.map(u => u.outline));
+  assert.deepEqual(back.errors, []);
+  // A chat-edited copy: one unit moved; derived numbers are recomputed on import.
+  const edited = JSON.parse(JSON.stringify(doc));
+  edited.candidates[0].width = 1;
+  const again = U.importCandidates(edited, []);
+  assert.ok(again.added[0].width > 1);
+  assert.equal(U.importCandidates('{not json', []).errors.length, 1);
+  assert.equal(U.importCandidates({ schema: 'other/1' }, []).errors.length, 1);
+  assert.equal(U.importCandidates({ name: 'x' }, []).added.length, 0);
+  const S = require('./state.js'), p = S.createProject();
+  p.typologies.push(...back.added);
+  assert.equal(S.validateProject(p).typologies.length, 2);
+});

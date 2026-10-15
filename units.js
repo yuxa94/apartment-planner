@@ -902,7 +902,7 @@
     if (doc.getElementById('planner-units-style')) return;
     const style = doc.createElement('style'); style.id = 'planner-units-style';
     style.textContent = `
-      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-ed{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:16px;align-items:start}.pu-ed-list h3,.pu-ed-side h3{font-size:15px;margin:0 0 12px}.pu-ed-row{display:block;width:100%;text-align:left;border:1px solid #dce5ed;background:#fff;border-radius:9px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit;color:#2c4964}.pu-ed-row small{display:block;color:#7b8da0;margin-top:4px;font-size:11px}.pu-ed-row.active{border-color:#1f62b4;background:#eef5fd}.pu-ed-row:disabled{opacity:.5;cursor:default}.pu-ed-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#fbfdfe;outline:none}.pu-ed-wrap:focus{border-color:#1f62b4}.pu-ed-canvas{display:block;width:100%;height:560px;touch-action:none;user-select:none}.pu-ed-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px}.pu-ed-tools .section-label{margin:0 4px 0 0}.pu-ed-wrap.drawing .pu-ed-canvas,.pu-ed-wrap.drawing .pu-ed-item{cursor:crosshair}[data-handle=del]{cursor:pointer}.pu-ed-item{cursor:grab}.pu-ed-wall{stroke:transparent;stroke-linecap:butt}.pu-ed-wall.h{cursor:ns-resize}.pu-ed-wall.v{cursor:ew-resize}.pu-ed-wall:hover,.pu-ed-wall.active{stroke:rgba(18,98,203,.28)}.pu-ed-open{stroke:transparent;cursor:move}.pu-ed-open:hover{stroke:rgba(224,138,46,.25)}.pu-ed-guide{stroke:#d6337a;stroke-width:1.2px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}.pu-ed-snap{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;color:#5a6f83}[data-handle=nw],[data-handle=se]{cursor:nwse-resize}[data-handle=ne],[data-handle=sw]{cursor:nesw-resize}[data-handle=n],[data-handle=s]{cursor:ns-resize}[data-handle=e],[data-handle=w]{cursor:ew-resize}[data-handle=rot]{cursor:grab}.pu-ed-item.selected{cursor:grabbing}@media(max-width:1100px){.pu-ed{grid-template-columns:1fr}.pu-ed-canvas{height:420px}}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-ed-import{margin-top:14px;border-top:1px solid #e2e9f0;padding-top:12px}.pu-ed-import textarea{width:100%;box-sizing:border-box;height:140px;margin-top:8px;font:11px/1.45 ui-monospace,Consolas,monospace;border:1px solid #d8e2eb;border-radius:8px;padding:8px}.pu-json textarea{width:100%;box-sizing:border-box;height:220px;margin-top:10px;font:12px/1.5 ui-monospace,Consolas,monospace;border:1px solid #d8e2eb;border-radius:8px;padding:10px;color:#24425f;background:#fbfdfe}.pu-ed{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:16px;align-items:start}.pu-ed-list h3,.pu-ed-side h3{font-size:15px;margin:0 0 12px}.pu-ed-row{display:block;width:100%;text-align:left;border:1px solid #dce5ed;background:#fff;border-radius:9px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit;color:#2c4964}.pu-ed-row small{display:block;color:#7b8da0;margin-top:4px;font-size:11px}.pu-ed-row.active{border-color:#1f62b4;background:#eef5fd}.pu-ed-row:disabled{opacity:.5;cursor:default}.pu-ed-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#fbfdfe;outline:none}.pu-ed-wrap:focus{border-color:#1f62b4}.pu-ed-canvas{display:block;width:100%;height:560px;touch-action:none;user-select:none}.pu-ed-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px}.pu-ed-tools .section-label{margin:0 4px 0 0}.pu-ed-wrap.drawing .pu-ed-canvas,.pu-ed-wrap.drawing .pu-ed-item{cursor:crosshair}[data-handle=del]{cursor:pointer}.pu-ed-item{cursor:grab}.pu-ed-wall{stroke:transparent;stroke-linecap:butt}.pu-ed-wall.h{cursor:ns-resize}.pu-ed-wall.v{cursor:ew-resize}.pu-ed-wall:hover,.pu-ed-wall.active{stroke:rgba(18,98,203,.28)}.pu-ed-open{stroke:transparent;cursor:move}.pu-ed-open:hover{stroke:rgba(224,138,46,.25)}.pu-ed-guide{stroke:#d6337a;stroke-width:1.2px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}.pu-ed-snap{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;color:#5a6f83}[data-handle=nw],[data-handle=se]{cursor:nwse-resize}[data-handle=ne],[data-handle=sw]{cursor:nesw-resize}[data-handle=n],[data-handle=s]{cursor:ns-resize}[data-handle=e],[data-handle=w]{cursor:ew-resize}[data-handle=rot]{cursor:grab}.pu-ed-item.selected{cursor:grabbing}@media(max-width:1100px){.pu-ed{grid-template-columns:1fr}.pu-ed-canvas{height:420px}}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
       @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector,.pu-ref-body{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
     `;
     doc.head.appendChild(style);
@@ -1071,6 +1071,33 @@
     const mix = (c.unitMix || []).map(m => m.type + 'x' + m.count).join('-');
     return list.length > 1 ? `building-candidates-${c.unitsPerFloor || 0}u-${list.length}-f${(settings && settings.floors) || ''}.json`
       : `building-${c.unitsPerFloor || 0}u-${mix}-${String(c.id || '').replace(/[^0-9A-Za-z]+/g, '').slice(-10)}.json`;
+  }
+
+  // Saves text as a file; inside a chat artifact or canvas downloads may be blocked, so the same text is also shown for copying.
+  function saveJsonFile(doc, name, text) {
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = doc.createElement('a');
+      a.href = url; a.download = name; doc.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (e) { /* the text panel below still has it */ }
+    return { name, text };
+  }
+  function jsonPanel(json) {
+    if (!json) return '';
+    return `<details class="pu-reference pu-json" open><summary>JSON 텍스트 · ${esc(json.name)} (내려받기가 막힌 화면에서는 여기서 복사해 대화에 붙여 넣으세요)</summary>
+      <div class="pu-combo-actions"><button class="btn" type="button" data-json-copy>복사</button><button class="btn" type="button" data-json-close>닫기</button></div>
+      <textarea readonly data-json-text spellcheck="false">${esc(json.text)}</textarea></details>`;
+  }
+  function bindJsonPanel(root, onClose) {
+    const ta = root.querySelector('[data-json-text]');
+    if (!ta) return;
+    root.querySelector('[data-json-copy]').addEventListener('click', e => {
+      ta.focus(); ta.select();
+      const done = ok => { e.target.textContent = ok ? '복사됨' : '선택됨 · Ctrl+C로 복사'; };
+      try { navigator.clipboard.writeText(ta.value).then(() => done(true), () => done(root.ownerDocument.execCommand && root.ownerDocument.execCommand('copy'))); }
+      catch (err) { done(root.ownerDocument.execCommand && root.ownerDocument.execCommand('copy')); }
+    });
+    root.querySelector('[data-json-close]').addEventListener('click', onClose);
   }
 
   // ── Manual editing of saved building candidates. Pure geometry helpers first (testable), then the editor view.
@@ -1515,8 +1542,33 @@
       ${isPart ? Object.entries(at).map(([k, [x, y]]) => `<rect x="${round(x - hs / 2)}" y="${round(y - hs / 2)}" width="${hs}" height="${hs}" fill="#fff" stroke="#1262cb" stroke-width="${round(sw * 1.4)}" data-handle="${k}"/>`).join('') : ''}</g>`;
   }
 
+  // Reads building JSON back in (a file saved here, or text edited in a chat): apartment-planner-building/1 with candidates,
+  // or one candidate object. Each is re-derived (windows, areas, facings) and gets an id that does not clash with `taken`.
+  function importCandidates(text, taken) {
+    let data;
+    try { data = typeof text === 'string' ? JSON.parse(text) : text; } catch (e) { return { added: [], errors: ['JSON 형식이 아닙니다: ' + e.message] }; }
+    if (data && data.schema && data.schema !== 'apartment-planner-building/1') return { added: [], errors: ['지원하지 않는 형식입니다: ' + data.schema] };
+    if (data && data.coordinateUnit && data.coordinateUnit !== 'm') return { added: [], errors: ['좌표 단위는 m여야 합니다.'] };
+    const list = Array.isArray(data && data.candidates) ? data.candidates : Array.isArray(data) ? data : [data];
+    const ids = new Set(taken || []), added = [], errors = [];
+    list.forEach((c, n) => {
+      const where = `후보 ${n + 1}${c && c.name ? ' (' + c.name + ')' : ''}`;
+      if (!isEditable(c)) { errors.push(where + ': 세대 외곽·코어 부품 형상이 없습니다.'); return; }
+      const bad = c.geometry.units.findIndex(u => !TYPES.includes(Number(u.type)) || u.outline.length < 4 || u.outline.some(p => !Array.isArray(p) || !p.every(Number.isFinite)));
+      if (bad >= 0) { errors.push(where + `: 세대 ${bad + 1} 형상이 올바르지 않습니다.`); return; }
+      if (c.geometry.core.parts.some(p => !Array.isArray(p.rect) || p.rect.length !== 4 || !p.rect.every(Number.isFinite) || p.rect[2] - p.rect[0] < PART_MIN - EPS || p.rect[3] - p.rect[1] < PART_MIN - EPS)) { errors.push(where + ': 코어 부품 치수가 올바르지 않습니다.'); return; }
+      const t = refreshEdited(clone(c));
+      let id = String(t.id || 'imported'), k = 1;
+      while (ids.has(id)) id = String(t.id || 'imported') + '-' + (++k);
+      ids.add(id);
+      Object.assign(t, { id, name: String(t.name || '불러온 동 유형').slice(0, 100), sourceUnitIds: Array.isArray(t.sourceUnitIds) ? t.sourceUnitIds.filter(v => typeof v === 'string') : [], imported: true });
+      added.push(t);
+    });
+    return { added, errors };
+  }
+
   function mountEditor(container, project, onChange, startIndex) {
-    let index = Number.isInteger(startIndex) ? startIndex : project.typologies.findIndex(isEditable), draft = null, original = null, sel = null, undo = [], drag = null, status = '', tool = null, snapOn = true, guides = [], lastWallTap = null;
+    let index = Number.isInteger(startIndex) ? startIndex : project.typologies.findIndex(isEditable), draft = null, original = null, sel = null, undo = [], drag = null, status = '', tool = null, snapOn = true, guides = [], lastWallTap = null, lastJson = null, importOpen = false, importMsg = '';
     const load = i => { index = i; original = project.typologies[i] ? clone(project.typologies[i]) : null; draft = isEditable(original) ? refreshEdited(clone(original)) : null; sel = null; undo = []; tool = null; };
     load(index);
     const change = next => { undo.push(draft); if (undo.length > 80) undo.shift(); draft = next; render(); focusCanvas(); };
@@ -1525,10 +1577,10 @@
     const TOOLS = { ...Object.fromEntries(Object.entries(PART_SIZES).map(([k, v]) => [k, v[2]])), door: '현관 놓기', window: '창 추가' };
     function render() {
       const list = project.typologies.map((t, i) => `<button type="button" class="pu-ed-row${i === index ? ' active' : ''}" data-ed-pick="${i}" ${isEditable(t) ? '' : 'disabled'}><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.edited ? ' · 수정됨' : ''}${isEditable(t) ? '' : ' · 편집 불가(형상 없음)'}</small></button>`).join('');
-      if (!draft) { container.innerHTML = `<div class="pu-ed"><aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list || '<p class="pu-note">후보 탐색에서 "후보 저장"한 안이 여기에 나옵니다.</p>'}</aside><div class="panel pu-empty">편집할 안을 고르세요. 세대 외곽과 코어 부품이 있는 안만 편집할 수 있습니다.</div></div>`; bindList(); return; }
+      if (!draft) { container.innerHTML = `<div class="pu-ed"><aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list || '<p class="pu-note">후보 탐색에서 "후보 저장"한 안이 여기에 나옵니다.</p>'}${importBox()}</aside><div class="panel pu-empty">편집할 안을 고르세요. 세대 외곽과 코어 부품이 있는 안만 편집할 수 있습니다.</div></div>`; bindList(); bindImport(); return; }
       const issues = checkEdited(draft), g = draft.geometry;
       container.innerHTML = `<div class="pu-ed">
-        <aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list}</aside>
+        <aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list}${importBox()}</aside>
         <section class="panel pu-ed-main"><div class="pu-toolbar"><h3>${esc(draft.name)} 편집</h3><span class="tag ${issues.length ? 'amber' : 'green'}">${issues.length ? '검토 필요 ' + issues.length : '겹침·연결 문제 없음'}</span></div>
           <div class="pu-ed-tools"><span class="section-label">그리기</span>${Object.entries(TOOLS).map(([k, v]) => `<button class="btn${tool === k ? ' primary' : ''}" type="button" data-ed-tool="${k}">${v}</button>`).join('')}${tool ? '<button class="btn" type="button" data-ed-tool="">끝내기 (Esc)</button>' : ''}
             <label class="pu-ed-snap" title="Ctrl을 누르는 동안 잠시 해제"><input type="checkbox" data-ed-snap ${snapOn ? 'checked' : ''}>스냅</label></div>
@@ -1542,8 +1594,8 @@
           <ul class="pu-checks">${issues.length ? issues.map(x => `<li class="pu-ng">✗ ${esc(x)}</li>`).join('') : '<li class="pu-ok">✓ 겹침 없음 · 현관과 계단·승강기가 홀에 닿음</li>'}</ul>
           <div class="pu-combo-actions"><button class="btn primary" type="button" data-ed-save>저장</button><button class="btn" type="button" data-ed-undo ${undo.length ? '' : 'disabled'}>되돌리기</button><button class="btn" type="button" data-ed-reset>저장본으로</button><button class="btn" type="button" data-ed-json>JSON ↓</button></div>
           <div class="pu-status" role="status">${esc(status)}</div>
-        </aside></div>`;
-      bindList(); bindCanvas(); bindSide();
+        </aside></div>${jsonPanel(lastJson)}`;
+      bindList(); bindImport(); bindCanvas(); bindSide(); bindJsonPanel(container, () => { lastJson = null; render(); });
     }
     const toolHint = () => tool === 'door' ? '<b>현관 놓기</b>: 세대 외곽 벽을 누르면 그 자리에 현관(폭 1 m)을 놓습니다.' : tool === 'window' ? `<b>창 추가</b>: 세대 외곽 벽을 누르면 그 자리에 창(${WINDOW_NEW} m)을 놓습니다.`
       : `<b>${esc(PART_SIZES[tool][2])} 그리기</b>: 빈 곳을 끌어 크기를 정하거나, 눌러서 기본 크기(${PART_SIZES[tool][0]} × ${PART_SIZES[tool][1]} m)로 놓습니다.`;
@@ -1561,6 +1613,32 @@
         <div class="pu-combo-actions"><button class="btn" type="button" data-ed-turn="-15">−15°</button><button class="btn" type="button" data-ed-turn="15">+15°</button><button class="btn" type="button" data-ed-rotate>90° 회전</button><button class="btn" type="button" data-ed-angle0>각도 0°</button></div>
         <div class="pu-combo-actions">${sel.kind === 'unit' ? `<button class="btn" type="button" data-ed-mirror>좌우 반전</button>${s.door ? '' : '<button class="btn" type="button" data-ed-tool-door>현관 놓기</button>'}<button class="btn" type="button" data-ed-tool-window>창 추가</button>${s.windowsManual ? '<button class="btn" type="button" data-ed-autowin>창 자동 계산으로</button>' : ''}` : '<button class="btn" type="button" data-ed-delete>부품 삭제</button>'}</div>
         ${sel.kind === 'unit' ? `<p class="pu-note">${s.windowsManual ? '창을 직접 배치한 세대입니다.' : '창은 외곽에 닿는 거실·침실·주방·발코니 변에서 자동으로 계산합니다. 창을 옮기거나 지우면 이 세대는 직접 배치로 바뀝니다.'} 외곽 벽은 도면의 파란 굵은 선을 끌어 밀고 당깁니다.</p>` : ''}`;
+    }
+    function importBox() {
+      return `<div class="pu-ed-import"><div class="pu-combo-actions"><button class="btn" type="button" data-ed-import-open>${importOpen ? '붙여넣기 닫기' : 'JSON 붙여넣기'}</button><label class="btn">파일 불러오기<input type="file" accept=".json,application/json" multiple hidden data-ed-import-file></label></div>
+        ${importOpen ? '<textarea data-ed-import-text spellcheck="false" placeholder="이 화면이나 Claude·ChatGPT에서 받은 동 유형 JSON을 붙여 넣으세요."></textarea><div class="pu-combo-actions"><button class="btn primary" type="button" data-ed-import-go>가져오기</button></div>' : ''}
+        ${importMsg ? `<p class="pu-note">${esc(importMsg)}</p>` : ''}</div>`;
+    }
+    function takeImport(text) {
+      const r = importCandidates(text, project.typologies.map(t => t.id));
+      if (r.added.length) {
+        project.typologies.push(...r.added);
+        if (typeof onChange === 'function') onChange();
+        load(project.typologies.length - 1); importOpen = false;
+      }
+      importMsg = (r.added.length ? r.added.length + '개 동 유형을 가져왔습니다. ' : '') + r.errors.join(' ');
+      render();
+    }
+    function bindImport() {
+      const q = s => container.querySelector(s);
+      q('[data-ed-import-open]').addEventListener('click', () => { importOpen = !importOpen; importMsg = ''; render(); });
+      if (q('[data-ed-import-go]')) q('[data-ed-import-go]').addEventListener('click', () => takeImport(q('[data-ed-import-text]').value));
+      q('[data-ed-import-file]').addEventListener('change', async e => {
+        const texts = await Promise.all(Array.from(e.target.files).map(f => f.size > 5e6 ? Promise.resolve('') : f.text()));
+        const all = [];
+        for (const t of texts) { try { const d = JSON.parse(t); all.push(...(Array.isArray(d.candidates) ? d.candidates : [d])); } catch (err) { importMsg = '파일을 읽지 못했습니다: ' + err.message; } }
+        if (all.length) takeImport({ schema: 'apartment-planner-building/1', coordinateUnit: 'm', candidates: all }); else render();
+      });
     }
     function bindList() { container.querySelectorAll('[data-ed-pick]').forEach(b => b.addEventListener('click', () => { load(Number(b.dataset.edPick)); status = ''; render(); })); }
     function svgPoint(svg, e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = svg.getScreenCTM(); return m ? p.matrixTransform(m.inverse()) : { x: 0, y: 0 }; }
@@ -1772,10 +1850,7 @@
         render();
       });
       q('[data-ed-json]').addEventListener('click', () => {
-        const doc = container.ownerDocument, blob = new Blob([JSON.stringify(exportCandidates(normalizeEdited(draft), { edited: true }), null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob), a = doc.createElement('a');
-        a.href = url; a.download = candidateFileName(draft, {}).replace('.json', '-edited.json'); doc.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        lastJson = saveJsonFile(container.ownerDocument, candidateFileName(draft, {}).replace('.json', '-edited.json'), JSON.stringify(exportCandidates(normalizeEdited(draft), { edited: true }), null, 2));
         status = 'JSON 저장'; render();
       });
     }
@@ -1787,11 +1862,17 @@
     ensureUnits(project); injectStyles(container.ownerDocument);
     const DIM_FIELDS = [['stairWidth', '계단실 폭'], ['stairLength', '계단실 길이'], ['lobbyLength', '부속실 깊이'], ['hallDepth', '승강기홀 깊이'], ['sideHallWidth', '측면 홀 폭'], ['shaftWidth', '샤프트 폭'], ['floorHeight', '층고']];
     let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowEast: true, allowWest: true, allowNorth: false, sort: 'default', coreTemplate: 'parametric', mode: 'units' };
-    let cache = { key: '', result: null }, view = 'search', editIndex = null, editor = null;
+    let lastJson = null, cache = { key: '', result: null }, view = 'search', editIndex = null, editor = null;
     const viewTabs = () => `<div class="pu-tabs"><button type="button" data-cc-view="search" class="${view === 'search' ? 'active' : ''}">후보 탐색</button><button type="button" data-cc-view="edit" class="${view === 'edit' ? 'active' : ''}">저장한 안 편집 (${project.typologies.filter(isEditable).length})</button></div>`;
     const bindTabs = () => container.querySelectorAll('[data-cc-view]').forEach(b => b.addEventListener('click', () => { view = b.dataset.ccView; render(); }));
     let shown = { 2: 12, 3: 12, 4: 12 }, status = '', plans = null, planSource = '', loadError = '';
     async function loadDefaultPlans() {
+      // The single-file build carries the unit plans inline (no server, no fetch).
+      const embedded = typeof globalThis !== 'undefined' && Array.isArray(globalThis.PLANBY_UNIT_PLANS) ? globalThis.PLANBY_UNIT_PLANS : null;
+      if (embedded && embedded.length) {
+        try { embedded.forEach(profileFromPlan); plans = embedded.map(p => JSON.parse(JSON.stringify(p))); planSource = '파일에 포함된 세대 평면'; loadError = ''; render(); return; }
+        catch (e) { loadError = '포함된 세대 평면이 올바르지 않습니다: ' + e.message; }
+      }
       try {
         plans = await Promise.all(UNIT_PLAN_FILES.map(f => fetch(f, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(f); return r.json(); })));
         plans.forEach(profileFromPlan); planSource = 'unit-plans 폴더'; loadError = '';
@@ -1810,10 +1891,7 @@
     function downloadJson(candidates) {
       const settings = { mode: opts.mode, floors: opts.floors, types: opts.types, counts: opts.counts, allowEast: opts.allowEast, allowWest: opts.allowWest, allowNorth: opts.allowNorth,
         coreTemplate: opts.mode === 'core' ? opts.coreTemplate : null, dims: opts.dims, unitPlans: planSource, unitRevision: [...new Set((plans || []).map(p => p.projectRevision).filter(v => v != null))] };
-      const doc = container.ownerDocument, blob = new Blob([JSON.stringify(exportCandidates(candidates, settings), null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob), a = doc.createElement('a');
-      a.href = url; a.download = candidateFileName(candidates, settings); doc.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      lastJson = saveJsonFile(container.ownerDocument, candidateFileName(candidates, settings), JSON.stringify(exportCandidates(candidates, settings), null, 2));
       status = (Array.isArray(candidates) ? candidates.length + '개 후보' : candidates.name) + ' JSON 저장';
     }
     function save(candidate) {
@@ -1868,7 +1946,7 @@
           <p>승강로 크기(인승별): ${Object.entries(CORE_DIMENSIONS.lifts).map(([c, d]) => c + '인승 ' + d.join('×')).join(' · ')}. 제조사 사양과 다를 수 있습니다.</p></details>
         <p class="pu-note">탐색: 코어 면에 붙일 수 있는 단일 배치 ${result.placements}개 · 제외 ${rejects.length ? rejects.map(([r, n]) => esc(r) + ' ' + n).join(' · ') : '없음'}</p>
         ${profileNote(result.profiles, planSource)}<div class="pu-combo-actions"><label class="btn">세대 평면 JSON 다시 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label>${loadError ? `<span class="pu-ng">${esc(loadError)}</span>` : ''}</div></div>
-        <div class="pu-status" role="status">${esc(status)}</div>
+        <div class="pu-status" role="status">${esc(status)}</div>${jsonPanel(lastJson)}
         ${groups.map(g => `<section class="pu-cc-group"><div class="pu-toolbar"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>${g.list.length ? `<button class="btn" type="button" data-cc-json-all="${g.n}">${g.n}세대 후보 전체 JSON ↓</button>` : ''}</div>
           ${result.cores[g.n] && result.cores[g.n].template ? `<p class="pu-note">${esc(result.cores[g.n].template.name)} · ${esc(result.cores[g.n].template.source)} · 계단·승강기·샤프트 블록은 도면 그대로, 홀·복도는 세대에 맞춰 생성 · ${esc(result.cores[g.n].template.observed)}</p>` : ''}${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b class="${r.ok === false ? 'pu-ng' : ''}">${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
           ${g.list.length ? `<div class="pu-combo-grid">${visible[g.n].map((c, i) => `<article class="pu-combo-card pu-cc-card">${coreComboSvg(c)}<h3>${esc(c.name)}</h3>
@@ -1898,9 +1976,10 @@
       container.querySelectorAll('[data-cc-json-all]').forEach(b => b.addEventListener('click', () => { const g = groups.find(x => x.n === Number(b.dataset.ccJsonAll)); if (g) downloadJson(g.list); render(); }));
       container.querySelector('[data-ref-save]').addEventListener('click', () => { save(reference); render(); });
       bindTabs();
+      bindJsonPanel(container, () => { lastJson = null; render(); });
       container.querySelectorAll('[data-saved-edit]').forEach(b => b.addEventListener('click', () => { editIndex = Number(b.dataset.savedEdit); view = 'edit'; render(); }));
     }
     render(); loadDefaultPlans(); return { render, destroy() { editor?.destroy?.(); container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, editMove, editRotate, editMirror, editAddPart, editRemovePart, editResize, resizeRect, editSetAngle, polysOverlap, snapMove, editMoveDoor, editDeleteDoor, editMoveWindow, editAddWindow, editDeleteWindow, editAutoWindows, moveOutlineEdge, refreshEdited, normalizeEdited, checkEdited, isEditable, exportCandidates, candidateFileName, computeWindows, windowSummary, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, editMove, editRotate, editMirror, editAddPart, editRemovePart, editResize, resizeRect, editSetAngle, polysOverlap, snapMove, editMoveDoor, editDeleteDoor, editMoveWindow, editAddWindow, editDeleteWindow, editAutoWindows, moveOutlineEdge, importCandidates, refreshEdited, normalizeEdited, checkEdited, isEditable, exportCandidates, candidateFileName, computeWindows, windowSummary, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });

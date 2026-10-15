@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>단일 파일 샌드박스 점검</title><!-- 서버로 연 뒤 이 페이지를 열면 dist 파일을 저장소·내려받기가 막힌 iframe(아티팩트와 비슷한 조건)에서 띄워, 후보 생성 → JSON 텍스트 → 편집 탭 가져오기까지 자동으로 확인하고 결과를 위에 표시합니다. -->
+<body style="margin:0"><pre id="out">waiting</pre><iframe id="f" sandbox="allow-scripts" style="width:100%;height:90vh;border:0"></iframe>
+<script>
+window.addEventListener('message', e => { document.getElementById('out').textContent = JSON.stringify(e.data); });
+fetch('../dist/planby-building-plan.html').then(r => r.text()).then(html => {
+  const probe = `<script>window.__errs=[];addEventListener('error',e=>__errs.push(e.message));
+  const W=ms=>new Promise(r=>setTimeout(r,ms));
+  (async()=>{await W(4000);let ls='ok';try{localStorage.getItem('x')}catch(e){ls='blocked: '+e.name}
+    document.querySelector('[data-cc-json]').click();await W(300);
+    const text=document.querySelector('[data-json-text]').value;
+    document.querySelector('[data-cc-view="edit"]').click();await W(300);
+    const before=document.querySelectorAll('.pu-ed-row').length;
+    document.querySelector('[data-ed-import-open]').click();await W(200);
+    document.querySelector('[data-ed-import-text]').value=text;
+    document.querySelector('[data-ed-import-go]').click();await W(400);
+    parent.postMessage({ls,errs:__errs,before,after:document.querySelectorAll('.pu-ed-row').length,msg:(document.querySelector('.pu-ed-import .pu-note')||{}).textContent,editing:(document.querySelector('.pu-ed-main h3')||{}).textContent,canvas:!!document.querySelector('[data-ed-svg]')},'*')})();<\/script>`;
+  document.getElementById('f').srcdoc = html.replace('<head>', '<head>' + probe);
+});
+</script></body>

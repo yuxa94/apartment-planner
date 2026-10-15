@@ -19,3 +19,7 @@
 ## 다른 단계와의 계약
 - `typologies`의 `width`, `depth`, `unitsPerFloor`, `unitArea`(평균), `totalUnitArea`(기준층 합), `coreArea`는 Stage 3이 사용한다. 필드를 바꾸면 `state.js` 검증과 `placeTypology`를 함께 수정한다.
 - LH 세대와 HAUD 코어의 호환성은 가정하지 않는다.
+
+## 단일 파일 패키지 (Claude·ChatGPT용)
+- `node tools/build-standalone.cjs` → `dist/planby-building-plan.html`: CSS·스크립트·세대 평면 JSON을 모두 넣은 한 파일. 서버 없이 열리고, 저장소·내려받기가 막힌 아티팩트 화면에서는 JSON 텍스트 패널로 주고받습니다.
+- 사용법과 JSON 형식은 `dist/README.md`, 샌드박스 점검은 `tools/check-standalone.html`.
