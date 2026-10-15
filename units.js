@@ -5,7 +5,7 @@
   'use strict';
   const TYPES = [59, 74, 84];
   const COLORS = { living: '#dbeafe', kitchen: '#e0e7ff', bedroom: '#d1e7f1', wet: '#ccebe8', service: '#f2e9d9' };
-  const round = n => Math.round(n * 1000) / 1000;
+  const round = n => Math.round(n * 1000) / 1000 + 0; // + 0 turns -0 into 0
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
   const ROOM_DATA = {
@@ -229,6 +229,12 @@
     W: { name: '서측', facing: '서향', origin: c => [0, 0], u: [0, 1], v: [-1, 0], length: c => c.depth }
   };
   const DOOR = 1.0, EPS = 1e-6;
+  // Unit fronts allowed by the search: south always; east, west and north each on their own switch (allowSide keeps old callers).
+  function allowedFaces(options) {
+    const side = options.allowSide !== false;
+    const east = options.allowEast != null ? Boolean(options.allowEast) : side, west = options.allowWest != null ? Boolean(options.allowWest) : side;
+    return ['S', ...(east ? ['E'] : []), ...(west ? ['W'] : []), ...(options.allowNorth ? ['N'] : [])];
+  }
 
   // Parametric stair-hall core. Rules follow 주택건설기준 등에 관한 규칙 제4조 (lifts) and 건축법 시행령 제35조 (stairs);
   // every dimension below is a planning assumption, not a manufacturer or code minimum.
@@ -494,9 +500,9 @@
     const types = (options.types || TYPES).map(Number);
     const profiles = (plans || []).map(p => p.outline && p.door && p.rects ? p : profileFromPlan(p)).filter(p => types.includes(p.type));
     const counts = [...new Set((options.counts || [2, 3, 4]).map(Number))].filter(n => n >= 1 && n <= 4);
-    const allowNorth = Boolean(options.allowNorth), allowSide = options.allowSide !== false;
+    const faces = allowedFaces(options);
     const { placements: all, rejected } = corePlacements(profiles, core);
-    const placements = all.filter(p => (allowNorth || p.face !== 'N') && (allowSide || p.face === 'S'));
+    const placements = all.filter(p => faces.includes(p.face));
     if (all.length > placements.length) rejected['향 조건으로 제외한 배치'] = all.length - placements.length;
     const compatible = placements.map(a => placements.map(b => a !== b && !a.rects.some(r => b.rects.some(s => overlaps(r, s))) &&
       !(a.face === b.face && Math.abs(a.t - b.t) < DOOR - EPS)));
@@ -525,7 +531,7 @@
       if (!prev || c.footprintArea < prev.footprintArea - EPS || (Math.abs(c.footprintArea - prev.footprintArea) < EPS && c.id < prev.id)) best.set(k, c);
     }
     if (results.length > best.size) rejected['같은 구성의 미세 위치 차이'] = results.length - best.size;
-    const combos = [...best.values()];
+    const combos = [...best.values()].map(attachWindows);
     combos.sort((a, b) => b.unitsPerFloor - a.unitsPerFloor || b.southCount - a.southCount || a.footprintArea / a.unitsPerFloor - b.footprintArea / b.unitsPerFloor || a.id.localeCompare(b.id));
     return { core, combos, profiles, placements: placements.length, rejected };
   }
@@ -550,14 +556,99 @@
       geometry: { units: placed, core: { x: round(-minX), y: round(-minY), width: core.width, depth: core.depth, rects: core.rects ? core.rects.map(shiftRect) : null, parts: (core.parts || []).map(p => ({ ...p, rect: shiftRect(p.rect) })) } } };
   }
 
+  // Windows: edges of habitable rooms (and balconies) that lie on the unit outline and are not covered by a neighbouring unit
+  // or the core. Direction is the side the edge faces (N/S/E/W, y down = south). Planning reading only, not a daylight check.
+  const WINDOW_ROOMS = ['living', 'bedroom', 'kitchen', 'balcony'], WINDOW_MIN = .6;
+  const DIR_NAMES = { S: '남', E: '동', W: '서', N: '북' };
+
+  function subtractIntervals(span, cuts) {
+    let parts = [span];
+    for (const [c0, c1] of cuts) parts = parts.flatMap(([a, b]) => c1 <= a + EPS || c0 >= b - EPS ? [[a, b]] : [[a, Math.min(b, c0)], [Math.max(a, c1), b]].filter(([x, y]) => y - x > EPS));
+    return parts;
+  }
+
+  function computeWindows(units, coreRects) {
+    return units.map((u, ui) => {
+      const edges = u.outline.map((p, i) => [p, u.outline[(i + 1) % u.outline.length]]);
+      const others = [...units.filter((_, j) => j !== ui).flatMap(v => v.rects), ...(coreRects || [])];
+      const out = [];
+      for (const room of u.rooms || []) {
+        if (!WINDOW_ROOMS.includes(room.category)) continue;
+        const [x0, y0, x1, y1] = room.rect;
+        const sides = [['N', 'h', y0, x0, x1], ['S', 'h', y1, x0, x1], ['W', 'v', x0, y0, y1], ['E', 'v', x1, y0, y1]];
+        for (const [dir, axis, at, lo, hi] of sides) {
+          // Parts of this room side that lie on the outline.
+          const onOutline = edges.flatMap(([p, q]) => {
+            if (axis === 'h' && Math.abs(p[1] - at) < EPS && Math.abs(q[1] - at) < EPS) { const a = Math.max(lo, Math.min(p[0], q[0])), b = Math.min(hi, Math.max(p[0], q[0])); return b - a > EPS ? [[a, b]] : []; }
+            if (axis === 'v' && Math.abs(p[0] - at) < EPS && Math.abs(q[0] - at) < EPS) { const a = Math.max(lo, Math.min(p[1], q[1])), b = Math.min(hi, Math.max(p[1], q[1])); return b - a > EPS ? [[a, b]] : []; }
+            return [];
+          });
+          // Neighbours flush against that side block it.
+          const cuts = others.flatMap(r => {
+            if (axis === 'h' && (dir === 'N' ? Math.abs(r[3] - at) < EPS : Math.abs(r[1] - at) < EPS)) return [[r[0], r[2]]];
+            if (axis === 'v' && (dir === 'W' ? Math.abs(r[2] - at) < EPS : Math.abs(r[0] - at) < EPS)) return [[r[1], r[3]]];
+            return [];
+          });
+          for (const span of onOutline) for (const [a, b] of subtractIntervals(span, cuts)) {
+            if (b - a < WINDOW_MIN - EPS) continue;
+            out.push({ dir, room: room.name, category: room.category, length: round(b - a), a: axis === 'h' ? [round(a), at] : [at, round(a)], b: axis === 'h' ? [round(b), at] : [at, round(b)] });
+          }
+        }
+      }
+      return out;
+    });
+  }
+
+  // Window length per direction over all units, and the direction of each unit's living-room window.
+  function windowSummary(windows, units) {
+    const total = { S: 0, E: 0, W: 0, N: 0 };
+    windows.flat().forEach(w => { total[w.dir] = round(total[w.dir] + w.length); });
+    const living = windows.map((ws, i) => {
+      const dirs = [...new Set(ws.filter(w => w.category === 'living' || w.category === 'balcony').map(w => w.dir))];
+      return { unit: units[i].id, type: units[i].type, dirs };
+    });
+    return { total, living };
+  }
+
+  function attachWindows(t) {
+    const g = t.geometry, coreRects = g.core && g.core.parts ? g.core.parts.map(p => p.rect) : [];
+    const windows = computeWindows(g.units, coreRects);
+    g.units.forEach((u, i) => { u.windows = windows[i]; });
+    t.windows = windowSummary(windows, g.units);
+    return t;
+  }
+
+  function windowLabel(t) {
+    if (!t.windows) return '';
+    const parts = ['S', 'E', 'W', 'N'].filter(d => t.windows.total[d] > 0).map(d => DIR_NAMES[d] + ' ' + fmt(t.windows.total[d]) + 'm');
+    return parts.length ? '창 ' + parts.join(' · ') : '창 없음';
+  }
+
   const PART_FILL = { stair: '#3f6b93', lobby: '#5d86ad', lift: '#2c4f75', shaft: '#8aa6c0', hall: '#c9d8e6', spare: '#dfe6ee' };
+  // Parts carry a quarter-turn count (turn 0–3, clockwise on screen). Stairs draw treads across the long axis with an UP arrow
+  // on the first flight; lifts draw their door on the side the turn points to (0 south, 1 west, 2 north, 3 east).
   function coreParts(parts) {
     return parts.map(p => {
-      const [x0, y0, x1, y1] = p.rect, w = round(x1 - x0), h = round(y1 - y0), cx = round(x0 + w / 2), cy = round(y0 + h / 2);
-      const steps = p.kind === 'stair' ? Array.from({ length: Math.max(0, Math.floor(h / .55)) }, (_, i) => `<line x1="${x0 + .2}" y1="${round(y0 + .3 + i * .55)}" x2="${round(x0 + w / 2 - .1)}" y2="${round(y0 + .3 + i * .55)}" stroke="#c8dcea" stroke-width=".05"/><line x1="${round(x0 + w / 2 + .1)}" y1="${round(y0 + .3 + i * .55)}" x2="${x1 - .2}" y2="${round(y0 + .3 + i * .55)}" stroke="#c8dcea" stroke-width=".05"/>`).join('') : '';
-      const cross = p.kind === 'lift' ? `<path d="M${x0 + .25} ${y0 + .25}L${x1 - .25} ${y1 - .25}M${x1 - .25} ${y0 + .25}L${x0 + .25} ${y1 - .25}" stroke="#c8dcea" stroke-width=".06"/>` : '';
+      const [x0, y0, x1, y1] = p.rect, w = round(x1 - x0), h = round(y1 - y0), cx = round(x0 + w / 2), cy = round(y0 + h / 2), turn = ((p.turn || 0) % 4 + 4) % 4;
+      let marks = '';
+      if (p.kind === 'stair') {
+        const vertical = h >= w, len = vertical ? h : w, n = Math.max(0, Math.floor((len - .6) / .5)), line = (ax, ay, bx, by) => `<line x1="${round(ax)}" y1="${round(ay)}" x2="${round(bx)}" y2="${round(by)}" stroke="#c8dcea" stroke-width=".05"/>`;
+        for (let i = 0; i <= n; i++) {
+          const t = .3 + i * .5;
+          marks += vertical ? line(x0 + .15, y0 + t, cx - .08, y0 + t) + line(cx + .08, y0 + t, x1 - .15, y0 + t) : line(x0 + t, y0 + .15, x0 + t, cy - .08) + line(x0 + t, cy + .08, x0 + t, y1 - .15);
+        }
+        const up = turn < 2, ax = vertical ? (up ? x0 + w / 4 : x1 - w / 4) : null, ay = vertical ? null : (up ? y0 + h / 4 : y1 - h / 4);
+        const [sx, sy, ex, ey] = vertical ? [ax, up ? y1 - .4 : y0 + .4, ax, up ? y0 + .5 : y1 - .5] : [up ? x0 + .4 : x1 - .4, ay, up ? x1 - .5 : x0 + .5, ay];
+        const ang = Math.atan2(ey - sy, ex - sx), hd = .35;
+        marks += `<path d="M${round(sx)} ${round(sy)}L${round(ex)} ${round(ey)}M${round(ex - hd * Math.cos(ang - .5))} ${round(ey - hd * Math.sin(ang - .5))}L${round(ex)} ${round(ey)}L${round(ex - hd * Math.cos(ang + .5))} ${round(ey - hd * Math.sin(ang + .5))}" fill="none" stroke="#fff" stroke-width=".09"/>`;
+      }
+      if (p.kind === 'lift') {
+        const d = Math.min(w, h) * .5, side = ['S', 'W', 'N', 'E'][turn];
+        const door = side === 'S' ? [cx - d / 2, y1 - .08, cx + d / 2, y1 - .08] : side === 'N' ? [cx - d / 2, y0 + .08, cx + d / 2, y0 + .08] : side === 'W' ? [x0 + .08, cy - d / 2, x0 + .08, cy + d / 2] : [x1 - .08, cy - d / 2, x1 - .08, cy + d / 2];
+        marks += `<path d="M${x0 + .25} ${y0 + .25}L${x1 - .25} ${y1 - .25}M${x1 - .25} ${y0 + .25}L${x0 + .25} ${y1 - .25}" stroke="#c8dcea" stroke-width=".06"/><line x1="${round(door[0])}" y1="${round(door[1])}" x2="${round(door[2])}" y2="${round(door[3])}" stroke="#f2b45c" stroke-width=".16"/>`;
+      }
       const label = p.kind === 'hall' ? p.name : { stair: '계단', lobby: '부속실', lift: 'EV', shaft: 'PS', spare: '' }[p.kind];
-      return `<g><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="${PART_FILL[p.kind] || '#507ca5'}" stroke="#fff" stroke-width=".06"/>${steps}${cross}<text x="${cx}" y="${cy + .22}" text-anchor="middle" font-size="${p.kind === 'hall' ? .55 : .6}" fill="${p.kind === 'hall' ? '#24476b' : '#fff'}" ${p.kind === 'shaft' ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(label)}</text></g>`;
+      return `<g><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="${PART_FILL[p.kind] || '#507ca5'}" stroke="#fff" stroke-width=".06"/>${marks}<text x="${cx}" y="${cy + .22}" text-anchor="middle" font-size="${p.kind === 'hall' ? .55 : .6}" fill="${p.kind === 'hall' ? '#24476b' : '#fff'}" ${p.kind === 'shaft' || (p.kind === 'stair' && h > w * 1.4) ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(label)}</text></g>`;
     }).join('');
   }
 
@@ -570,13 +661,14 @@
         <polygon points="${u.outline.map(p => p.join(',')).join(' ')}" fill="none" stroke="${stroke[u.type]}" stroke-width=".18"/>
         <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.7" font-weight="750" fill="${stroke[u.type]}" paint-order="stroke" stroke="#fff" stroke-width=".35">${u.type}</text>
         <text x="${u.centre[0]}" y="${u.centre[1] + 1.25}" text-anchor="middle" font-size=".9" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25">${u.facing}</text>
-        <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/></g>`).join('')}
+        <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/>
+        ${(u.windows || []).map(w => `<line x1="${w.a[0]}" y1="${w.a[1]}" x2="${w.b[0]}" y2="${w.b[1]}" stroke="#2aa6d8" stroke-width=".38" stroke-linecap="butt"><title>${esc(w.room)} 창 · ${DIR_NAMES[w.dir]}</title></line>`).join('')}</g>`).join('')}
       ${(c.rects || []).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="${PART_FILL.spare}"/>`).join('')}${c.parts && c.parts.length ? coreParts(c.parts) : `<rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.depth}" fill="#3f6b93" stroke="#fff" stroke-width=".1"/><text x="${c.x + c.width / 2}" y="${c.y + c.depth / 2 + .4}" text-anchor="middle" font-size="1.1" fill="#fff" font-weight="650">코어</text>`}
       ${(c.rects || [[c.x, c.y, c.x + c.width, c.y + c.depth]]).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="none" stroke="#24476b" stroke-width=".16"/>`).join('')}
     </svg>`;
   }
 
-  // ── Unit-first assembly ("tetris"): units are snapped wall-to-wall first, then the hall and the core parts are fitted into
+  // ── Unit-first assembly: units are snapped wall-to-wall first, then the hall and the core parts are fitted into
   // the gap their entrances face. The core takes whatever shape the gap allows instead of a fixed rectangle.
   const FACINGS = {
     S: { facing: '남향', m: [1, 0, 0, 1] }, W: { facing: '서향', m: [0, -1, 1, 0] },
@@ -649,7 +741,7 @@
   function unitClusters(profiles, options, fit, reject) {
     const counts = options.counts, maxN = Math.max(...counts), spread = Number(options.doorSpread) > 0 ? Number(options.doorSpread) : 14;
     const beam = Number(options.beam) || 60, tryCap = Number(options.tryCap) || 2500;
-    const faces = ['S', 'W', 'E', ...(options.allowNorth ? ['N'] : [])].filter(f => options.allowSide !== false || f === 'S' || f === 'N');
+    const faces = allowedFaces(options);
     const pieces = profiles.flatMap(p => faces.flatMap(f => [false, true].map(m => orientUnit(p, f, m))));
     const results = [];
     let layer = profiles.flatMap(p => [false, true].map(m => ({ units: [orientUnit(p, 'S', m)], hall: [], parts: [] })));
@@ -772,7 +864,7 @@
       return parts ? { ok: true, hall, parts } : { ok: false, reason: '계단·승강기를 끼울 빈틈 없음' };
     };
     for (const { units, hall, parts } of unitClusters(profiles, { ...options, counts }, fit, reject)) {
-      const c = unitsFirstTypology(units, hall, parts, coreFor(units.length));
+      const c = attachWindows(unitsFirstTypology(units, hall, parts, coreFor(units.length)));
       if (seen.has(c.topology)) { reject('같은 구성의 미세 위치 차이'); continue; }
       seen.add(c.topology);
       combos.push(c);
@@ -810,7 +902,7 @@
     if (doc.getElementById('planner-units-style')) return;
     const style = doc.createElement('style'); style.id = 'planner-units-style';
     style.textContent = `
-      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
+      .pu-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.pu-main,.pu-inspector{min-width:0}.pu-tabs{display:flex;gap:8px;margin:0 0 18px}.pu-tabs button{border:1px solid #dce5ed;background:#fff;border-radius:10px;padding:12px 24px;color:#506377;font-weight:750;cursor:pointer}.pu-tabs button.active{background:#143e6a;color:white;border-color:#143e6a}.pu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pu-toolbar h3{margin:0;font-size:18px}.pu-hint{color:#708396;font-size:12px;line-height:1.65}.pu-canvas-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#f8fbfd;overflow:hidden}.pu-canvas{display:block;width:100%;min-height:330px;max-height:610px;touch-action:none;user-select:none}.pu-room{cursor:grab;outline:none}.pu-room:focus rect{stroke:#1262cb;stroke-width:.07}.pu-room.pu-locked{cursor:pointer}.pu-room text{pointer-events:none}.pu-legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#64788a}.pu-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.pu-statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.pu-stat{border:1px solid #dce6ee;border-radius:10px;background:white;padding:12px}.pu-stat b{display:block;font-size:20px;color:#163f69;margin-top:7px}.pu-stat span{font-size:11px;color:#6f8295}.pu-inspector h3{font-size:16px;margin:0 0 16px}.pu-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pu-inputs label,.pu-combo-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#64788a}.pu-inputs input,.pu-combo-fields select{width:100%;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;background:white;color:#233f59;font:inherit}.pu-inputs input:disabled{background:#f0f3f6;color:#8b99a7}.pu-check{font-size:12px;display:flex;align-items:center;gap:7px;margin:14px 0}.pu-check input{accent-color:#1f62b4}.pu-roomlist{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.pu-roomlist td,.pu-roomlist th{padding:8px 3px;border-bottom:1px solid #e7edf2;text-align:left}.pu-roomlist th{font-weight:500;color:#8695a4}.pu-roomlist td:last-child,.pu-roomlist th:last-child{text-align:right}.pu-roomlist button{border:0;background:transparent;padding:0;color:#354e65;cursor:pointer;font:inherit;text-align:left}.pu-roomlist tr.selected{background:#eef5fd}.pu-warning{background:#fff4e7;color:#915d18;border:1px solid #f2d7ad;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-top:12px}.pu-pass{background:#eef8f5;color:#36765e;border:1px solid #d3eadd;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:12px}.pu-note{font-size:12px;line-height:1.75;color:#748596;margin:12px 0}.pu-reference{margin-top:18px;border-top:1px solid #e2e9f0;padding-top:16px}.pu-reference summary{cursor:pointer;font-size:13px;font-weight:650;color:#34516d}.pu-reference img{display:block;max-width:100%;max-height:460px;object-fit:contain;margin:16px auto;background:white}.pu-reference p{font-size:12px;line-height:1.7;color:#718497}.pu-combo-fields{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-bottom:18px}.pu-combo-fields select{min-width:130px}.pu-mix{display:flex;gap:8px;align-items:center}.pu-mix label{display:flex;flex-direction:row;align-items:center;border:1px solid #d9e3ec;border-radius:8px;padding:10px;cursor:pointer;color:#325777;font-size:13px}.pu-mix input{accent-color:#2266aa}.pu-combo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.pu-combo-card{border:1px solid #dbe4ed;background:#fff;border-radius:13px;padding:17px;min-width:0}.pu-combo-card h3{font-size:16px;margin:14px 0 8px}.pu-combo-card svg{width:100%;height:180px;background:#f6f9fc;border-radius:8px}.pu-combo-meta{font-size:12px;color:#73869a;line-height:1.8}.pu-combo-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:15px 0}.pu-combo-metrics div{background:#f5f8fb;border-radius:7px;padding:9px}.pu-combo-metrics span{font-size:10px;color:#7e90a2;display:block}.pu-combo-metrics b{font-size:14px;color:#2c5071}.pu-combo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pu-empty{padding:30px;color:#74869a;text-align:center;border:1px dashed #cad7e2;border-radius:10px}.pu-saved{margin-top:24px}.pu-saved-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:12px;border-bottom:1px solid #e2e9f0}.pu-saved-row strong{font-size:13px}.pu-saved-row small{display:block;margin-top:5px;color:#7b8da0}.pu-footnote{font-size:12px;color:#8090a0;line-height:1.7;margin:15px 0}.pu-active-room{display:flex;align-items:center;gap:8px;margin-bottom:14px}.pu-active-room i{width:12px;height:12px;border-radius:4px}.pu-active-room strong{font-size:15px;color:#24496c}.pu-area{font-size:24px;color:#1e5686;margin:14px 0}.pu-area small{font-size:12px;color:#7a8d9f}.pu-status{min-height:20px;font-size:12px;color:#347658;margin-top:10px}.pu-cc-group{margin:22px 0}.pu-ed{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:16px;align-items:start}.pu-ed-list h3,.pu-ed-side h3{font-size:15px;margin:0 0 12px}.pu-ed-row{display:block;width:100%;text-align:left;border:1px solid #dce5ed;background:#fff;border-radius:9px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit;color:#2c4964}.pu-ed-row small{display:block;color:#7b8da0;margin-top:4px;font-size:11px}.pu-ed-row.active{border-color:#1f62b4;background:#eef5fd}.pu-ed-row:disabled{opacity:.5;cursor:default}.pu-ed-wrap{border:1px solid #d9e3ec;border-radius:12px;background:#fbfdfe;outline:none}.pu-ed-wrap:focus{border-color:#1f62b4}.pu-ed-canvas{display:block;width:100%;height:560px;touch-action:none;user-select:none}.pu-ed-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px}.pu-ed-tools .section-label{margin:0 4px 0 0}.pu-ed-wrap.drawing .pu-ed-canvas,.pu-ed-wrap.drawing .pu-ed-item{cursor:crosshair}[data-handle=del]{cursor:pointer}.pu-ed-item{cursor:grab}[data-handle=nw],[data-handle=se]{cursor:nwse-resize}[data-handle=ne],[data-handle=sw]{cursor:nesw-resize}[data-handle=n],[data-handle=s]{cursor:ns-resize}[data-handle=e],[data-handle=w]{cursor:ew-resize}[data-handle=rot]{cursor:grab}.pu-ed-item.selected{cursor:grabbing}@media(max-width:1100px){.pu-ed{grid-template-columns:1fr}.pu-ed-canvas{height:420px}}.pu-rules{margin:0 0 14px;background:#fff;border:1px solid #dce5ed;border-radius:10px}.pu-rules td{padding:8px 12px;vertical-align:top}.pu-rules td:last-child{text-align:left;color:#7a8d9f;font-size:11px}.pu-cc-card svg{height:220px}.pu-num{width:110px;box-sizing:border-box;border:1px solid #d8e2eb;border-radius:7px;padding:9px;font:inherit;color:#233f59}.pu-reference table{margin:10px 0}.pu-ref{margin-bottom:22px}.pu-ref-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;align-items:start}.pu-ref-drawing svg{width:100%;height:auto;max-height:520px;background:#f8fbfd;border:1px solid #dce5ed;border-radius:10px}.pu-ref-side .pu-roomlist td:nth-child(n+2),.pu-ref-side .pu-roomlist th:nth-child(n+2){text-align:right;font-variant-numeric:tabular-nums}.pu-checks{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:1.9}.pu-ok{color:#2f7a58}.pu-ng{color:#b4472f;font-weight:650}.pu-section-title{font-size:16px;margin:4px 0 14px}.pu-section-title small{font-size:12px;font-weight:500;color:#8a6a3a;margin-left:8px}
       @media(max-width:1100px){.pu-layout{grid-template-columns:1fr}.pu-inspector{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pu-combo-grid{grid-template-columns:1fr 1fr}.pu-canvas{min-height:300px}}@media(max-width:700px){.pu-combo-grid,.pu-inspector,.pu-ref-body{grid-template-columns:1fr}.pu-statrow{gap:6px}.pu-stat{padding:8px}.pu-stat b{font-size:17px}.pu-tabs button{padding:10px 18px}.pu-canvas{min-height:220px}.pu-combo-fields{align-items:stretch;gap:12px}}
     `;
     doc.head.appendChild(style);
@@ -954,7 +1046,7 @@
         <ul class="pu-checks">${t.checks.map(c => `<li class="${c.ok ? 'pu-ok' : 'pu-ng'}">${c.ok ? '✓' : '✗'} ${esc(c.label)}</li>`).join('')}</ul>
         <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(t.totalUnitArea)}㎡</b></div><div><span>코어 + 복도 / 층</span><b>${fmt(t.coreArea)}㎡</b></div></div>
         <div class="pu-warning">재현 제외: ${t.excluded.map(esc).join(' · ')}. 피난·구조·설비 적합성은 미검토입니다.</div>
-        <div class="pu-combo-actions"><button class="btn" data-ref-save>동 유형으로 저장</button><button class="btn primary" data-ref-place>대지에 배치 →</button></div>
+        <div class="pu-combo-actions"><button class="btn" data-ref-save>동 유형으로 저장</button></div>
       </div></div></section>`;
   }
 
@@ -981,11 +1073,442 @@
       : `building-${c.unitsPerFloor || 0}u-${mix}-${String(c.id || '').replace(/[^0-9A-Za-z]+/g, '').slice(-10)}.json`;
   }
 
-  function mountCombinations(container, project, onChange, onPlace) {
+  // ── Manual editing of saved building candidates. Pure geometry helpers first (testable), then the editor view.
+  // Units and core parts keep their drawn shape axis-aligned and carry a free rotation `angle` (degrees, clockwise on screen)
+  // about the centre of their box. Checks and windows use the rotated shapes.
+  const FACE_CW = { S: 'W', W: 'N', N: 'E', E: 'S' }, FACE_NAME = { S: '남향', E: '동향', W: '서향', N: '북향' };
+  const PART_SIZES = { stair: [2.7, 5.4, '계단실'], lift: [2.25, 2.35, '승강기'], shaft: [.9, 2.4, 'EPS·TPS·PS'], hall: [1.8, 3.6, '홀·복도'] };
+  const FRONT = { S: [0, 1], E: [1, 0], N: [0, -1], W: [-1, 0] };
+  const COMPASS = ['동', '남동', '남', '남서', '서', '북서', '북', '북동'];
+
+  const isEditable = t => Boolean(t && t.geometry && Array.isArray(t.geometry.units) && t.geometry.units.length && t.geometry.units.every(u => Array.isArray(u.outline) && Array.isArray(u.rects)) && t.geometry.core && Array.isArray(t.geometry.core.parts));
+  const normAngle = a => { const v = ((Number(a) || 0) % 360 + 360) % 360; return round(v > 359.9995 ? 0 : v); };
+  const rotPt = ([x, y], [cx, cy], deg) => { const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]; };
+  const corners = r => [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]];
+  const unitCentre = u => { const b = boxOf(u.rects); return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; };
+  const partCentre = p => [(p.rect[0] + p.rect[2]) / 2, (p.rect[1] + p.rect[3]) / 2];
+  const unitPolys = u => u.rects.map(r => corners(r).map(q => rotPt(q, unitCentre(u), u.angle || 0)));
+  const partPoly = p => corners(p.rect).map(q => rotPt(q, partCentre(p), p.angle || 0));
+  const isRotated = t => t.geometry.units.some(u => normAngle(u.angle)) || t.geometry.core.parts.some(p => normAngle(p.angle));
+
+  // Convex polygons overlap when no edge normal separates them; touching edges do not count.
+  function polysOverlap(A, B) {
+    for (const P of [A, B]) for (let i = 0; i < P.length; i++) {
+      const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % P.length], nx = y1 - y2, ny = x2 - x1;
+      const proj = Q => Q.map(([x, y]) => x * nx + y * ny), a = proj(A), b = proj(B), len = Math.hypot(nx, ny) || 1;
+      if (Math.min(Math.max(...a), Math.max(...b)) - Math.max(Math.min(...a), Math.min(...b)) <= 1e-4 * len) return false;
+    }
+    return true;
+  }
+  const segDist = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+  const polyDist = (A, B) => polysOverlap(A, B) ? 0 : Math.min(...A.map(p => Math.min(...B.map((q, i) => segDist(p, q, B[(i + 1) % B.length])))), ...B.map(p => Math.min(...A.map((q, i) => segDist(p, q, A[(i + 1) % A.length])))));
+  const pointNearPoly = (p, P, tol) => { let inside = true; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) < 0) inside = false; } if (inside) return true; return Math.min(...P.map((a, i) => segDist(p, a, P[(i + 1) % P.length]))) <= tol; };
+  // Shared boundary between two parts: exact when both are unrotated, else "touching" when the shapes come within 2 cm.
+  const partContact = (p, q) => !normAngle(p.angle) && !normAngle(q.angle) ? contactLength(p.rect, q.rect) : polyDist(partPoly(p), partPoly(q)) <= .02 ? DOOR : 0;
+
+  function mapUnit(u, fp, fr) {
+    return { ...u, outline: u.outline.map(fp), rects: u.rects.map(fr), rooms: (u.rooms || []).map(r => ({ ...r, rect: fr(r.rect) })), door: u.door.map(fp), centre: fp(u.centre), windows: [] };
+  }
+  const shiftPoint = (dx, dy) => ([x, y]) => [round(x + dx), round(y + dy)];
+  const shiftRect = (dx, dy) => r => [round(r[0] + dx), round(r[1] + dy), round(r[2] + dx), round(r[3] + dy)];
+  const clone = t => JSON.parse(JSON.stringify(t));
+
+  function editMove(t, sel, dx, dy) {
+    const c = clone(t), g = c.geometry;
+    if (sel.kind === 'unit') g.units[sel.i] = mapUnit(g.units[sel.i], shiftPoint(dx, dy), shiftRect(dx, dy));
+    else g.core.parts[sel.i].rect = shiftRect(dx, dy)(g.core.parts[sel.i].rect);
+    return refreshEdited(c);
+  }
+
+  function editSetAngle(t, sel, deg) {
+    const c = clone(t), el = sel.kind === 'unit' ? c.geometry.units[sel.i] : c.geometry.core.parts[sel.i];
+    el.angle = normAngle(deg);
+    return refreshEdited(c);
+  }
+
+  // Exact quarter turn clockwise (the drawn shape itself turns, the free angle is kept).
+  function editRotate(t, sel) {
+    const c = clone(t), g = c.geometry;
+    if (sel.kind === 'unit') {
+      const u = g.units[sel.i], [cx, cy] = unitCentre(u);
+      const fp = ([x, y]) => [round(cx - (y - cy)), round(cy + (x - cx))], fr = r => rectOf([fp([r[0], r[1]]), fp([r[2], r[3]])]);
+      const face = FACE_CW[u.face] || u.face;
+      g.units[sel.i] = { ...mapUnit(u, fp, fr), face, facing: FACE_NAME[face] || u.facing };
+    } else {
+      const p = g.core.parts[sel.i], [cx, cy] = partCentre(p), w = p.rect[2] - p.rect[0], h = p.rect[3] - p.rect[1];
+      p.rect = [cx - h / 2, cy - w / 2, cx + h / 2, cy + w / 2].map(round);
+      p.turn = (((p.turn || 0) + 1) % 4 + 4) % 4;
+    }
+    return refreshEdited(c);
+  }
+
+  function editMirror(t, sel) {
+    const c = clone(t), g = c.geometry;
+    if (sel.kind !== 'unit') return c;
+    const u = g.units[sel.i], b = boxOf(u.rects), sx = b[0] + b[2];
+    const fp = ([x, y]) => [round(sx - x), y], fr = r => [round(sx - r[2]), r[1], round(sx - r[0]), r[3]];
+    const face = u.face === 'E' ? 'W' : u.face === 'W' ? 'E' : u.face;
+    g.units[sel.i] = { ...mapUnit(u, fp, fr), outline: u.outline.map(fp).reverse(), face, facing: FACE_NAME[face] || u.facing, mirrored: !u.mirrored, angle: normAngle(-(u.angle || 0)) };
+    return refreshEdited(c);
+  }
+
+  const PART_MIN = .3, HANDLES = { nw: [-1, -1], n: [0, -1], ne: [1, -1], e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0] };
+
+  // Drags one bounding-box handle of a core part. The pointer offset is taken in the part's own (rotated) frame so the
+  // opposite side stays put; unrotated parts snap the moving edges to walls within 0.3 m, otherwise sizes move in 5 cm steps.
+  function resizeRect(t, i, handle, dx, dy) {
+    const g = t.geometry, p = g.core.parts[i], r = p.rect, a = normAngle(p.angle), [hx, hy] = HANDLES[handle] || [0, 0];
+    if (!a) {
+      const others = [...g.units.flatMap(u => normAngle(u.angle) ? [] : u.rects), ...g.core.parts.filter((q, j) => j !== i && !normAngle(q.angle)).map(q => q.rect)];
+      const snap = (v, edges) => { let pick = null; for (const o of edges) if (Math.abs(o - v) < .3 && (pick === null || Math.abs(o - v) < Math.abs(pick - v))) pick = o; return round(pick === null ? Math.round(v / .05) * .05 : pick); };
+      const xs = others.flatMap(q => [q[0], q[2]]), ys = others.flatMap(q => [q[1], q[3]]);
+      let [x0, y0, x1, y1] = r;
+      if (hx < 0) x0 = Math.min(snap(r[0] + dx, xs), x1 - PART_MIN); if (hx > 0) x1 = Math.max(snap(r[2] + dx, xs), x0 + PART_MIN);
+      if (hy < 0) y0 = Math.min(snap(r[1] + dy, ys), y1 - PART_MIN); if (hy > 0) y1 = Math.max(snap(r[3] + dy, ys), y0 + PART_MIN);
+      return [x0, y0, x1, y1].map(round);
+    }
+    const [lx, ly] = rotPt([dx, dy], [0, 0], -a), w = r[2] - r[0], h = r[3] - r[1];
+    const step = v => Math.round(v / .05) * .05;
+    const nw = Math.max(PART_MIN, w + (hx ? hx * step(lx) : 0)), nh = Math.max(PART_MIN, h + (hy ? hy * step(ly) : 0));
+    // Shift of the centre in the part frame keeps the fixed side in place, then back to the drawing frame.
+    const [ox, oy] = rotPt([hx * (nw - w) / 2, hy * (nh - h) / 2], [0, 0], a), [cx, cy] = partCentre(p);
+    return [cx + ox - nw / 2, cy + oy - nh / 2, cx + ox + nw / 2, cy + oy + nh / 2].map(round);
+  }
+
+  function editResize(t, i, rect) {
+    const c = clone(t), [x0, y0, x1, y1] = rect;
+    c.geometry.core.parts[i].rect = [x0, y0, Math.max(x1, x0 + PART_MIN), Math.max(y1, y0 + PART_MIN)].map(round);
+    return refreshEdited(c);
+  }
+
+  function editRemovePart(t, i) {
+    const c = clone(t);
+    c.geometry.core.parts.splice(i, 1);
+    return refreshEdited(c);
+  }
+
+  // Adds a part with the given box, or with its default size centred on `at`, or just east of everything.
+  function editAddPart(t, kind, rectOrPoint) {
+    const c = clone(t), g = c.geometry, [w, h, name] = PART_SIZES[kind];
+    let rect;
+    if (rectOrPoint && rectOrPoint.length === 4) rect = rectOrPoint;
+    else if (rectOrPoint && rectOrPoint.length === 2) rect = [rectOrPoint[0] - w / 2, rectOrPoint[1] - h / 2, rectOrPoint[0] + w / 2, rectOrPoint[1] + h / 2];
+    else { const all = boxOf([...g.units.flatMap(u => u.rects), ...g.core.parts.map(p => p.rect)]); rect = [all[2] + 1, all[1], all[2] + 1 + w, all[1] + h]; }
+    g.core.parts.push({ kind, name, rect: rect.map(round), angle: 0 });
+    return refreshEdited(c);
+  }
+
+  function compassOf(vx, vy) { const a = (Math.atan2(vy, vx) * 180 / Math.PI + 360) % 360; return COMPASS[Math.round(a / 45) % 8]; }
+  function face4Of(vx, vy) { return Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'E' : 'W') : (vy > 0 ? 'S' : 'N'); }
+
+  // Windows for edited layouts with rotation: candidate spans from the unit's own outline, blocked where a neighbour
+  // (taken into the unit's frame) sits within 5 cm outside the wall. Sampled every 10 cm.
+  function computeWindowsRotated(units, parts) {
+    return units.map((u, ui) => {
+      const own = computeWindows([{ ...u, windows: [] }], [])[0], c = unitCentre(u), a = u.angle || 0;
+      const others = [...units.filter((_, j) => j !== ui).flatMap(unitPolys), ...parts.map(partPoly)].map(P => P.map(q => rotPt(q, c, -a)));
+      const out = [];
+      for (const w of own) {
+        const [nx, ny] = FRONT[w.dir === 'S' ? 'S' : w.dir === 'N' ? 'N' : w.dir], len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]), n = Math.max(1, Math.round(len / .1));
+        let run = null;
+        const flush = k => { if (run !== null && (k - run) / n * len >= WINDOW_MIN - EPS) { const f = s => [round(w.a[0] + (w.b[0] - w.a[0]) * s), round(w.a[1] + (w.b[1] - w.a[1]) * s)]; out.push({ ...w, a: f(run / n), b: f(k / n), length: round((k - run) / n * len) }); } run = null; };
+        for (let k = 0; k < n; k++) {
+          const s = (k + .5) / n, p = [w.a[0] + (w.b[0] - w.a[0]) * s + nx * .05, w.a[1] + (w.b[1] - w.a[1]) * s + ny * .05];
+          if (others.some(P => pointNearPoly(p, P, 0))) flush(k); else if (run === null) run = k;
+        }
+        flush(n);
+      }
+      // Direction in the drawing: the local side turned by the unit's angle.
+      return out.map(w => { const [vx, vy] = rotPt(FRONT[w.dir], [0, 0], a); return { ...w, dir: face4Of(vx, vy), compass: compassOf(vx, vy) }; });
+    });
+  }
+
+  // Recomputes everything derived from the geometry: core extent, common area, windows, facings, footprint.
+  function refreshEdited(t) {
+    const g = t.geometry, parts = g.core.parts, rotated = isRotated(t);
+    const polys = [...g.units.flatMap(unitPolys), ...parts.map(partPoly)], pts = polys.flat();
+    const box = [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))].map(round);
+    const cpts = parts.map(partPoly).flat(), cbox = cpts.length ? [Math.min(...cpts.map(p => p[0])), Math.min(...cpts.map(p => p[1])), Math.max(...cpts.map(p => p[0])), Math.max(...cpts.map(p => p[1]))].map(round) : [0, 0, 0, 0];
+    g.core = { ...g.core, rects: parts.map(p => p.rect), x: cbox[0], y: cbox[1], width: round(cbox[2] - cbox[0]), depth: round(cbox[3] - cbox[1]) };
+    // Units' fronts: the face turned by the free angle.
+    g.units.forEach(u => {
+      const a = normAngle(u.angle), [vx, vy] = rotPt(FRONT[u.face] || [0, 1], [0, 0], a);
+      u.angle = a; u.facingDir = face4Of(vx, vy);
+      u.facing = a % 90 ? compassOf(vx, vy) + '향 (' + Math.round(a) + '°)' : FACE_NAME[face4Of(vx, vy)];
+    });
+    parts.forEach(p => { p.angle = normAngle(p.angle); });
+    const order = { S: 0, E: 1, W: 2, N: 3 }, total = g.units.reduce((s, u) => s + u.type, 0), n = g.units.length;
+    // With rotated parts the common area is the plain sum (overlaps between core parts are flagged by the checks).
+    const common = !parts.length ? 0 : parts.some(p => p.angle) ? round(parts.reduce((s, p) => s + (p.rect[2] - p.rect[0]) * (p.rect[3] - p.rect[1]), 0)) : unionArea(parts.map(p => p.rect));
+    Object.assign(t, { width: round(box[2] - box[0]), depth: round(box[3] - box[1]), footprintArea: round((box[2] - box[0]) * (box[3] - box[1])),
+      commonArea: common, coreArea: common, coreOnlyArea: common, unitsPerFloor: n, totalUnitArea: total, nominalArea: total, unitArea: round(total / n),
+      southCount: g.units.filter(u => u.facingDir === 'S').length, facings: [...g.units].sort((a, b) => (order[a.facingDir] || 0) - (order[b.facingDir] || 0)).map(u => u.facing) });
+    if (t.core) t.core = { ...t.core, width: g.core.width, depth: g.core.depth };
+    if (!rotated) return attachWindows(t);
+    const windows = computeWindowsRotated(g.units, parts);
+    g.units.forEach((u, i) => { u.windows = windows[i]; });
+    t.windows = windowSummary(windows, g.units);
+    return t;
+  }
+
+  // Moves the geometry so its rotated extent starts at 0,0 (done on save).
+  function normalizeEdited(t) {
+    const g = t.geometry, pts = [...g.units.flatMap(unitPolys), ...g.core.parts.map(partPoly)].flat();
+    const dx = -Math.min(...pts.map(p => p[0])), dy = -Math.min(...pts.map(p => p[1])), c = clone(t);
+    c.geometry.units = c.geometry.units.map(u => mapUnit(u, shiftPoint(dx, dy), shiftRect(dx, dy)));
+    c.geometry.core.parts = c.geometry.core.parts.map(p => ({ ...p, rect: shiftRect(dx, dy)(p.rect) }));
+    return refreshEdited(c);
+  }
+
+  function checkEdited(t) {
+    const g = t.geometry, units = g.units, parts = g.core.parts, halls = parts.filter(p => p.kind === 'hall'), solid = parts.filter(p => p.kind !== 'hall');
+    const issues = [], up = units.map(unitPolys), pp = parts.map(partPoly), label = p => p.name || p.kind;
+    for (let i = 0; i < units.length; i++) {
+      for (let j = i + 1; j < units.length; j++) if (up[i].some(A => up[j].some(B => polysOverlap(A, B)))) issues.push(`세대 ${i + 1}·${j + 1} 겹침`);
+      parts.forEach((p, k) => { if (up[i].some(A => polysOverlap(A, pp[k]))) issues.push(`세대 ${i + 1}과 ${label(p)} 겹침`); });
+      const u = units[i], mid = rotPt([(u.door[0][0] + u.door[1][0]) / 2, (u.door[0][1] + u.door[1][1]) / 2], unitCentre(u), u.angle || 0);
+      if (!halls.some(h => pointNearPoly(mid, partPoly(h), .02))) issues.push(`세대 ${i + 1} 현관이 홀에 닿지 않음`);
+    }
+    for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) if (polysOverlap(partPoly(solid[i]), partPoly(solid[j]))) issues.push(`${label(solid[i])}·${label(solid[j])} 겹침`);
+    for (const p of solid) if (halls.some(h => polysOverlap(partPoly(h), partPoly(p)))) issues.push(`${label(p)}이 홀과 겹침`);
+    // A stair may reach the hall through its lobby (special escape stair).
+    const lobbies = parts.filter(p => p.kind === 'lobby' && halls.reduce((s, h) => s + partContact(p, h), 0) >= DOOR - EPS);
+    for (const p of solid.filter(p => p.kind === 'stair' || p.kind === 'lift')) {
+      const via = p.kind === 'stair' ? [...halls, ...lobbies] : halls;
+      if (via.reduce((s, h) => s + partContact(p, h), 0) < DOOR - EPS) issues.push(`${label(p)} 출입이 홀에 닿지 않음`);
+    }
+    if (!parts.some(p => p.kind === 'stair')) issues.push('계단 없음');
+    return issues;
+  }
+
+  const rotAttr = (a, c) => normAngle(a) ? ` transform="rotate(${normAngle(a)} ${round(c[0])} ${round(c[1])})"` : '';
+
+  function editorSvg(t, sel, preview) {
+    const g = t.geometry, pts = [...g.units.flatMap(unitPolys), ...g.core.parts.map(partPoly)].flat();
+    const b = [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))], pad = 4;
+    const stroke = { 59: '#3f7f8f', 74: '#4f6fa5', 84: '#6d5ca0' }, vw = b[2] - b[0] + pad * 2;
+    const isSel = (k, i) => sel && sel.kind === k && sel.i === i;
+    return `<svg class="pu-ed-canvas" viewBox="${round(b[0] - pad)} ${round(b[1] - pad)} ${round(vw)} ${round(b[3] - b[1] + pad * 2)}" data-ed-svg>
+      <defs><pattern id="pu-ed-grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M1 0H0V1" fill="none" stroke="#e6edf3" stroke-width=".03"/></pattern></defs>
+      <rect x="${round(b[0] - pad * 4)}" y="${round(b[1] - pad * 4)}" width="${round(vw + pad * 6)}" height="${round(b[3] - b[1] + pad * 8)}" fill="url(#pu-ed-grid)" data-ed-bg/>
+      ${g.units.map((u, i) => `<g class="pu-ed-item${isSel('unit', i) ? ' selected' : ''}" data-sel="unit:${i}"${rotAttr(u.angle, unitCentre(u))}>
+        ${(u.rooms || []).map(r => `<rect x="${r.rect[0]}" y="${r.rect[1]}" width="${round(r.rect[2] - r.rect[0])}" height="${round(r.rect[3] - r.rect[1])}" fill="${ROOM_FILL[r.category] || '#eef2f6'}" stroke="#b8c6d3" stroke-width=".05"/>`).join('')}
+        <polygon points="${u.outline.map(p => p.join(',')).join(' ')}" fill="${(u.rooms || []).length ? 'none' : '#e6edf4'}" stroke="${isSel('unit', i) ? '#1262cb' : stroke[u.type] || '#58768f'}" stroke-width="${isSel('unit', i) ? .32 : .18}"/>
+        <text x="${u.centre[0]}" y="${u.centre[1] - .1}" text-anchor="middle" font-size="1.6" font-weight="750" fill="${stroke[u.type] || '#2f5270'}" paint-order="stroke" stroke="#fff" stroke-width=".35">${u.type}</text>
+        <text x="${u.centre[0]}" y="${u.centre[1] + 1.2}" text-anchor="middle" font-size=".85" fill="#4f667a" paint-order="stroke" stroke="#fff" stroke-width=".25">${esc(u.facing || '')}</text>
+        <line x1="${u.door[0][0]}" y1="${u.door[0][1]}" x2="${u.door[1][0]}" y2="${u.door[1][1]}" stroke="#e08a2e" stroke-width=".5"/>
+        ${(u.windows || []).map(w => `<line x1="${w.a[0]}" y1="${w.a[1]}" x2="${w.b[0]}" y2="${w.b[1]}" stroke="#2aa6d8" stroke-width=".38"/>`).join('')}
+        ${isSel('unit', i) ? handlesSvg(boxOf(u.rects), vw, false) : ''}</g>`).join('')}
+      ${g.core.parts.map((p, i) => `<g class="pu-ed-item${isSel('part', i) ? ' selected' : ''}" data-sel="part:${i}"${rotAttr(p.angle, partCentre(p))}>${coreParts([p])}</g>`).join('')}
+      ${sel && sel.kind === 'part' && g.core.parts[sel.i] ? `<g${rotAttr(g.core.parts[sel.i].angle, partCentre(g.core.parts[sel.i]))}>${handlesSvg(g.core.parts[sel.i].rect, vw, true)}</g>` : ''}
+      ${preview ? `<rect x="${preview[0]}" y="${preview[1]}" width="${round(preview[2] - preview[0])}" height="${round(preview[3] - preview[1])}" fill="rgba(31,98,180,.15)" stroke="#1262cb" stroke-width=".1" stroke-dasharray=".3 .2" pointer-events="none"/>` : ''}
+    </svg>`;
+  }
+
+  // Selection box: eight resize handles (parts only), a rotate handle above and a delete handle at the top right (parts only).
+  function handlesSvg(r, viewWidth, isPart) {
+    const hs = round(Math.max(.35, viewWidth / 75)), cx = round((r[0] + r[2]) / 2), cy = round((r[1] + r[3]) / 2), sw = round(hs / 6);
+    const at = { nw: [r[0], r[1]], n: [cx, r[1]], ne: [r[2], r[1]], e: [r[2], cy], se: [r[2], r[3]], s: [cx, r[3]], sw: [r[0], r[3]], w: [r[0], cy] };
+    const ry = round(r[1] - hs * 2.6), dx = round(r[2] + hs * 1.4), dy = round(r[1] - hs * 1.4);
+    return `<g class="pu-ed-handles"><rect x="${r[0]}" y="${r[1]}" width="${round(r[2] - r[0])}" height="${round(r[3] - r[1])}" fill="none" stroke="#1262cb" stroke-width="${sw}" stroke-dasharray="${hs / 2} ${hs / 3}" pointer-events="none"/>
+      <line x1="${cx}" y1="${r[1]}" x2="${cx}" y2="${ry}" stroke="#1262cb" stroke-width="${sw}" pointer-events="none"/>
+      <circle cx="${cx}" cy="${ry}" r="${round(hs * .7)}" fill="#fff" stroke="#1262cb" stroke-width="${round(sw * 1.4)}" data-handle="rot"><title>끌어서 자유 회전 (Shift 15° 단위)</title></circle>
+      <text x="${cx}" y="${round(ry + hs * .32)}" text-anchor="middle" font-size="${round(hs * .95)}" fill="#1262cb" pointer-events="none">↻</text>
+      ${isPart ? `<circle cx="${dx}" cy="${dy}" r="${round(hs * .62)}" fill="#fff" stroke="#c0392b" stroke-width="${round(sw * 1.4)}" data-handle="del"><title>부품 삭제</title></circle><text x="${dx}" y="${round(dy + hs * .32)}" text-anchor="middle" font-size="${round(hs * .95)}" fill="#c0392b" pointer-events="none">×</text>` : ''}
+      ${isPart ? Object.entries(at).map(([k, [x, y]]) => `<rect x="${round(x - hs / 2)}" y="${round(y - hs / 2)}" width="${hs}" height="${hs}" fill="#fff" stroke="#1262cb" stroke-width="${round(sw * 1.4)}" data-handle="${k}"/>`).join('') : ''}</g>`;
+  }
+
+  // Snaps a moved element's edges to nearby edges of the others (within 0.3 m) when nothing involved is rotated, else 5 cm grid.
+  function snapMove(t, sel, dx, dy) {
+    const g = t.geometry, el = sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i];
+    const grid = v => round(Math.round(v / .05) * .05);
+    if (normAngle(el.angle)) return [grid(dx), grid(dy)];
+    const mine = sel.kind === 'unit' ? el.rects : [el.rect];
+    const others = [...g.units.flatMap((u, i) => (sel.kind === 'unit' && i === sel.i) || normAngle(u.angle) ? [] : u.rects), ...g.core.parts.flatMap((p, i) => (sel.kind === 'part' && i === sel.i) || normAngle(p.angle) ? [] : [p.rect])];
+    const b = boxOf(mine), best = (mineEdges, otherEdges, d) => {
+      let pick = null;
+      for (const m of mineEdges) for (const o of otherEdges) { const off = o - (m + d); if (Math.abs(off) < .3 && (pick === null || Math.abs(off) < Math.abs(pick))) pick = off; }
+      return pick === null ? Math.round(d / .05) * .05 : d + pick;
+    };
+    return [round(best([b[0], b[2]], others.flatMap(r => [r[0], r[2]]), dx)), round(best([b[1], b[3]], others.flatMap(r => [r[1], r[3]]), dy))];
+  }
+
+  function mountEditor(container, project, onChange, startIndex) {
+    let index = Number.isInteger(startIndex) ? startIndex : project.typologies.findIndex(isEditable), draft = null, original = null, sel = null, undo = [], drag = null, status = '', tool = null;
+    const load = i => { index = i; original = project.typologies[i] ? clone(project.typologies[i]) : null; draft = isEditable(original) ? refreshEdited(clone(original)) : null; sel = null; undo = []; tool = null; };
+    load(index);
+    const change = next => { undo.push(draft); if (undo.length > 80) undo.shift(); draft = next; render(); focusCanvas(); };
+    const focusCanvas = () => { const w = container.querySelector('[data-ed-wrap]'); if (w) w.focus({ preventScroll: true }); };
+    const fmt3 = v => round(v).toFixed(2);
+    function render() {
+      const list = project.typologies.map((t, i) => `<button type="button" class="pu-ed-row${i === index ? ' active' : ''}" data-ed-pick="${i}" ${isEditable(t) ? '' : 'disabled'}><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.edited ? ' · 수정됨' : ''}${isEditable(t) ? '' : ' · 편집 불가(형상 없음)'}</small></button>`).join('');
+      if (!draft) { container.innerHTML = `<div class="pu-ed"><aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list || '<p class="pu-note">후보 탐색에서 "후보 저장"한 안이 여기에 나옵니다.</p>'}</aside><div class="panel pu-empty">편집할 안을 고르세요. 세대 외곽과 코어 부품이 있는 안만 편집할 수 있습니다.</div></div>`; bindList(); return; }
+      const issues = checkEdited(draft), g = draft.geometry, s = sel && (sel.kind === 'unit' ? g.units[sel.i] : g.core.parts[sel.i]);
+      const box = s ? (sel.kind === 'unit' ? boxOf(s.rects) : s.rect) : null;
+      container.innerHTML = `<div class="pu-ed">
+        <aside class="panel pu-ed-list"><h3>저장한 동 유형</h3>${list}</aside>
+        <section class="panel pu-ed-main"><div class="pu-toolbar"><h3>${esc(draft.name)} 편집</h3><span class="tag ${issues.length ? 'amber' : 'green'}">${issues.length ? '검토 필요 ' + issues.length : '겹침·연결 문제 없음'}</span></div>
+          <div class="pu-ed-tools"><span class="section-label">부품 그리기</span>${Object.entries(PART_SIZES).map(([k, v]) => `<button class="btn${tool === k ? ' primary' : ''}" type="button" data-ed-tool="${k}">${v[2]}</button>`).join('')}${tool ? '<button class="btn" type="button" data-ed-tool="">그리기 끝내기 (Esc)</button>' : ''}</div>
+          <p class="pu-note">${tool ? `<b>${esc(PART_SIZES[tool][2])} 그리기</b>: 빈 곳을 끌어 크기를 정하거나, 눌러서 기본 크기(${PART_SIZES[tool][0]} × ${PART_SIZES[tool][1]} m)로 놓습니다.` : '세대나 부품을 눌러 고르고 끌어서 옮깁니다. 부품은 네모 손잡이로 크기를 바꾸고 × 로 지웁니다. ↻ 손잡이를 끌면 자유롭게 회전합니다(Shift 15° 단위, 0·90·180·270° 근처에서 붙음).'} 방향키 0.1 m(Shift 1 m), R 90° 회전, M 좌우 반전, Delete 부품 삭제, Ctrl+Z 되돌리기.</p>
+          <div class="pu-ed-wrap${tool ? ' drawing' : ''}" tabindex="0" data-ed-wrap>${editorSvg(draft, sel)}</div>
+          <div class="pu-legend"><span><i style="background:#e08a2e"></i>현관</span><span><i style="background:#2aa6d8"></i>창</span><span><i style="background:#c9d8e6"></i>홀·복도</span><span><i style="background:#3f6b93"></i>계단(화살표 오름)</span><span><i style="background:#2c4f75"></i>승강기(주황 선 문)</span><span><i style="background:#8aa6c0"></i>샤프트</span></div>
+        </section>
+        <aside class="panel pu-ed-side">
+          <h3>${s ? esc(sel.kind === 'unit' ? s.type + '형 · ' + (s.facing || '') : s.name || s.kind) : '선택 없음'}</h3>
+          ${s ? `<div class="pu-inputs"><label>X (m)<input type="number" step=".05" value="${fmt3(box[0])}" data-ed-x></label><label>Y (m)<input type="number" step=".05" value="${fmt3(box[1])}" data-ed-y></label>
+            ${sel.kind === 'part' ? `<label>폭 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[2] - box[0])}" data-ed-w></label><label>깊이 (m)<input type="number" step=".05" min=".3" value="${fmt3(box[3] - box[1])}" data-ed-h></label>` : ''}
+            <label>회전 (°)<input type="number" step="1" value="${Math.round(normAngle(s.angle) * 10) / 10}" data-ed-angle></label></div>
+            <div class="pu-combo-actions"><button class="btn" type="button" data-ed-turn="-15">−15°</button><button class="btn" type="button" data-ed-turn="15">+15°</button><button class="btn" type="button" data-ed-rotate>90° 회전</button><button class="btn" type="button" data-ed-angle0>각도 0°</button></div>
+            <div class="pu-combo-actions">${sel.kind === 'unit' ? '<button class="btn" type="button" data-ed-mirror>좌우 반전</button>' : '<button class="btn" type="button" data-ed-delete>부품 삭제</button>'}</div>` : '<p class="pu-note">도면에서 세대나 부품을 누르세요.</p>'}
+          <div class="pu-combo-metrics"><div><span>외곽</span><b>${fmt(draft.width)} × ${fmt(draft.depth)}m</b></div><div><span>코어·홀 공용</span><b>${fmt(draft.commonArea)}㎡</b></div></div>
+          <p class="pu-note">${esc(draft.facings.join(' · '))}<br>${esc(windowLabel(draft))}</p>
+          <ul class="pu-checks">${issues.length ? issues.map(x => `<li class="pu-ng">✗ ${esc(x)}</li>`).join('') : '<li class="pu-ok">✓ 겹침 없음 · 현관과 계단·승강기가 홀에 닿음</li>'}</ul>
+          <div class="pu-combo-actions"><button class="btn primary" type="button" data-ed-save>저장</button><button class="btn" type="button" data-ed-undo ${undo.length ? '' : 'disabled'}>되돌리기</button><button class="btn" type="button" data-ed-reset>저장본으로</button><button class="btn" type="button" data-ed-json>JSON ↓</button></div>
+          <div class="pu-status" role="status">${esc(status)}</div>
+        </aside></div>`;
+      bindList(); bindCanvas(); bindSide();
+    }
+    function bindList() { container.querySelectorAll('[data-ed-pick]').forEach(b => b.addEventListener('click', () => { load(Number(b.dataset.edPick)); status = ''; render(); })); }
+    function svgPoint(svg, e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = svg.getScreenCTM(); return m ? p.matrixTransform(m.inverse()) : { x: 0, y: 0 }; }
+    // Redraws inside the existing svg element so a captured pointer keeps working during a drag.
+    function redrawCanvas(preview) {
+      const keep = container.querySelector('[data-ed-svg]'), tmp = container.ownerDocument.createElement('div');
+      tmp.innerHTML = editorSvg(draft, sel, preview); keep.innerHTML = tmp.firstElementChild.innerHTML;
+    }
+    const elCentre = () => sel.kind === 'part' ? partCentre(draft.geometry.core.parts[sel.i]) : unitCentre(draft.geometry.units[sel.i]);
+    function bindCanvas() {
+      const svg = container.querySelector('[data-ed-svg]'), wrap = container.querySelector('[data-ed-wrap]');
+      svg.addEventListener('pointerdown', e => {
+        const p = svgPoint(svg, e);
+        if (tool) { drag = { mode: 'draw', x: p.x, y: p.y, base: draft, id: e.pointerId, rect: null }; svg.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+        const handle = e.target.closest('[data-handle]');
+        if (handle && sel) {
+          const kind = handle.dataset.handle;
+          if (kind === 'del' && sel.kind === 'part') { const i = sel.i; sel = null; change(editRemovePart(draft, i)); return; }
+          const [cx, cy] = elCentre(), el = sel.kind === 'part' ? draft.geometry.core.parts[sel.i] : draft.geometry.units[sel.i];
+          drag = { mode: kind === 'rot' ? 'rotate' : 'resize', handle: kind, x: p.x, y: p.y, cx, cy, a0: Math.atan2(p.y - cy, p.x - cx), ang0: el.angle || 0, base: draft, moved: false, id: e.pointerId };
+          svg.setPointerCapture(e.pointerId); e.preventDefault();
+          return;
+        }
+        const item = e.target.closest('[data-sel]');
+        if (!item) { sel = null; render(); focusCanvas(); return; }
+        const [kind, i] = item.dataset.sel.split(':');
+        sel = { kind, i: Number(i) };
+        drag = { mode: 'move', x: p.x, y: p.y, base: draft, moved: false, id: e.pointerId };
+        svg.setPointerCapture(e.pointerId);
+        redrawCanvas();
+        wrap.focus({ preventScroll: true });
+      });
+      svg.addEventListener('pointermove', e => {
+        if (!drag || e.pointerId !== drag.id) return;
+        const p = svgPoint(svg, e);
+        if (drag.mode === 'draw') {
+          const g = v => round(Math.round(v / .05) * .05);
+          drag.rect = [g(Math.min(drag.x, p.x)), g(Math.min(drag.y, p.y)), g(Math.max(drag.x, p.x)), g(Math.max(drag.y, p.y))];
+          redrawCanvas(drag.rect);
+          return;
+        }
+        if (drag.mode === 'resize') {
+          const rect = resizeRect(drag.base, sel.i, drag.handle, p.x - drag.x, p.y - drag.y);
+          if (!drag.moved && rect.join() === drag.base.geometry.core.parts[sel.i].rect.join()) return;
+          drag.moved = true;
+          draft = editResize(drag.base, sel.i, rect);
+          redrawCanvas();
+          return;
+        }
+        if (drag.mode === 'rotate') {
+          let a = drag.ang0 + (Math.atan2(p.y - drag.cy, p.x - drag.cx) - drag.a0) * 180 / Math.PI;
+          a = e.shiftKey ? Math.round(a / 15) * 15 : Math.round(a);
+          const near = Math.round(a / 90) * 90;
+          if (Math.abs(a - near) <= 3) a = near;
+          if (Math.abs(normAngle(a) - normAngle(drag.ang0)) > .5) drag.moved = true;
+          draft = editSetAngle(drag.base, sel, a);
+          redrawCanvas();
+          return;
+        }
+        const [dx, dy] = snapMove(drag.base, sel, p.x - drag.x, p.y - drag.y);
+        if (!dx && !dy && !drag.moved) return;
+        drag.moved = true;
+        draft = editMove(drag.base, sel, dx, dy);
+        redrawCanvas();
+      });
+      const end = e => {
+        if (!drag || e.pointerId !== drag.id) return;
+        if (drag.mode === 'draw') {
+          const r = drag.rect, kind = tool;
+          const next = r && r[2] - r[0] >= PART_MIN && r[3] - r[1] >= PART_MIN ? editAddPart(drag.base, kind, r) : editAddPart(drag.base, kind, [drag.x, drag.y]);
+          drag = null; sel = { kind: 'part', i: next.geometry.core.parts.length - 1 }; tool = null;
+          status = PART_SIZES[kind][2] + ' 추가';
+          change(next);
+          return;
+        }
+        if (drag.moved && draft !== drag.base) { undo.push(drag.base); if (undo.length > 80) undo.shift(); }
+        drag = null; render(); focusCanvas();
+      };
+      svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+      wrap.addEventListener('keydown', e => {
+        // Keys handled here must not reach the app-wide shortcuts (its Ctrl+Z undoes the whole project).
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.stopPropagation(); if (undo.length) { draft = undo.pop(); render(); focusCanvas(); } return; }
+        if (e.key === 'Escape' && tool) { e.stopPropagation(); tool = null; render(); focusCanvas(); return; }
+        if (!sel) return;
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'r', 'R', 'm', 'M', 'Delete', 'Backspace'].includes(e.key)) e.stopPropagation();
+        const step = e.shiftKey ? 1 : .1, keys = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+        if (keys[e.key]) { e.preventDefault(); change(editMove(draft, sel, ...keys[e.key])); return; }
+        if (e.key === 'r' || e.key === 'R') { e.preventDefault(); change(editRotate(draft, sel)); return; }
+        if ((e.key === 'm' || e.key === 'M') && sel.kind === 'unit') { e.preventDefault(); change(editMirror(draft, sel)); return; }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && sel.kind === 'part') { e.preventDefault(); const i = sel.i; sel = null; change(editRemovePart(draft, i)); }
+      });
+    }
+    function bindSide() {
+      const q = s => container.querySelector(s), num = el => Number(el && el.value);
+      container.querySelectorAll('[data-ed-tool]').forEach(b => b.addEventListener('click', () => { tool = b.dataset.edTool || null; sel = null; render(); focusCanvas(); }));
+      if (sel) {
+        const setBox = () => {
+          const g = draft.geometry, s = sel.kind === 'unit' ? boxOf(g.units[sel.i].rects) : g.core.parts[sel.i].rect;
+          let next = editMove(draft, sel, num(q('[data-ed-x]')) - s[0], num(q('[data-ed-y]')) - s[1]);
+          if (sel.kind === 'part' && q('[data-ed-w]')) {
+            const w = Math.max(PART_MIN, num(q('[data-ed-w]'))), h = Math.max(PART_MIN, num(q('[data-ed-h]'))), r = next.geometry.core.parts[sel.i].rect;
+            next = editResize(next, sel.i, [r[0], r[1], r[0] + w, r[1] + h]);
+          }
+          change(next);
+        };
+        ['[data-ed-x]', '[data-ed-y]', '[data-ed-w]', '[data-ed-h]'].forEach(k => { const el = q(k); if (el) el.addEventListener('change', setBox); });
+        q('[data-ed-angle]').addEventListener('change', e => change(editSetAngle(draft, sel, Number(e.target.value))));
+        container.querySelectorAll('[data-ed-turn]').forEach(b => b.addEventListener('click', () => { const el = sel.kind === 'unit' ? draft.geometry.units[sel.i] : draft.geometry.core.parts[sel.i]; change(editSetAngle(draft, sel, (el.angle || 0) + Number(b.dataset.edTurn))); }));
+        q('[data-ed-angle0]').addEventListener('click', () => change(editSetAngle(draft, sel, 0)));
+        q('[data-ed-rotate]').addEventListener('click', () => change(editRotate(draft, sel)));
+        q('[data-ed-mirror]') && q('[data-ed-mirror]').addEventListener('click', () => change(editMirror(draft, sel)));
+        q('[data-ed-delete]') && q('[data-ed-delete]').addEventListener('click', () => { const i = sel.i; sel = null; change(editRemovePart(draft, i)); });
+      }
+      q('[data-ed-undo]').addEventListener('click', () => { if (undo.length) { draft = undo.pop(); render(); } });
+      q('[data-ed-reset]').addEventListener('click', () => { load(index); status = '저장본으로 되돌림'; render(); });
+      q('[data-ed-save]').addEventListener('click', () => {
+        const saved = normalizeEdited(draft);
+        saved.edited = true; saved.editedAt = new Date().toISOString(); saved.reviewStatus = '수동 편집 · ' + (checkEdited(saved).length ? '겹침·연결 검토 필요' : '겹침·연결 문제 없음') + ' · 채광·피난·구조·설비 미검토';
+        project.typologies[index] = saved; original = clone(saved); draft = refreshEdited(clone(saved)); undo = [];
+        status = '저장했습니다. 단지 배치에서 이 동 유형을 쓰면 수정본이 들어갑니다.';
+        if (typeof onChange === 'function') onChange();
+        render();
+      });
+      q('[data-ed-json]').addEventListener('click', () => {
+        const doc = container.ownerDocument, blob = new Blob([JSON.stringify(exportCandidates(normalizeEdited(draft), { edited: true }), null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob), a = doc.createElement('a');
+        a.href = url; a.download = candidateFileName(draft, {}).replace('.json', '-edited.json'); doc.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        status = 'JSON 저장'; render();
+      });
+    }
+    render();
+    return { render, destroy() { drag = null; container.innerHTML = ''; } };
+  }
+
+  function mountCombinations(container, project, onChange) {
     ensureUnits(project); injectStyles(container.ownerDocument);
     const DIM_FIELDS = [['stairWidth', '계단실 폭'], ['stairLength', '계단실 길이'], ['lobbyLength', '부속실 깊이'], ['hallDepth', '승강기홀 깊이'], ['sideHallWidth', '측면 홀 폭'], ['shaftWidth', '샤프트 폭'], ['floorHeight', '층고']];
-    let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowSide: true, allowNorth: false, sort: 'default', coreTemplate: 'parametric', mode: 'units' };
-    let cache = { key: '', result: null };
+    let opts = { types: [59, 74, 84], counts: [2, 3, 4], floors: 25, dims: {}, allowEast: true, allowWest: true, allowNorth: false, sort: 'default', coreTemplate: 'parametric', mode: 'units' };
+    let cache = { key: '', result: null }, view = 'search', editIndex = null, editor = null;
+    const viewTabs = () => `<div class="pu-tabs"><button type="button" data-cc-view="search" class="${view === 'search' ? 'active' : ''}">후보 탐색</button><button type="button" data-cc-view="edit" class="${view === 'edit' ? 'active' : ''}">저장한 안 편집 (${project.typologies.filter(isEditable).length})</button></div>`;
+    const bindTabs = () => container.querySelectorAll('[data-cc-view]').forEach(b => b.addEventListener('click', () => { view = b.dataset.ccView; render(); }));
     let shown = { 2: 12, 3: 12, 4: 12 }, status = '', plans = null, planSource = '', loadError = '';
     async function loadDefaultPlans() {
       try {
@@ -1004,7 +1527,7 @@
       render();
     }
     function downloadJson(candidates) {
-      const settings = { mode: opts.mode, floors: opts.floors, types: opts.types, counts: opts.counts, allowSide: opts.allowSide, allowNorth: opts.allowNorth,
+      const settings = { mode: opts.mode, floors: opts.floors, types: opts.types, counts: opts.counts, allowEast: opts.allowEast, allowWest: opts.allowWest, allowNorth: opts.allowNorth,
         coreTemplate: opts.mode === 'core' ? opts.coreTemplate : null, dims: opts.dims, unitPlans: planSource, unitRevision: [...new Set((plans || []).map(p => p.projectRevision).filter(v => v != null))] };
       const doc = container.ownerDocument, blob = new Blob([JSON.stringify(exportCandidates(candidates, settings), null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob), a = doc.createElement('a');
@@ -1021,14 +1544,22 @@
       return saved;
     }
     function render() {
+      editor?.destroy?.(); editor = null;
+      if (view === 'edit') {
+        container.innerHTML = viewTabs() + '<div data-cc-editor></div>';
+        bindTabs();
+        editor = mountEditor(container.querySelector('[data-cc-editor]'), project, onChange, editIndex);
+        return;
+      }
       if (!plans) {
-        container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3></div><p class="pu-note">${esc(loadError || '세대 평면을 불러오는 중입니다.')}</p>
+        container.innerHTML = `${viewTabs()}<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3></div><p class="pu-note">${esc(loadError || '세대 평면을 불러오는 중입니다.')}</p>
           <label class="btn">세대 평면 JSON 불러오기<input type="file" accept=".json,application/json" multiple data-cc-files hidden></label></div>`;
         container.querySelector('[data-cc-files]').addEventListener('change', e => loadFiles(e.target.files));
+        bindTabs();
         return;
       }
       // Unit-first search takes about a second; reuse it while only the view (sorting, paging) changes.
-      const key = JSON.stringify([opts.mode, opts.types, opts.counts, opts.floors, opts.dims, opts.allowSide, opts.allowNorth, opts.coreTemplate, plans.length, planSource]);
+      const key = JSON.stringify([opts.mode, opts.types, opts.counts, opts.floors, opts.dims, opts.allowEast, opts.allowWest, opts.allowNorth, opts.coreTemplate, plans.length, planSource]);
       if (cache.key !== key) cache = { key, result: opts.mode === 'units' ? assembleUnitsFirst(plans, opts) : generateCoreCombos(plans, opts) };
       const result = { ...cache.result, combos: [...cache.result.combos] }, reference = reproduceReference('susaek4-101');
       const sorters = { default: null, compact: (a, b) => a.footprintArea / a.unitsPerFloor - b.footprintArea / b.unitsPerFloor, narrow: (a, b) => a.width - b.width || a.depth - b.depth, area: (a, b) => b.totalUnitArea - a.totalUnitArea };
@@ -1038,16 +1569,16 @@
       groups.forEach(g => { visible[g.n] = g.list.slice(0, shown[g.n]); });
       const box = (attr, value, on, label) => `<label><input type="checkbox" ${attr}="${value}" ${on ? 'checked' : ''}>${label}</label>`;
       const rejects = Object.entries(result.rejected);
-      container.innerHTML = `<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3><span class="tag">${result.combos.length}안</span></div>
+      container.innerHTML = `${viewTabs()}<div class="panel"><div class="pu-toolbar"><h3>코어 1개와 세대 조합 · 경우의 수 탐색</h3><span class="tag">${result.combos.length}안</span></div>
         <p class="pu-note">단위세대 단계에서 만든 59·74·84형 평면의 현관이 코어 면에 닿도록 남·동·서·북 네 면에 세대를 붙입니다. 현관 앞 오목한 부분에 코어가 들어가고, 세대 외곽끼리나 세대와 코어가 겹치는 배치는 제외합니다. 세대끼리 겹치지 않는 조합만 남기고, 좌우 대칭이거나 위치만 조금 다른 안은 하나로 묶습니다.</p>
         <div class="pu-combo-fields">
           <div><div class="section-label" style="margin-bottom:8px">포함할 평형</div><div class="pu-mix">${TYPES.map(t => box('data-cc-type', t, opts.types.includes(t), t + '㎡')).join('')}</div></div>
           <div><div class="section-label" style="margin-bottom:8px">코어당 세대 수</div><div class="pu-mix">${[2, 3, 4].map(n => box('data-cc-count', n, opts.counts.includes(n), n + '세대')).join('')}</div></div>
-          <div><div class="section-label" style="margin-bottom:8px">향</div><div class="pu-mix">${box('data-cc-side', 1, opts.allowSide, '동·서향 허용')}${box('data-cc-north', 1, opts.allowNorth, '북향 허용')}</div></div>
+          <div><div class="section-label" style="margin-bottom:8px">향</div><div class="pu-mix">${box('data-cc-east', 1, opts.allowEast, '동향 허용')}${box('data-cc-west', 1, opts.allowWest, '서향 허용')}${box('data-cc-north', 1, opts.allowNorth, '북향 허용')}</div></div>
         </div>
         <div class="pu-combo-fields">
           <label>층수<input class="pu-num" type="number" min="1" max="80" step="1" value="${opts.floors}" data-cc-floors></label>
-          <label>조합 방식<select data-cc-mode><option value="units" ${opts.mode === 'units' ? 'selected' : ''}>세대 먼저 맞붙이고 빈틈에 코어 (테트리스)</option><option value="core" ${opts.mode === 'core' ? 'selected' : ''}>코어 먼저 놓고 세대 붙이기</option></select></label>
+          <label>조합 방식<select data-cc-mode><option value="units" ${opts.mode === 'units' ? 'selected' : ''}>세대 먼저 맞붙이고 빈틈에 코어 배치</option><option value="core" ${opts.mode === 'core' ? 'selected' : ''}>코어 먼저 놓고 세대 붙이기</option></select></label>
           <label>코어<select data-cc-template ${opts.mode === 'units' ? 'disabled title="세대 먼저 방식은 계단·승강기·샤프트를 빈틈에 하나씩 끼웁니다"' : ''}><option value="parametric" ${opts.coreTemplate === 'parametric' ? 'selected' : ''}>규칙 조립 코어 (가정 치수)</option>${Object.entries(CORE_TEMPLATES).map(([k, t]) => `<option value="${k}" ${opts.coreTemplate === k ? 'selected' : ''}>${esc(t.name)} (도면 블록)</option>`).join('')}</select></label>
           <label>정렬<select data-cc-sort>${[['default', '남향 세대 많은 순'], ['compact', '세대당 점유 면적 작은 순'], ['narrow', '동 폭 좁은 순'], ['area', '전용 합계 큰 순']].map(([k, l]) => `<option value="${k}" ${opts.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         </div>
@@ -1060,19 +1591,20 @@
         ${groups.map(g => `<section class="pu-cc-group"><div class="pu-toolbar"><h3 class="pu-section-title">${g.n}세대 코어 <small>${g.list.length}안</small></h3>${g.list.length ? `<button class="btn" type="button" data-cc-json-all="${g.n}">${g.n}세대 후보 전체 JSON ↓</button>` : ''}</div>
           ${result.cores[g.n] && result.cores[g.n].template ? `<p class="pu-note">${esc(result.cores[g.n].template.name)} · ${esc(result.cores[g.n].template.source)} · 계단·승강기·샤프트 블록은 도면 그대로, 홀·복도는 세대에 맞춰 생성 · ${esc(result.cores[g.n].template.observed)}</p>` : ''}${result.cores[g.n] && result.cores[g.n].rules ? `<table class="pu-roomlist pu-rules"><tbody>${result.cores[g.n].rules.map(r => `<tr><td>${esc(r.label)}</td><td><b class="${r.ok === false ? 'pu-ng' : ''}">${esc(r.value)}</b></td><td>${esc(r.basis)}</td></tr>`).join('')}</tbody></table>` : ''}
           ${g.list.length ? `<div class="pu-combo-grid">${visible[g.n].map((c, i) => `<article class="pu-combo-card pu-cc-card">${coreComboSvg(c)}<h3>${esc(c.name)}</h3>
-            <div class="pu-combo-meta">${c.facings.join(' · ')}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.fitted ? ' · 빈틈 맞춤 코어' : c.core.template ? ' · ' + c.core.template.name : c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
+            <div class="pu-combo-meta">${c.facings.join(' · ')} · ${windowLabel(c)}<br>외곽 ${fmt(c.width)} × ${fmt(c.depth)}m · 코어 ${c.core ? fmt(c.core.width) + ' × ' + fmt(c.core.depth) + 'm' + (c.core.fitted ? ' · 빈틈 맞춤 코어' : c.core.template ? ' · ' + c.core.template.name : c.core.sideHalls !== 'none' ? ' · 측면 홀' : c.core.extLeft || c.core.extRight ? ' · 홀 연장 ' + fmt(c.core.extLeft + c.core.extRight) + 'm' : '') : ''}</div>
             <div class="pu-combo-metrics"><div><span>명목 전용 합계 / 층</span><b>${fmt(c.totalUnitArea)}㎡</b></div><div><span>코어·홀 공용 / 층</span><b>${fmt(c.commonArea)}㎡</b></div></div>
-            <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn" type="button" data-cc-json="${g.n}:${i}">JSON ↓</button><button class="btn primary" type="button" data-cc-place="${g.n}:${i}">대지에 배치 →</button></div></article>`).join('')}</div>
+            <div class="pu-combo-actions"><button class="btn" type="button" data-cc-save="${g.n}:${i}">후보 저장</button><button class="btn" type="button" data-cc-json="${g.n}:${i}">JSON ↓</button></div></article>`).join('')}</div>
             ${g.list.length > visible[g.n].length ? `<div class="pu-combo-actions"><button class="btn" type="button" data-cc-more="${g.n}">${g.list.length - visible[g.n].length}안 더 보기</button></div>` : ''}`
-          : `<div class="pu-empty">이 조건에서는 ${g.n}세대를 붙일 수 없습니다.${g.n > 2 && !opts.allowSide ? ' 동·서향 세대를 허용하면 늘어납니다.' : ''}</div>`}</section>`).join('')}
-        <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}</small></div><button class="btn" type="button" data-saved-place="${i}">배치에 추가</button></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>
+          : `<div class="pu-empty">이 조건에서는 ${g.n}세대를 붙일 수 없습니다.${g.n > 2 && !(opts.allowEast && opts.allowWest) ? ' 동향·서향 세대를 허용하면 늘어납니다.' : ''}</div>`}</section>`).join('')}
+        <div class="panel pu-saved"><div class="pu-toolbar"><h3>저장한 동 유형</h3><span class="muted">${project.typologies.length}개</span></div>${project.typologies.length ? project.typologies.map((t, i) => `<div class="pu-saved-row"><div><strong>${esc(t.name)}</strong><small>${t.unitsPerFloor}세대/층 · ${fmt(t.width)} × ${fmt(t.depth)}m${t.needsReview ? ' · 세대 변경: 재검토 필요' : ''}${t.edited ? ' · 수동 수정' : ''}</small></div><span class="pu-combo-actions">${isEditable(t) ? `<button class="btn" type="button" data-saved-edit="${i}">편집</button>` : ''}</span></div>`).join('') : '<p class="pu-note">후보를 저장하면 배치 단계에서 다시 사용할 수 있습니다.</p>'}</div>
         <details class="pu-reference"><summary>참고: 수색4 101동 편복도 재현 (A-303)</summary>${referencePanel(reference)}</details>`;
       const toggle = (list, value) => list.includes(value) ? list.filter(v => v !== value) : [...list, value].sort((a, b) => a - b);
       const pick = key => { const [n, i] = key.split(':').map(Number); return visible[n][i]; };
       container.querySelector('[data-cc-files]').addEventListener('change', e => loadFiles(e.target.files));
       container.querySelectorAll('[data-cc-type]').forEach(el => el.addEventListener('change', () => { opts.types = toggle(opts.types, Number(el.dataset.ccType)); render(); }));
       container.querySelectorAll('[data-cc-count]').forEach(el => el.addEventListener('change', () => { opts.counts = toggle(opts.counts, Number(el.dataset.ccCount)); render(); }));
-      container.querySelector('[data-cc-side]').addEventListener('change', e => { opts.allowSide = e.target.checked; render(); });
+      container.querySelector('[data-cc-east]').addEventListener('change', e => { opts.allowEast = e.target.checked; render(); });
+      container.querySelector('[data-cc-west]').addEventListener('change', e => { opts.allowWest = e.target.checked; render(); });
       container.querySelector('[data-cc-north]').addEventListener('change', e => { opts.allowNorth = e.target.checked; render(); });
       container.querySelector('[data-cc-template]').addEventListener('change', e => { opts.coreTemplate = e.target.value; render(); });
       container.querySelector('[data-cc-mode]').addEventListener('change', e => { opts.mode = e.target.value; shown = { 2: 12, 3: 12, 4: 12 }; render(); });
@@ -1083,12 +1615,11 @@
       container.querySelectorAll('[data-cc-save]').forEach(b => b.addEventListener('click', () => { save(pick(b.dataset.ccSave)); render(); }));
       container.querySelectorAll('[data-cc-json]').forEach(b => b.addEventListener('click', () => { downloadJson(pick(b.dataset.ccJson)); render(); }));
       container.querySelectorAll('[data-cc-json-all]').forEach(b => b.addEventListener('click', () => { const g = groups.find(x => x.n === Number(b.dataset.ccJsonAll)); if (g) downloadJson(g.list); render(); }));
-      container.querySelectorAll('[data-cc-place]').forEach(b => b.addEventListener('click', () => { const saved = save(pick(b.dataset.ccPlace)); if (typeof onPlace === 'function') onPlace(saved); }));
       container.querySelector('[data-ref-save]').addEventListener('click', () => { save(reference); render(); });
-      container.querySelector('[data-ref-place]').addEventListener('click', () => { const saved = save(reference); if (typeof onPlace === 'function') onPlace(saved); });
-      container.querySelectorAll('[data-saved-place]').forEach(b => b.addEventListener('click', () => { if (typeof onPlace === 'function') onPlace(project.typologies[Number(b.dataset.savedPlace)]); }));
+      bindTabs();
+      container.querySelectorAll('[data-saved-edit]').forEach(b => b.addEventListener('click', () => { editIndex = Number(b.dataset.savedEdit); view = 'edit'; render(); }));
     }
-    render(); loadDefaultPlans(); return { render, destroy() { container.innerHTML = ''; } };
+    render(); loadDefaultPlans(); return { render, destroy() { editor?.destroy?.(); container.innerHTML = ''; } };
   }
-  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, exportCandidates, candidateFileName, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
+  return { createUnit, checkUnit, editRoom, generateCombinations, buildCorridorPlan, reproduceReference, REFERENCES, UNIT_PLAN_FILES, CORE_DIMENSIONS, CORE_TEMPLATES, buildCore, assembleUnitsFirst, editMove, editRotate, editMirror, editAddPart, editRemovePart, editResize, resizeRect, editSetAngle, polysOverlap, refreshEdited, normalizeEdited, checkEdited, isEditable, exportCandidates, candidateFileName, computeWindows, windowSummary, profileFromPlan, polygonRects, corePlacements, generateCoreCombos, coreComboSvg, mountUnits, mountCombinations, schematicSvg, referenceSvg };
 });

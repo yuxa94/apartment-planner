@@ -327,3 +327,129 @@ test('candidates export as standalone building JSON that round-trips', () => {
   p.typologies.push(back.candidates[0]);
   assert.equal(S.validateProject(p).typologies.length, 1);
 });
+
+test('east, west and north fronts are switched separately', () => {
+  const only = opts => new Set(U.assembleUnitsFirst(plans, { floors: 25, counts: [2, 3], ...opts }).combos.flatMap(c => c.geometry.units.map(u => u.face)));
+  const noWest = only({ allowEast: true, allowWest: false });
+  assert.ok(!noWest.has('W') && !noWest.has('N'));
+  const noEast = only({ allowEast: false, allowWest: true });
+  assert.ok(!noEast.has('E'));
+  const core = U.generateCoreCombos(plans, { floors: 25, counts: [3], allowEast: false, allowWest: false });
+  assert.ok(core.combos.every(c => c.geometry.units.every(u => u.face === 'S')));
+});
+
+test('windows sit on exposed outline edges of habitable rooms and point the way those edges face', () => {
+  const r = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] });
+  const pair = r.combos.find(c => c.facings.join() === '남향,남향');
+  assert.ok(pair.windows.total.S > 20, 'south-facing pair has long south windows');
+  for (const u of pair.geometry.units) {
+    assert.ok(u.windows.some(w => w.category === 'living' && w.dir === 'S'));
+    for (const w of u.windows) {
+      // A window never runs along another unit's wall or the core.
+      const others = [...pair.geometry.units.filter(v => v !== u).flatMap(v => v.rects), ...pair.geometry.core.parts.map(p => p.rect)];
+      const mx = (w.a[0] + w.b[0]) / 2, my = (w.a[1] + w.b[1]) / 2;
+      assert.ok(!others.some(q => mx > q[0] + 1e-6 && mx < q[2] - 1e-6 && my >= q[1] - 1e-6 && my <= q[3] + 1e-6 && (Math.abs(my - q[1]) < 1e-6 || Math.abs(my - q[3]) < 1e-6)), 'window against a neighbour');
+    }
+  }
+});
+
+test('saved candidates can be moved, turned, mirrored and checked by hand', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  assert.ok(U.isEditable(c));
+  assert.deepEqual(U.checkEdited(c), []);
+  // Moving a unit onto its neighbour is flagged; moving it back clears it.
+  const w = c.geometry.units[0].rects[0][2] - c.geometry.units[0].rects[0][0];
+  const bad = U.editMove(c, { kind: 'unit', i: 1 }, -w, 0);
+  assert.ok(U.checkEdited(bad).some(x => x.includes('겹침')));
+  assert.deepEqual(U.checkEdited(U.editMove(bad, { kind: 'unit', i: 1 }, w, 0)), []);
+  // Four quarter turns return the unit; facing cycles S → W → N → E → S.
+  let t = c;
+  const faces = [];
+  for (let k = 0; k < 4; k++) { t = U.editRotate(t, { kind: 'unit', i: 0 }); faces.push(t.geometry.units[0].face); }
+  assert.deepEqual(faces, ['W', 'N', 'E', 'S']);
+  assert.deepEqual(t.geometry.units[0].rects, c.geometry.units[0].rects);
+  const m = U.editMirror(U.editMirror(c, { kind: 'unit', i: 0 }), { kind: 'unit', i: 0 });
+  assert.deepEqual(m.geometry.units[0].rects, c.geometry.units[0].rects);
+  // Adding and removing a part updates the common area; saving normalises the origin and stays a valid typology.
+  const added = U.editAddPart(c, 'shaft');
+  assert.ok(added.commonArea > c.commonArea);
+  assert.equal(U.editRemovePart(added, added.geometry.core.parts.length - 1).commonArea, c.commonArea);
+  const saved = U.normalizeEdited(U.editMove(c, { kind: 'part', i: 0 }, 5, 5));
+  const all = [...saved.geometry.units.flatMap(u => u.rects), ...saved.geometry.core.parts.map(p => p.rect)];
+  assert.equal(Math.min(...all.map(r => r[0])), 0);
+  assert.equal(Math.min(...all.map(r => r[1])), 0);
+  const S = require('./state.js'), p = S.createProject();
+  p.typologies.push(saved);
+  assert.equal(S.validateProject(p).typologies.length, 1);
+});
+
+test('hand-edit checks accept a special stair that reaches the hall through its lobby', () => {
+  for (const c of U.generateCoreCombos(plans, { floors: 25, counts: [2, 3] }).combos.slice(0, 20)) assert.deepEqual(U.checkEdited(c), [], c.id);
+});
+
+test('core parts resize from their bounding-box handles with wall snapping and a minimum size', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  const i = c.geometry.core.parts.findIndex(p => p.kind === 'shaft'), r = c.geometry.core.parts[i].rect;
+  // East handle 0.52 m right lands on the 5 cm grid (or on a wall within 0.3 m).
+  const e = U.resizeRect(c, i, 'e', .52, 0);
+  assert.equal(e[0], r[0]); assert.equal(e[1], r[1]); assert.equal(e[3], r[3]);
+  assert.ok(Math.abs(e[2] - (r[2] + .52)) <= .3 + 1e-6);
+  // Dragging a corner past the opposite side stops at the 0.3 m minimum.
+  const nw = U.resizeRect(c, i, 'nw', 50, 50);
+  assert.ok(nw[2] - nw[0] >= .3 - 1e-6 && nw[3] - nw[1] >= .3 - 1e-6);
+  const t = U.editResize(c, i, e);
+  assert.ok(t.commonArea >= c.commonArea - 1e-6);
+  // A quarter turn of a part keeps its centre and swaps width and depth.
+  const turned = U.editRotate(c, { kind: 'part', i }).geometry.core.parts[i].rect;
+  assert.ok(Math.abs((turned[0] + turned[2]) - (r[0] + r[2])) < 1e-6 && Math.abs((turned[2] - turned[0]) - (r[3] - r[1])) < 1e-6);
+});
+
+test('rotating a part records its quarter turn so square lifts still show where they open', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  const i = c.geometry.core.parts.findIndex(p => p.kind === 'lift');
+  let t = c;
+  const turns = [];
+  for (let k = 0; k < 4; k++) { t = U.editRotate(t, { kind: 'part', i }); turns.push(t.geometry.core.parts[i].turn); }
+  assert.deepEqual(turns, [1, 2, 3, 0]);
+  const svg0 = U.coreComboSvg(c), svg1 = U.coreComboSvg(U.editRotate(c, { kind: 'part', i }));
+  assert.notEqual(svg0, svg1, 'drawing changes after a quarter turn');
+});
+
+test('free rotation: any angle is kept, checks use the rotated shape, and turning back restores the layout', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  const i = c.geometry.core.parts.findIndex(p => p.kind === 'stair');
+  const t30 = U.editSetAngle(c, { kind: 'part', i }, 30);
+  assert.equal(t30.geometry.core.parts[i].angle, 30);
+  // A long stair turned 30° in a tight core runs into its neighbours.
+  assert.ok(U.checkEdited(t30).length > 0);
+  assert.deepEqual(U.checkEdited(U.editSetAngle(t30, { kind: 'part', i }, 0)), []);
+  assert.equal(U.editSetAngle(c, { kind: 'part', i }, -45).geometry.core.parts[i].angle, 315);
+  // Units turn freely too; the facing label follows the turned front.
+  const u = U.editSetAngle(c, { kind: 'unit', i: 0 }, 20).geometry.units[0];
+  assert.equal(u.angle, 20);
+  assert.match(u.facing, /20°/);
+  // Rotated layouts still report windows and stay valid typologies after saving.
+  const saved = U.normalizeEdited(U.editSetAngle(U.editMove(c, { kind: 'unit', i: 0 }, -8, 0), { kind: 'unit', i: 0 }, 20));
+  assert.ok(saved.windows.total.S + saved.windows.total.E + saved.windows.total.W + saved.windows.total.N > 0);
+  const S = require('./state.js'), p = S.createProject();
+  p.typologies.push(saved);
+  assert.equal(S.validateProject(p).typologies.length, 1);
+});
+
+test('rotated parts resize in their own frame, and parts can be drawn and deleted', () => {
+  const c = U.assembleUnitsFirst(plans, { floors: 25, counts: [2] }).combos[0];
+  const drawn = U.editAddPart(c, 'shaft', [-10, -10, -8.8, -7.6]);
+  const k = drawn.geometry.core.parts.length - 1;
+  assert.deepEqual(drawn.geometry.core.parts[k].rect, [-10, -10, -8.8, -7.6]);
+  const dot = U.editAddPart(c, 'lift', [-20, -20]).geometry.core.parts.at(-1).rect;
+  assert.ok(Math.abs((dot[2] - dot[0]) - 2.25) < 1e-6 && Math.abs((dot[0] + dot[2]) / 2 + 20) < 1e-6);
+  // Widen a part turned 90° from its local east handle: the west side (now the north side on screen) stays put.
+  const turned = U.editSetAngle(drawn, { kind: 'part', i: k }, 90), before = turned.geometry.core.parts[k].rect;
+  const after = U.resizeRect(turned, k, 'e', 0, 1);
+  assert.ok(Math.abs((after[2] - after[0]) - ((before[2] - before[0]) + 1)) < 1e-6, 'local width grows by 1 m');
+  const top = r => (r[1] + r[3]) / 2 - (r[2] - r[0]) / 2;   // north edge of a part turned 90°
+  assert.ok(Math.abs(top(after) - top(before)) < 1e-6, 'fixed side stays');
+  assert.equal(U.editRemovePart(drawn, k).geometry.core.parts.length, c.geometry.core.parts.length);
+  assert.ok(U.polysOverlap([[0, 0], [2, 0], [2, 2], [0, 2]], [[1, 1], [3, 1], [3, 3], [1, 3]]));
+  assert.ok(!U.polysOverlap([[0, 0], [2, 0], [2, 2], [0, 2]], [[2, 0], [4, 0], [4, 2], [2, 2]]), 'touching is not overlapping');
+});
