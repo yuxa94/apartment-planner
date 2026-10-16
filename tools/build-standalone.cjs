@@ -1,13 +1,17 @@
 // Builds one self-contained HTML file of this stage (CSS, scripts and unit plans inlined) that opens without a server:
 // double-click it, or upload it to Claude or ChatGPT and show it as an artifact / canvas preview.
-// Usage: node tools/build-standalone.cjs [output]   (default dist/planby-building-plan.html)
+// Usage: node tools/build-standalone.cjs [--artifact] [output]
+//   default      dist/planby-building-plan.html — a full HTML document
+//   --artifact   dist/planby-building-plan.artifact.html for claude.ai artifacts: no doctype/html/head/body (the host adds
+//                them), a plain name as <title>, and download-only buttons hidden because artifact frames block downloads.
 const fs = require('fs'), path = require('path'), { execSync } = require('child_process');
 const root = path.join(__dirname, '..'), read = f => fs.readFileSync(path.join(root, f), 'utf8');
-const out = path.resolve(root, process.argv[2] || 'dist/planby-building-plan.html');
+const args = process.argv.slice(2), artifact = args.includes('--artifact'), named = args.find(a => !a.startsWith('--'));
+const out = path.resolve(root, named || (artifact ? 'dist/planby-building-plan.artifact.html' : 'dist/planby-building-plan.html'));
 
-// Inline text must not close its own tag early.
-const safeScript = js => js.replace(/<\/script/gi, '<\/script').replace(/<!--/g, '<\!--');
-const safeStyle = css => css.replace(/<\/style/gi, '<\/style');
+// Inline text must not close its own tag early ("<\/script" is the same string to JavaScript, not to the HTML parser).
+const safeScript = js => js.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
+const safeStyle = css => css.replace(/<\/style/gi, '<\\/style');
 
 let html = read('index.html');
 const plans = ['unit-plans/unit-59.json', 'unit-plans/unit-74.json', 'unit-plans/unit-84.json'].map(f => JSON.parse(read(f)));
@@ -34,7 +38,14 @@ html = html.replace(scriptRe, (_, src) => {
 });
 if (missing.length) throw new Error('missing files: ' + missing.join(', '));
 if (/<script src=|<link rel="stylesheet"/.test(html)) throw new Error('an external reference was left in the page');
-html = html.replace(/^<!doctype html>/i, `<!doctype html>\n${stamp}`);
+if (artifact) {
+  // The artifact host wraps the page in its own document: keep a plain-name title, the styles and the body content.
+  const styles = (html.match(/<style>[\s\S]*?<\/style>/g) || []).join('\n');
+  const body = html.slice(html.indexOf('<body>') + '<body>'.length, html.lastIndexOf('</body>'));
+  const frame = '<style>/* artifact frame: downloads are blocked, so file-only buttons are hidden; JSON is copied from the on-page text panel */'
+    + '#saveBtn,#reportBtn,#dxfBtn{display:none!important}:root{color-scheme:light}</style>';
+  html = `<title>PLANBY 동평면 조합</title>\n${stamp}\n${styles}\n${frame}\n${body}`;
+} else html = html.replace(/^<!doctype html>/i, `<!doctype html>\n${stamp}`);
 
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
