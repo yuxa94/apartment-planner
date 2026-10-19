@@ -1,0 +1,249 @@
+{
+  "schema": "apartment-planner-unit/1",
+  "coordinateUnit": "m",
+  "areaUnit": "㎡",
+  "axes": "x 오른쪽, y 아래(화면 기준), 원점 = 외곽 경계상자 좌상단",
+  "projectRevision": 183,
+  "exportedAt": "2026-10-19T06:15:19.841Z",
+  "unit": {
+    "id": "unit-84",
+    "type": 84,
+    "name": "84형 · 참고도면 조닝",
+    "width": 15.65,
+    "depth": 10.57,
+    "outline": [
+      [
+        0,
+        4.2
+      ],
+      [
+        2.95,
+        4.2
+      ],
+      [
+        2.95,
+        2.7
+      ],
+      [
+        5.65,
+        2.7
+      ],
+      [
+        5.65,
+        1
+      ],
+      [
+        7.06,
+        1
+      ],
+      [
+        7.06,
+        0.55
+      ],
+      [
+        13.75,
+        0.55
+      ],
+      [
+        13.75,
+        0
+      ],
+      [
+        15.65,
+        0
+      ],
+      [
+        15.65,
+        10.57
+      ],
+      [
+        0,
+        10.57
+      ]
+    ],
+    "layoutVersion": 2,
+    "rooms": [
+      {
+        "id": "bath1",
+        "name": "공용욕실",
+        "x": 0,
+        "y": 4.2,
+        "width": 2.5,
+        "depth": 2.66,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "shoes",
+        "name": "신발장",
+        "x": 2.5,
+        "y": 4.2,
+        "width": 0.45,
+        "depth": 1.45,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "entry",
+        "name": "현관",
+        "x": 2.95,
+        "y": 2.7,
+        "width": 2.7,
+        "depth": 2.95,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "storage",
+        "name": "현관창고",
+        "x": 5.65,
+        "y": 3.5,
+        "width": 1.41,
+        "depth": 2.15,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "utility",
+        "name": "다용도실",
+        "x": 5.65,
+        "y": 1,
+        "width": 1.41,
+        "depth": 2.5,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "hall",
+        "name": "복도",
+        "x": 2.5,
+        "y": 5.65,
+        "width": 4.56,
+        "depth": 1.21,
+        "category": "circulation",
+        "locked": false
+      },
+      {
+        "id": "kitchen",
+        "name": "주방·식당",
+        "x": 7.06,
+        "y": 0.55,
+        "width": 4.69,
+        "depth": 4.45,
+        "category": "kitchen",
+        "locked": false
+      },
+      {
+        "id": "living",
+        "name": "거실",
+        "x": 7.06,
+        "y": 5,
+        "width": 4.69,
+        "depth": 5.57,
+        "category": "living",
+        "locked": false
+      },
+      {
+        "id": "bed3",
+        "name": "침실 3",
+        "x": 0,
+        "y": 6.86,
+        "width": 3.91,
+        "depth": 3.71,
+        "category": "bedroom",
+        "locked": false
+      },
+      {
+        "id": "bed2",
+        "name": "침실 2",
+        "x": 3.9,
+        "y": 6.8,
+        "width": 3.15,
+        "depth": 3.71,
+        "category": "bedroom",
+        "locked": false
+      },
+      {
+        "id": "dress",
+        "name": "드레스룸",
+        "x": 11.75,
+        "y": 0.55,
+        "width": 2,
+        "depth": 4.95,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "ac",
+        "name": "실외기실",
+        "x": 13.75,
+        "y": 0,
+        "width": 1.9,
+        "depth": 2.07,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "bath2",
+        "name": "부부욕실",
+        "x": 13.75,
+        "y": 2.07,
+        "width": 1.9,
+        "depth": 2.07,
+        "category": "wet",
+        "locked": false
+      },
+      {
+        "id": "powder",
+        "name": "파우더룸",
+        "x": 13.75,
+        "y": 4.14,
+        "width": 1.9,
+        "depth": 1.36,
+        "category": "service",
+        "locked": false
+      },
+      {
+        "id": "master",
+        "name": "안방",
+        "x": 11.8,
+        "y": 5.5,
+        "width": 3.9,
+        "depth": 3.57,
+        "category": "bedroom",
+        "locked": false
+      },
+      {
+        "id": "balcony",
+        "name": "발코니",
+        "x": 11.75,
+        "y": 9.07,
+        "width": 3.9,
+        "depth": 1.5,
+        "category": "balcony",
+        "locked": false
+      }
+    ],
+    "reference": {
+      "status": "illustrative",
+      "project": "LH 양주회천 A-26",
+      "type": "84A",
+      "image": "assets/84A-plan.png",
+      "officialLivingWidthMm": 4690,
+      "areaDefinition": "직사각형 조닝 영역. 벽체·발코니·법정 전용면적 미산정.",
+      "geometrySource": "공식 안내도 표기 치수를 따라 개략 추적. 벽 두께·중심선 미구분.",
+      "sourceFile": "59-74-84_실별면적_치수_대표도면.md",
+      "dimensionStatus": "공식 도면 표기값은 조닝의 유효치수와 구분"
+    }
+  },
+  "checks": {
+    "outlineArea": 140.651,
+    "area": 140.651,
+    "gapArea": null,
+    "overlaps": 2,
+    "outside": [
+      "master"
+    ]
+  },
+  "note": "Stage 1 브라우저 작업본(개정 183)에서 내보냄. 개략 계획 치수이며 법정 전용면적이 아님."
+}

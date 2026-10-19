@@ -3,8 +3,8 @@
   "coordinateUnit": "m",
   "areaUnit": "㎡",
   "axes": "x 오른쪽, y 아래(화면 기준), 원점 = 외곽 경계상자 좌상단",
-  "projectRevision": 42,
-  "exportedAt": "2026-10-15T07:24:20.613Z",
+  "projectRevision": 183,
+  "exportedAt": "2026-10-19T06:15:19.841Z",
   "unit": {
     "id": "unit-59",
     "type": 59,
@@ -202,10 +202,10 @@
   },
   "checks": {
     "outlineArea": 102.54,
-    "roomArea": 102.54,
+    "area": 102.54,
     "gapArea": 0,
-    "overlaps": [],
+    "overlaps": 0,
     "outside": []
   },
-  "note": "참고도면 표기 치수를 따라 개략 추적한 계획값. 법정 전용면적 산정 아님."
+  "note": "Stage 1 브라우저 작업본(개정 183)에서 내보냄. 개략 계획 치수이며 법정 전용면적이 아님."
 }
