@@ -5,22 +5,24 @@
    - artifact.html: the same app without the document shell, for Claude artifacts.
    - planner-engine.js: engine, state, presets and building import bundled for an
      LLM's code tool (Node require, or a browser/global script).
-   usage: node tools/build-package.cjs [--project path/to/project.json]
-   --project embeds that project as the starting project (a browser-saved
-   project still takes precedence). */
+   usage: node tools/build-package.cjs [--project file.json | --no-project] [--out dir]
+   The starting project embedded in the HTML is package/project.json when it
+   exists (the saved site layout), or --project's file; --no-project embeds
+   none. A browser-saved project still takes precedence when the page opens. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const out = path.join(root, 'package');
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 // Inline scripts must not close their own <script> element.
 const safeScript = code => code.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
 
 function args() {
-  const i = process.argv.indexOf('--project');
-  return { project: i > 0 ? process.argv[i + 1] : null };
+  const value = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
+  const fallback = path.join(root, 'package', 'project.json');
+  const project = process.argv.includes('--no-project') ? null : value('--project') || (fs.existsSync(fallback) ? fallback : null);
+  return { project, out: path.resolve(value('--out') || path.join(root, 'package')) };
 }
 
 function buildHtml(projectPath) {
@@ -56,12 +58,13 @@ function buildEngine() {
     `\nif (typeof module === 'object' && module.exports) module.exports = { PlannerEngine: globalThis.PlannerEngine, PlannerState: globalThis.PlannerState, PlannerPresets: globalThis.PlannerPresets, PlannerImport: globalThis.PlannerImport };\n`;
 }
 
-const { project } = args();
+const { project, out } = args();
 fs.mkdirSync(out, { recursive: true });
 const html = buildHtml(project);
 fs.writeFileSync(path.join(out, 'planby-site-planner.html'), html);
 fs.writeFileSync(path.join(out, 'artifact.html'), buildArtifact(html));
 fs.writeFileSync(path.join(out, 'planner-engine.js'), buildEngine());
 fs.copyFileSync(path.join(root, 'rules-reference.json'), path.join(out, 'rules-reference.json'));
-console.log(`package/planby-site-planner.html ${(html.length / 1024).toFixed(0)} KB${project ? ' (with embedded project)' : ''}`);
-console.log('package/artifact.html, package/planner-engine.js, package/rules-reference.json');
+const rel = path.relative(root, out) || '.';
+console.log(`${rel}/planby-site-planner.html ${(html.length / 1024).toFixed(0)} KB${project ? ` (embedded ${path.relative(root, project)})` : ''}`);
+console.log(`${rel}/artifact.html, planner-engine.js, rules-reference.json`);
