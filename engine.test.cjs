@@ -229,3 +229,153 @@ test('candidate placement is pure and validates invalid dimensions and duplicate
   assert.throws(() => canPlace(SITE, building({ width: -1 }), [], config), /invalid|positive/i);
   assert.throws(() => canPlace(SITE, candidate, [building()], config), /unique|duplicate/i);
 });
+
+// Facing profile (면 구분) and height formula — screening assumptions from the
+// 고양삼송 A00-008 reference, not legal determinations.
+const facing = (changes = {}) => rules({ northEnabled: false, profile: 'facing', ...changes });
+const slab = (changes = {}) => building({ width: 30, depth: 10, floors: 10, ...changes });
+const pairOf = (a, b, config) => Engine.evaluateSite(SITE, [a, b], config).pairs[0];
+
+test('height formula reproduces the reference table and defaults to floors × floorHeight', () => {
+  const height = api('buildingHeight');
+  near(height({ floors: 15, floorHeight: 2.8 }, rules({ height: { base: 0.6, parapet: 0.25 } })), 42.85);
+  near(height({ floors: 15, floorHeight: 2.8 }, rules()), 42);
+  const config = rules({ northEnabled: false, height: { base: 0.6, parapet: 0.25 } });
+  near(Engine.evaluateSite(SITE, [slab()], config).buildings[0].height, 0.6 + 30 + 0.25);
+});
+
+test('uniform profile is unchanged and reports its basis', () => {
+  const pair = pairOf(slab({ x: 20, y: 50 }), slab({ id: 'B', x: 60, y: 50 }), rules({ northEnabled: false }));
+  near(pair.distance, 10);
+  near(pair.required, 15);
+  assert.equal(pair.pass, false);
+  assert.equal(pair.basis.type, 'uniform');
+});
+
+test('side walls facing each other need only the side-to-side distance, floored by minDistance', () => {
+  const a = slab({ x: 20, y: 50 }), b = slab({ id: 'B', x: 60, y: 50 });
+  let pair = pairOf(a, b, facing());
+  assert.equal(pair.basis.type, 'side-side');
+  assert.deepEqual(pair.basis.faces, ['side', 'side']);
+  near(pair.distance, 10);
+  near(pair.required, 5);
+  assert.equal(pair.pass, true);
+  pair = pairOf(a, b, facing({ minDistance: 0 }));
+  near(pair.required, 4);
+  pair = pairOf(a, b, facing({ minDistance: 12 }));
+  near(pair.required, 12);
+  assert.match(pair.basis.text, /최소 12 m/);
+});
+
+test('window faces facing each other need 1.0H with a perpendicular dimension line', () => {
+  const a = slab({ x: 50, y: 30 });
+  let pair = pairOf(a, slab({ id: 'B', x: 50, y: 60 }), facing());
+  assert.equal(pair.basis.type, 'light-light');
+  near(pair.distance, 20);
+  near(pair.required, 30);
+  assert.equal(pair.pass, false);
+  near(pair.a[1], 35); near(pair.b[1], 55); near(pair.a[0], pair.b[0]);
+  assert.equal(pairOf(a, slab({ id: 'B', x: 50, y: 70 }), facing()).pass, true);
+});
+
+test('a lower building to the south uses 0.8H of the taller and 1.0H of the lower', () => {
+  const tall = slab({ x: 50, y: 30 }), low = slab({ id: 'B', x: 50, y: 60, floors: 5 });
+  let pair = pairOf(tall, low, facing());
+  assert.equal(pair.basis.type, 'south-low');
+  near(pair.required, 24);
+  assert.equal(pair.pass, false);
+  assert.equal(pairOf(tall, { ...low, y: 65 }, facing()).pass, true);
+  // Lower building to the north: no exception, 1.0H of the taller window face.
+  pair = pairOf(slab({ y: 60 }), slab({ id: 'B', x: 50, y: 30, floors: 5 }), facing());
+  assert.equal(pair.basis.type, 'light-light');
+  near(pair.required, 30);
+});
+
+test('diagonal, non-facing pairs fall back to the uniform rule', () => {
+  const pair = pairOf(slab({ x: 20, y: 20 }), slab({ id: 'B', x: 70, y: 70 }), facing());
+  assert.equal(pair.basis.type, 'diagonal');
+  near(pair.distance, Math.hypot(20, 40));
+  near(pair.required, 15);
+  assert.match(pair.basis.text, /대각/);
+});
+
+test('overlapping buildings fail in the facing profile', () => {
+  const pair = pairOf(slab({ x: 50, y: 50 }), slab({ id: 'B', x: 55, y: 52 }), facing());
+  near(pair.distance, 0);
+  assert.equal(pair.pass, false);
+});
+
+test('canPlace agrees with evaluateSite under the facing profile', () => {
+  const other = slab({ id: 'B', x: 50, y: 40, floors: 12 });
+  const config = facing({ height: { base: 0.6, parapet: 0.25 } });
+  for (let x = 20; x <= 80; x += 7.5) {
+    for (let y = 15; y <= 85; y += 7.5) {
+      for (const rotation of [0, 30, 90]) {
+        const candidate = slab({ x, y, rotation, floors: 7 });
+        const expected = Engine.evaluateSite(SITE, [candidate, other], config).buildings[0].pass;
+        assert.equal(Engine.canPlace(SITE, candidate, [other], config), expected, `${x},${y},${rotation}`);
+      }
+    }
+  }
+});
+
+test('invalid profile options are rejected', () => {
+  assert.throws(() => Engine.evaluateSite(SITE, [slab()], facing({ profile: 'legal' })), /profile/);
+  assert.throws(() => Engine.evaluateSite(SITE, [slab()], facing({ facing: { lightFactor: -1 } })), /lightFactor/);
+  assert.throws(() => Engine.evaluateSite(SITE, [slab()], rules({ height: { base: 'x' } })), /height\.base/);
+});
+
+test('height model reproduces the 청주월명 AG-109 table, including full piloti', () => {
+  const height = api('buildingHeight');
+  const penthouse = rules({ height: { first: 3.5, top: [3, 3], parapet: 0.4 } });
+  const plain = rules({ height: { first: 3.5, top: [3], parapet: 0.4 } });
+  for (const [floors, a, b, c, d] of [[15, 43.5, 43.3, 40, 39.8], [20, 57.5, 57.3, 54, 53.8], [29, 82.7, 82.5, 79.2, 79]]) {
+    const bl = { floors, floorHeight: 2.8 };
+    near(height(bl, penthouse), a, 1e-9);
+    near(height(bl, plain), b, 1e-9);
+    near(height({ ...bl, pilotiFull: true }, penthouse), c, 1e-9);
+    near(height({ ...bl, pilotiFull: true }, plain), d, 1e-9);
+  }
+  near(height({ floors: 1, floorHeight: 2.8 }, penthouse), 3.9, 1e-9);
+});
+
+test('south-low follows 나목: taller window facing the lower south building, with a 10 m floor', () => {
+  const cfg = facing({ minDistance: 0, facing: { lightFactor: 1, southLowTall: 0, southLowLow: 1, southLowMin: 10, sideToSide: 4 } });
+  const tall = slab({ x: 50, y: 30 });
+  let pair = pairOf(tall, slab({ id: 'B', x: 50, y: 52, floors: 2 }), cfg);
+  assert.equal(pair.basis.type, 'south-low');
+  near(pair.required, 10);
+  assert.equal(pair.basis.fixed, 10);
+  near(pair.distance, 12);
+  assert.equal(pair.pass, true);
+  pair = pairOf(tall, slab({ id: 'B', x: 50, y: 60, floors: 5 }), cfg);
+  near(pair.required, 15);
+  assert.deepEqual(pair.basis.terms.map(t => [t.id, t.factor]), [['B', 1]]);
+  // The lower building rotated so only its side wall faces north still counts:
+  // the condition is the taller building's window facing it.
+  pair = pairOf(tall, slab({ id: 'B', x: 50, y: 70, floors: 5, rotation: 90 }), cfg);
+  assert.equal(pair.basis.type, 'south-low');
+});
+
+test('light-direction height limit compares window-face clearance with H / factor', () => {
+  const config = rules({ northEnabled: false, lightLimit: { enabled: true, factor: 2 } });
+  let check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 20, floors: 10 })], config).buildings[0];
+  near(check.light.distance, 15);
+  near(check.light.required, 15);
+  assert.equal(check.lightPass, true);
+  check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 18, floors: 10 })], config).buildings[0];
+  assert.equal(check.lightPass, false);
+  assert.equal(check.pass, false);
+  near(check.light.to[1], 0);
+  assert.equal(Engine.canPlace(SITE, slab({ x: 50, y: 18, floors: 10 }), [], config), false);
+  check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 18, floors: 10 })], rules({ northEnabled: false })).buildings[0];
+  assert.equal(check.light, null);
+  assert.equal(check.lightPass, true);
+});
+
+test('north check reports the governing ray for drawing', () => {
+  const check = Engine.evaluateSite(SITE, [slab({ x: 50, y: 40 })], rules()).buildings[0];
+  near(check.northDistance, 35);
+  near(check.northFrom[1], 35);
+  near(check.northTo[1], 0);
+});

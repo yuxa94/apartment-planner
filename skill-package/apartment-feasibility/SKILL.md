@@ -1,6 +1,6 @@
 ---
 name: apartment-feasibility
-description: Use when reviewing apartment-planner project or Astra request JSON, proposing apartment building placement changes, or explaining the local prototype's zoning, typology, and feasibility screens. Applies to 초기 공동주택 계획 and 단지배치 file round trips; not permit approval or detailed CAD drafting.
+description: Use when reviewing apartment-planner project JSON (or a legacy request wrapper), proposing apartment building placement changes, or explaining the local prototype's zoning, typology, and feasibility screens. Applies to 초기 공동주택 계획 and 단지배치 file round trips; not permit approval or detailed CAD drafting.
 ---
 
 # 공동주택 초기 계획 파일 왕복

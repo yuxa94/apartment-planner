@@ -5,7 +5,9 @@
   'use strict';
 
   // Planning proxies only: metres, square metres, percentages; x right, y down.
-  // No legal applicability, face classification, terrain correction, sunlight,
+  // The optional "facing" profile classifies rectangle faces (long = window,
+  // short = side wall) as a screening assumption, not a legal determination.
+  // No legal applicability, terrain correction, sunlight,
   // balconies, floor-area exemptions, or section-specific heights are inferred.
   const EPS = 1e-8;
   const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
@@ -54,17 +56,27 @@
     return areaOf(polygon(points, 'Input'));
   }
 
-  function footprint(building) {
+  // Local → world transform of a building (rotation about its centre x, y).
+  function placement(building) {
     if (!building || typeof building !== 'object') throw new TypeError('Building is invalid');
     const x = number(building.x, 'Building x');
     const y = number(building.y, 'Building y');
-    const width = number(building.width, 'Building width', EPS);
-    const depth = number(building.depth, 'Building depth', EPS);
     const angle = number(building.rotation, 'Building rotation') * Math.PI / 180;
     const cos = Math.cos(angle), sin = Math.sin(angle);
+    return ([px, py]) => [x + px * cos - py * sin, y + px * sin + py * cos];
+  }
+
+  // World outline: the imported shape outline (local metres around the centre)
+  // when present, otherwise the width × depth rectangle.
+  function footprint(building) {
+    const place = placement(building);
+    const width = number(building.width, 'Building width', EPS);
+    const depth = number(building.depth, 'Building depth', EPS);
+    if (building.shape && building.shape.outline) {
+      return polygon(building.shape.outline, 'Building shape').map(place);
+    }
     return [[-width / 2, -depth / 2], [width / 2, -depth / 2],
-      [width / 2, depth / 2], [-width / 2, depth / 2]].map(([px, py]) =>
-      [x + px * cos - py * sin, y + px * sin + py * cos]);
+      [width / 2, depth / 2], [-width / 2, depth / 2]].map(place);
   }
 
   function pointOnSegment(p, a, b) {
@@ -225,15 +237,211 @@
     return Number.isFinite(nearest) ? nearest : 0;
   }
 
+  // Optional rule extensions; absent fields reproduce the original uniform model.
+  const FACING_DEFAULTS = Object.freeze({ lightFactor: 1, southLowTall: 0.8, southLowLow: 1, southLowMin: 0, sideToSide: 4 });
+
   function validateRules(rules) {
     if (!rules || typeof rules !== 'object') throw new TypeError('Rules are required');
     for (const key of ['setback', 'minDistance', 'distanceFactor', 'northFactor',
       'northLowHeight', 'northLowSetback', 'coverageLimit', 'farLimit']) number(rules[key], `Rule ${key}`, 0);
     number(rules.northAngle, 'Rule northAngle');
     if (typeof rules.northEnabled !== 'boolean') throw new TypeError('Rule northEnabled must be boolean');
+    if (rules.height !== undefined) {
+      if (!rules.height || typeof rules.height !== 'object') throw new TypeError('Rule height must be an object');
+      for (const key of ['base', 'parapet', 'first']) {
+        if (rules.height[key] !== undefined) number(rules.height[key], `Rule height.${key}`, 0);
+      }
+      if (rules.height.top !== undefined) {
+        if (!Array.isArray(rules.height.top)) throw new TypeError('Rule height.top must be an array');
+        rules.height.top.forEach((v, i) => number(v, `Rule height.top[${i}]`, 0));
+      }
+    }
+    if (rules.profile !== undefined && rules.profile !== 'uniform' && rules.profile !== 'facing') {
+      throw new RangeError('Rule profile must be uniform or facing');
+    }
+    if (rules.facing !== undefined) {
+      if (!rules.facing || typeof rules.facing !== 'object') throw new TypeError('Rule facing must be an object');
+      for (const key of Object.keys(FACING_DEFAULTS)) {
+        if (rules.facing[key] !== undefined) number(rules.facing[key], `Rule facing.${key}`, 0);
+      }
+    }
+    if (rules.lightLimit !== undefined) {
+      if (!rules.lightLimit || typeof rules.lightLimit !== 'object') throw new TypeError('Rule lightLimit must be an object');
+      if (typeof rules.lightLimit.enabled !== 'boolean') throw new TypeError('Rule lightLimit.enabled must be boolean');
+      number(rules.lightLimit.factor, 'Rule lightLimit.factor', EPS);
+    }
   }
 
-  function buildingGeometry(b, ids) {
+  // H = base + first floor + typical floors × floorHeight + top floors + parapet.
+  // first defaults to floorHeight and top to none, so the default is
+  // base + floors × floorHeight + parapet (고양삼송: 0.6 + n × 2.8 + 0.25).
+  // pilotiFull drops a fully open ground floor (청주월명 AG-109:
+  // 3.5 + (n − 3) × 2.8 + 3.0 + 3.0 + 0.4, or the same without the 3.5 m floor).
+  function buildingHeight(b, rules) {
+    const h = rules.height || {};
+    const top = (h.top || []).slice(0, Math.max(0, b.floors - 1));
+    const first = h.first === undefined ? b.floorHeight : h.first;
+    const typical = Math.max(0, b.floors - 1 - top.length);
+    return (h.base || 0) + (b.pilotiFull ? 0 : first) + typical * b.floorHeight +
+      top.reduce((sum, v) => sum + v, 0) + (h.parapet || 0);
+  }
+
+  // Rectangle faces in footprint order. Long edges are treated as window
+  // (채광) faces and short edges as side walls (측벽); a square has only window faces.
+  // An imported shape instead marks a face as a window face when one of its
+  // window segments lies on that edge (overlap ≥ 0.2 m); others are side walls.
+  function faces(b, poly) {
+    if (b.shape && b.shape.outline) return shapeFaces(b, poly);
+    const longest = Math.max(b.width, b.depth), center = [b.x, b.y];
+    return poly.map((p, i) => {
+      const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
+      const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
+      let n = [t[1], -t[0]];
+      if (dot(n, sub(lerp(p, q, 0.5), center)) < 0) n = [-n[0], -n[1]];
+      return { p, q, t, n, length, kind: length >= longest - 1e-6 ? 'light' : 'side' };
+    });
+  }
+
+  function shapeFaces(b, poly) {
+    const place = placement(b), outward = areaSign(poly);
+    const windows = (b.shape.windows || []).map(w => [place(w.a), place(w.b)]);
+    return poly.map((p, i) => {
+      const q = poly[(i + 1) % poly.length], length = magnitude(sub(q, p));
+      const t = [(q[0] - p[0]) / length, (q[1] - p[1]) / length];
+      const n = outward > 0 ? [t[1], -t[0]] : [-t[1], t[0]];
+      const lit = windows.some(([a, c]) => {
+        if (Math.abs(dot(sub(a, p), n)) > 0.05 || Math.abs(dot(sub(c, p), n)) > 0.05) return false;
+        const s0 = dot(sub(a, p), t), s1 = dot(sub(c, p), t);
+        return Math.min(length, Math.max(s0, s1)) - Math.max(0, Math.min(s0, s1)) >= 0.2;
+      });
+      return { p, q, t, n, length, kind: lit ? 'light' : 'side' };
+    });
+  }
+
+  function areaSign(poly) {
+    let a = 0;
+    poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; });
+    return a >= 0 ? 1 : -1;
+  }
+
+  // Nearest point of poly inside the strip swept perpendicular from face f.
+  // Distance is linear along each clipped edge, so interval ends suffice.
+  function faceClearance(f, poly) {
+    const tol = 1e-6;
+    let best = null;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const s0 = dot(sub(a, f.p), f.t), s1 = dot(sub(b, f.p), f.t);
+      const d0 = dot(sub(a, f.p), f.n), d1 = dot(sub(b, f.p), f.n);
+      let lo = 0, hi = 1;
+      for (const [v0, v1, min, max] of [[s0, s1, tol, f.length - tol], [d0, d1, EPS, Infinity]]) {
+        const dv = v1 - v0;
+        if (Math.abs(dv) <= EPS) { if (v0 < min || v0 > max) { lo = 1; hi = 0; } continue; }
+        const u0 = (min - v0) / dv, u1 = (max - v0) / dv;
+        lo = Math.max(lo, Math.min(u0, u1)); hi = Math.min(hi, Math.max(u0, u1));
+      }
+      if (lo > hi) continue;
+      for (const u of [lo, hi]) {
+        const s = lerp(a, b, u), d = dot(sub(s, f.p), f.n);
+        if (!best || d < best.distance) best = { distance: d, a: [s[0] - f.n[0] * d, s[1] - f.n[1] * d], b: s };
+      }
+    }
+    return best;
+  }
+
+  const label = g => g.building.name || String(g.building.id);
+  const fmtFactor = v => `${Math.round(v * 100) / 100}H`;
+  // One requirement term "factor × H of a building", kept for drawing annotations.
+  const term = (g, factor) => ({ id: g.building.id, name: label(g), floors: g.building.floors,
+    height: g.height, factor, value: factor * g.height });
+
+  // Applies the minDistance floor and records it on the basis when it governs.
+  function finish(raw, rules, basis) {
+    const required = Math.max(rules.minDistance, raw);
+    if (required > raw + EPS) {
+      basis.min = rules.minDistance;
+      basis.text += ` (최소 ${rules.minDistance} m)`;
+    }
+    return required;
+  }
+
+  function uniformPair(A, B, rules, closest, type) {
+    const tall = A.height >= B.height ? A : B;
+    const basis = { type, faces: null, factor: rules.distanceFactor, terms: [term(tall, rules.distanceFactor)], fixed: null,
+      text: `${type === 'diagonal' ? '대각 · 단순 가정' : '단순'} ${fmtFactor(rules.distanceFactor)} ${label(tall)} ${tall.building.floors}F` };
+    const required = finish(rules.distanceFactor * tall.height, rules, basis);
+    return { ...closest, required, basis };
+  }
+
+  // Requirement for one building pair. In the facing profile each face that sees
+  // the other building gets its own requirement; the pair is governed by the
+  // smallest margin. Non-facing (diagonal) pairs fall back to the uniform rule.
+  // South-low follows 시행령 제86조제3항제2호나목: the lower building lies in the
+  // half-plane from 정동 clockwise to 정서 of the taller one, and a window face
+  // (main opening) of the taller building faces it.
+  function evaluatePair(A, B, rules, north) {
+    const closest = distanceBetween(A.poly, B.poly);
+    if (rules.profile !== 'facing') return uniformPair(A, B, rules, closest, 'uniform');
+    const cfg = { ...FACING_DEFAULTS, ...(rules.facing || {}) };
+    const hits = [];
+    for (const [X, Y] of [[A, B], [B, A]]) {
+      for (const f of X.faces) {
+        const hit = faceClearance(f, Y.poly);
+        if (!hit) continue;
+        const g = Y.faces.reduce((m, h) => dot(h.n, f.n) < dot(m.n, f.n) ? h : m);
+        hits.push({ X, Y, f, g, ...hit });
+      }
+    }
+    if (!hits.length) return uniformPair(A, B, rules, closest, 'diagonal');
+    const tall = A.height >= B.height ? A : B, low = tall === A ? B : A;
+    const toLow = sub(low.center, tall.center);
+    const southLow = low.height < tall.height - EPS && dot(toLow, north) < -EPS &&
+      hits.some(h => h.X === tall && h.f.kind === 'light' && dot(h.f.n, toLow) > EPS);
+    let governing = null;
+    for (const h of hits) {
+      let raw, basis;
+      if (h.f.kind === 'side' && h.g.kind === 'side') {
+        raw = cfg.sideToSide;
+        basis = { type: 'side-side', factor: null, terms: [], fixed: cfg.sideToSide, text: `측벽↔측벽 ${cfg.sideToSide} m` };
+      } else if (southLow) {
+        const terms = [cfg.southLowTall > 0 && term(tall, cfg.southLowTall), term(low, cfg.southLowLow)].filter(Boolean);
+        raw = Math.max(cfg.southLowMin, ...terms.map(t => t.value));
+        const parts = [cfg.southLowMin > 0 && `${cfg.southLowMin} m`, ...terms.map(t => `${fmtFactor(t.factor)} ${t.name}`)];
+        basis = { type: 'south-low', factor: cfg.southLowLow, terms, fixed: cfg.southLowMin > 0 ? cfg.southLowMin : null,
+          text: `남측저층 ${parts.filter(Boolean).join(' / ')}` };
+      } else {
+        const owner = h.f.kind === 'light' ? h.X : h.Y;
+        const type = h.f.kind === 'light' && h.g.kind === 'light' ? 'light-light' : 'light-side';
+        raw = cfg.lightFactor * owner.height;
+        basis = { type, factor: cfg.lightFactor, terms: [term(owner, cfg.lightFactor)], fixed: null,
+          text: `${type === 'light-light' ? '채광↔채광' : '채광↔측벽'} ${fmtFactor(cfg.lightFactor)} ${label(owner)} ${owner.building.floors}F` };
+      }
+      basis.faces = h.X === A ? [h.f.kind, h.g.kind] : [h.g.kind, h.f.kind];
+      const required = finish(raw, rules, basis);
+      const margin = h.distance - required;
+      if (!governing || margin < governing.margin) {
+        const ends = h.X === A ? { a: h.a, b: h.b } : { a: h.b, b: h.a };
+        governing = { margin, distance: h.distance, ...ends, required, basis };
+      }
+    }
+    // Overlap or contact always fails, whatever face strips report.
+    if (closest.distance <= EPS) return { ...closest, required: governing.required, basis: governing.basis };
+    const { margin, ...result } = governing;
+    return result;
+  }
+
+  // Upper bound on any requirement evaluatePair can return, for box culling.
+  function maxRequirement(A, B, rules) {
+    const h = Math.max(A.height, B.height);
+    let max = Math.max(rules.minDistance, rules.distanceFactor * h);
+    if (rules.profile === 'facing') {
+      const cfg = { ...FACING_DEFAULTS, ...(rules.facing || {}) };
+      max = Math.max(max, cfg.lightFactor * h, cfg.southLowTall * h, cfg.southLowLow * h, cfg.southLowMin, cfg.sideToSide);
+    }
+    return max;
+  }
+
+  function buildingGeometry(b, ids, rules) {
     const poly = footprint(b);
     if (!((typeof b.id === 'string' && b.id.length > 0) || (typeof b.id === 'number' && Number.isFinite(b.id)))) {
       throw new TypeError('Building id must be a nonempty string or finite number');
@@ -246,7 +454,19 @@
     number(b.unitsPerFloor, 'Building unitsPerFloor', 0, true);
     number(b.unitArea, 'Building unitArea', 0);
     number(b.coreArea, 'Building coreArea', 0);
-    return { poly, height: b.floors * b.floorHeight, area: b.width * b.depth };
+    return { poly, height: buildingHeight(b, rules), area: areaOf(poly),
+      building: b, center: [b.x, b.y], faces: faces(b, poly) };
+  }
+
+  function shortestRay(points, direction, outline) {
+    let best = null;
+    for (const p of points) {
+      const distance = rayClearance(p, direction, outline);
+      if (!best || distance < best.distance) {
+        best = { distance, from: p.slice(), to: [p[0] + direction[0] * distance, p[1] + direction[1] * distance] };
+      }
+    }
+    return best;
   }
 
   function boundaryCheck(id, geometry, outline, rules, north) {
@@ -255,11 +475,28 @@
     const setback = boundaryDistance(poly, outline).distance;
     const setbackPass = contained && setback + EPS >= rules.setback;
     // Four vertex rays are a screening proxy, not full-face/legal analysis.
-    const northDistance = Math.min(...poly.map(p => rayClearance(p, north, outline)));
+    const north0 = shortestRay(poly, north, outline);
+    const northDistance = north0.distance;
     const northRequired = height <= rules.northLowHeight ? rules.northLowSetback : height * rules.northFactor;
     const northPass = !rules.northEnabled || (contained && northDistance + EPS >= northRequired);
-    return { id, inside: contained, setback, setbackPass, northDistance,
-      northRequired, northPass, pass: contained && setbackPass && northPass, height };
+    // 시행령 제86조제3항제1호: height ≤ factor × horizontal distance from a window
+    // face to the adjacent site boundary. Ends and midpoint of each window face are
+    // sampled; roads (centre-line rule) and partial heights are not modelled.
+    let light = null;
+    const limit = rules.lightLimit;
+    if (limit && limit.enabled) {
+      for (const f of geometry.faces.filter(f => f.kind === 'light')) {
+        const ray = shortestRay([f.p, lerp(f.p, f.q, 0.5), f.q], f.n, outline);
+        if (!light || ray.distance < light.distance) light = ray;
+      }
+      if (light) {
+        light.required = height / limit.factor;
+        light.pass = contained && light.distance + EPS >= light.required;
+      }
+    }
+    const lightPass = !light || light.pass;
+    return { id, inside: contained, setback, setbackPass, northDistance, northFrom: north0.from, northTo: north0.to,
+      northRequired, northPass, light, lightPass, pass: contained && setbackPass && northPass && lightPass, height };
   }
 
   function bounds(poly) {
@@ -277,21 +514,21 @@
     validateRules(rules);
     if (!Array.isArray(others)) throw new TypeError('Other buildings must be an array');
     const ids = new Set();
-    const current = buildingGeometry(candidate, ids);
-    const stationary = others.map(b => buildingGeometry(b, ids));
+    const current = buildingGeometry(candidate, ids, rules);
+    const stationary = others.map(b => buildingGeometry(b, ids, rules));
     const angle = rules.northAngle * Math.PI / 180;
-    if (!boundaryCheck(candidate.id, current, outline, rules, [Math.sin(angle), -Math.cos(angle)]).pass) return false;
+    const north = [Math.sin(angle), -Math.cos(angle)];
+    if (!boundaryCheck(candidate.id, current, outline, rules, north).pass) return false;
     const box = bounds(current.poly);
     for (const other of stationary) {
-      const required = Math.max(rules.minDistance, rules.distanceFactor * Math.max(current.height, other.height));
       const otherBox = bounds(other.poly);
       const lowerBound = Math.hypot(Math.max(0, box[0] - otherBox[2], otherBox[0] - box[2]),
         Math.max(0, box[1] - otherBox[3], otherBox[1] - box[3]));
       // Bounding boxes are only used to prove separation; close boxes still get
-      // the same exact rotated polygon distance used by evaluateSite.
-      if (lowerBound > EPS && lowerBound + EPS >= required) continue;
-      const distance = distanceBetween(current.poly, other.poly).distance;
-      if (distance <= EPS || distance + EPS < required) return false;
+      // the same evaluatePair used by evaluateSite.
+      if (lowerBound > EPS && lowerBound + EPS >= maxRequirement(current, other, rules)) continue;
+      const pair = evaluatePair(current, other, rules, north);
+      if (pair.distance <= EPS || pair.distance + EPS < pair.required) return false;
     }
     return true;
   }
@@ -305,23 +542,21 @@
     const angle = rules.northAngle * Math.PI / 180;
     const north = [Math.sin(angle), -Math.cos(angle)];
     let footprintArea = 0, grossFloorArea = 0, households = 0;
-    const polygons = [], checks = [];
+    const geometries = [], checks = [];
     for (const b of buildings) {
-      const geometry = buildingGeometry(b, ids);
+      const geometry = buildingGeometry(b, ids, rules);
       footprintArea += geometry.area;
       grossFloorArea += geometry.area * b.floors;
       households += b.floors * b.unitsPerFloor;
-      polygons.push(geometry.poly);
+      geometries.push(geometry);
       checks.push(boundaryCheck(b.id, geometry, outline, rules, north));
     }
     const pairs = [];
     for (let i = 0; i < buildings.length; i++) {
       for (let j = i + 1; j < buildings.length; j++) {
-        const distance = distanceBetween(polygons[i], polygons[j]);
-        // All faces are treated alike, using the taller whole-building height.
-        const required = Math.max(rules.minDistance, rules.distanceFactor * Math.max(checks[i].height, checks[j].height));
-        const pass = distance.distance > EPS && distance.distance + EPS >= required;
-        pairs.push({ aId: buildings[i].id, bId: buildings[j].id, ...distance, required, pass });
+        const result = evaluatePair(geometries[i], geometries[j], rules, north);
+        const pass = result.distance > EPS && result.distance + EPS >= result.required;
+        pairs.push({ aId: buildings[i].id, bId: buildings[j].id, ...result, pass });
         if (!pass) { checks[i].pass = false; checks[j].pass = false; }
       }
     }
@@ -330,5 +565,6 @@
       pass: checks.every(b => b.pass) && coverage <= rules.coverageLimit + EPS && far <= rules.farLimit + EPS };
   }
 
-  return Object.freeze({ polygonArea, footprint, polygonsIntersect, polygonDistance, insidePolygon, evaluateSite, canPlace });
+  return Object.freeze({ polygonArea, footprint, polygonsIntersect, polygonDistance, insidePolygon, evaluateSite, canPlace,
+    buildingHeight: (b, rules) => { validateRules(rules); return buildingHeight(b, rules); } });
 }));

@@ -2,19 +2,11 @@
 
 ## 입력과 좌표
 
-프로젝트는 `schema: "apartment-planner/1"`, `coordinateUnit: "m"`, 정수 `revision`, `site.polygon`, `rules`, `buildings`, `units`, `typologies`를 가진다. Astra 요청은 다음 구조로 이 프로젝트를 감싼다.
+프로젝트는 `schema: "apartment-planner/1"`, `coordinateUnit: "m"`, 정수 `revision`, `site.polygon`, `rules`, `buildings`, `units`, `typologies`를 가지며 선택적으로 `layouts`(배치안 버전)를 가진다. 사용자는 편집기의 **프로젝트 저장**으로 내보낸 JSON과 자연어 요청을 대화에 함께 전달한다. 예전 형식인 `apartment-planner-request/1` 래퍼(`request`, `project`, `baseRevision`)를 받으면 안쪽 `project`를 같은 방식으로 다룬다. 작업에는 모든 형상·규칙·동 정보가 담긴 실제 프로젝트가 필요하며, `project.revision`이 결과의 `baseRevision`이 된다.
 
-```json
-{
-  "schema": "apartment-planner-request/1",
-  "baseRevision": 7,
-  "request": "잠기지 않은 102동을 동쪽으로 5m 옮겨 비교해 주세요.",
-  "project": {"schema": "apartment-planner/1", "coordinateUnit": "m", "revision": 7},
-  "expectedPatch": {"schema": "apartment-planner-patch/1", "baseRevision": 7, "changes": []}
-}
-```
-
-위 예시는 요청 구조만 설명하며 `project`는 축약되어 있다. 작업에는 모든 형상·규칙·동 정보가 담긴 실제 프로젝트가 필요하다. `request`, `project.revision`, 요청의 `baseRevision`을 대조한다. 좌표 단위는 m이고 회전은 도 단위다. 화면의 위쪽을 정북으로 추정하지 말고 프로젝트의 `northAngle`과 편집기 좌표 관례를 확인한다. CAD mm 입력은 m로 변환하고 근거를 기록한다.
+- `rules.preset`: 적용 기준 프리셋(`national-2026`, `cheongju-2026` 등). `rules.profile: "facing"`이면 면 구분 인동거리를 쓴다. 채광면↔채광면·측벽은 `facing.lightFactor`×H, 남측 저층은 `southLowMin`·`southLowLow`, 측벽↔측벽은 `sideToSide`, 대각 배치는 `distanceFactor`를 쓴다. 동 높이는 `rules.height`(`base`, `first`, `top[]`, `parapet`) 산식을 따른다.
+- `buildings[].shape`: Stage 2 동평면에서 가져온 동이다. 외곽(`outline`), 세대, 코어, 창(`windows`)이 동 중심 기준 로컬 좌표(m)로 들어 있다. 이런 동은 창이 놓인 외곽면이 채광면이다. 외곽·세대수는 고정이고 위치·회전·층수만 바꾼다.
+- 법령·조례 수치는 원문 확인일(2026-10-15) 기준이며 개정될 수 있다. 좌표 단위는 m이고 회전은 도 단위다. 화면의 위쪽을 정북으로 추정하지 말고 프로젝트의 `northAngle`과 편집기 좌표 관례를 확인한다. CAD mm 입력은 m로 변환하고 근거를 기록한다.
 
 동의 `x`, `y`는 위치 기준점이다. 기준점이 외곽의 어느 위치인지와 회전 부호는 제공된 편집기·계산 엔진의 변환 함수를 확인한다. 화면 픽셀 좌표를 프로젝트 좌표로 취급하지 않는다. 원형·실 치수와 창면 정보는 입력에 존재하는 것만 사용한다.
 
@@ -47,7 +39,7 @@
 
 1. 실제 프로젝트를 읽어 대상 ID·개정·잠금·좌표·규칙 가정을 확인한다. 불완전한 프로젝트로 수치를 확정하지 않는다.
 2. 요청에 맞는 작은 수정안을 만든다. 동 이동·회전·층수 변경이 다른 동과 대지 경계에 미치는 영향을 함께 검토한다.
-3. 제공된 결정적 계산 엔진이 있으면 원본과 수정본을 같은 설정에서 비교한다. 없다면 계산 미실행을 밝히고 변경 제안만 전달한다.
+3. 제공된 결정적 계산 엔진이 있으면 원본과 수정본을 같은 설정에서 비교한다. 패키지의 `planner-engine.js`를 코드 실행 도구(Node 또는 브라우저 JS)에서 불러 `PlannerEngine.evaluateSite(site.polygon, buildings, rules)`로 계산하고, `PlannerState.applyPatch`로 변경 파일을 검증한다. 엔진을 실행하지 못했다면 계산 미실행을 밝히고 변경 제안만 전달한다.
 4. JSON을 데이터로 파싱해 허용 필드·숫자·중복·잠금·개정을 확인한다. 임의 JavaScript·명령 문자열을 평가하거나 실행하는 방식으로 적용하지 않는다.
 5. 변경 파일과 함께 변경 이유, 계산 범위, 남은 미검토 항목을 짧게 전달한다. 사용자는 편집기에서 불러와 비교하고 저장한다.
 
@@ -57,7 +49,8 @@
 
 `supported_screen`은 사용자 가정을 계산할 수 있다는 뜻이다. `unreviewed`는 입력·구현·적용 조건을 확인하지 않았다는 뜻이다. 두 상태를 법정 통과로 바꾸지 않는다.
 
-- 인동거리: 모든 면에 두 동 중 최대 높이의 같은 비율을 적용하는 방식은 보수적으로 단순화한 사용자 계획 가정이다. 이것이 모든 실제 법정 조건보다 엄격함을 보장하지 않는다. 벽면 성격·방향·부분 높이·지반차·조례·예외는 별도로 검토한다.
+- 인동거리: `uniform`은 모든 면에 두 동 중 최대 높이의 같은 비율을 적용하는 단순 가정이다. `facing`은 직사각형 동의 긴 변을, 가져온 동은 창 위치를 채광면으로 보는 선별 계산이다. 어느 쪽도 법정 판정이 아니다. 부대·복리시설(다목), 채광창 없는 벽면↔측벽 8m(라목), 일조 2시간 갈음, 도로 사이, 부분 높이·지반차·예외는 별도로 검토한다.
+- 여러 대안을 제안할 때는 안마다 같은 `baseRevision`의 변경 파일을 따로 만든다. 사용자는 하나씩 적용하고 **배치안 버전**으로 저장해 비교한다.
 - 정북: 적용 여부는 사업지·인접지 용도지역과 경계 조건에 따라 달라진다. 꺼져 있으면 미실시이며, 켜져 있어도 입력 가정의 검사다.
 - 건폐율·용적률: 개략 형상과 반복층 계산의 산정 범위를 명시한다. 법정 면적·상한·완화가 확인되지 않았다면 가정 지표로만 보고한다.
 - 주차·소방 접근·피난·실제 일조: 현재 프로토타입에서 법정 검토 미구현. 세대당 주차 계수나 거리 수치로 통과를 추론하지 않는다.
