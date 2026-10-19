@@ -9,6 +9,7 @@
 | `LLM-지침.md` | Claude 프로젝트 지침이나 ChatGPT GPT 지침에 붙여 넣는 작업 규칙입니다. |
 | `planner-engine.js` | 앱과 같은 계산 엔진입니다. LLM의 코드 실행 도구에서 배치안을 검증할 때 씁니다. |
 | `rules-reference.json` | 법령 출처, 확인일, 검토 항목별 구현 범위입니다. |
+| `project.json` | HTML에 기본으로 들어 있는 시작 프로젝트입니다. 단지배치 101~105동과 배치안 버전 4개가 들어 있습니다(REV 474). LLM에 그대로 첨부해도 됩니다. |
 
 `../skill-package/apartment-feasibility/`에는 같은 절차가 Claude 스킬 형식으로 들어 있습니다.
 
@@ -36,10 +37,12 @@ Stage 2에서 만든 동평면(`apartment-planner-building/1`)도 **불러오기
 node tools/build-package.cjs
 ```
 
-시작 프로젝트를 넣어 만들려면 `--project`를 씁니다. 브라우저에 저장된 작업이 있으면 그쪽이 우선합니다.
+빌드하면 `package/project.json`이 시작 프로젝트로 HTML에 들어갑니다. 다른 프로젝트를 넣으려면 `--project`를, 아무것도 넣지 않으려면 `--no-project`를 씁니다. 어느 경우든 브라우저에 저장된 작업이 있으면 그쪽이 우선합니다.
 
 ```bash
 node tools/build-package.cjs --project my-project.json
 ```
+
+기본 배치를 바꾸려면 앱에서 **프로젝트 저장**으로 내려받은 파일로 `package/project.json`을 바꾼 뒤 다시 빌드합니다.
 
 화면의 수치는 입력한 가정에 대한 기하 검토입니다. 법령·조례는 개정될 수 있으므로, 적용 시점에 원문을 다시 확인하세요.
